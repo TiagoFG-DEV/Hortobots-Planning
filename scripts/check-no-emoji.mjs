@@ -1,0 +1,4 @@
+import { readdir, readFile } from 'node:fs/promises'; import { extname, join } from 'node:path';
+const roots=['apps','packages','supabase','scripts','docs']; const textExt=new Set(['.ts','.tsx','.js','.mjs','.json','.md','.sql','.css','.html','.yml','.yaml']); const emoji=/\p{Extended_Pictographic}|[\u{1F1E6}-\u{1F1FF}]|\uFE0F|\u200D/u; let failed=false;
+async function walk(path){for(const item of await readdir(path,{withFileTypes:true})){if(['node_modules','dist'].includes(item.name))continue; const full=join(path,item.name); if(item.isDirectory())await walk(full); else if(textExt.has(extname(item.name))&&emoji.test(await readFile(full,'utf8'))){console.error(`Caractere não permitido em ${full}`);failed=true;}}}
+for(const root of roots){try{await walk(root)}catch{}} try{if(emoji.test(await readFile('README.md','utf8'))){console.error('Caractere não permitido em README.md');failed=true}}catch{} process.exit(failed?1:0);

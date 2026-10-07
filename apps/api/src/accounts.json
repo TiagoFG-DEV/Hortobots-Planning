@@ -1,0 +1,6 @@
+[
+  {"username":"gestao","role":"management","salt":"78b5b1751628501c9983b561e56e30af","hash":"c564db70ef5af10f373a7ba1e72b0bebc90c901d724509fb9e7c2fa463a39d44b820effa3ba03f33d30efe958036cd2e18ef5c30771a91b6a46125d95d4ed4e9"},
+  {"username":"mentor","role":"mentor","salt":"875f7ee6480d1f7fa7577d7ad1443b1d","hash":"ddad905922b120ae95e4df113a69adcc1ec5535679f90c8c9799325635135db0ab9800bcb15e3d3441ef2685dd994ad50cc9dd0cc6cc57825a44dfe07fa93235"},
+  {"username":"obr","role":"obr","salt":"1a80ad26bf7ca79052c156dd20e531fc","hash":"05cb06a935b292f434b1f2c588d3881fecfb83cdc0b7aad9e01078d0d7474681dc998181b7f8f611723c215da766f3f149b9f8a39e0951c42b1bdb50c1af1f82"},
+  {"username":"fll","role":"fll","salt":"7a3ace28e5a2f1c5d04ca2c818e48e4b","hash":"7ce7c98c5d2b3119f4e65c077c1f2aca6052cc5b6f8440b39cdf5106717bf31331af31160324b82d9823d90a8cc8dac646084a10ccbee3077adaced946f88bbc"}
+]

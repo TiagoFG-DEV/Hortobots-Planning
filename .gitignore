@@ -1,0 +1,14 @@
+node_modules
+dist
+.env
+.env.*
+!.env.example
+playwright-report
+test-results
+backup
+Logs/**
+!Logs/*/
+!Logs/registros/.gitkeep
+!Logs/testes/.gitkeep
+!Logs/eventos/.gitkeep
+apps/api/Logs/

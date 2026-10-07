@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: hortobots-planning
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run check:emoji && npm run build
+    startCommand: npm run start -w @hortobots/api
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - { key: NODE_VERSION, value: "20" }
+      - { key: STORAGE_DRIVER, value: supabase }
+      - { key: SUPABASE_BUCKET, value: hortobots-planning }
+      - { key: SUPABASE_URL, sync: false }
+      - { key: SUPABASE_SERVICE_ROLE_KEY, sync: false }
+      - { key: WEB_ORIGIN, sync: false }
