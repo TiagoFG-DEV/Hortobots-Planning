@@ -24,6 +24,7 @@ import novo from './assets/generated/novo_registro_button.webp';
 import salvos from './assets/generated/registros_salvos_button.webp';
 import testsButton from './assets/originals/simulacoes_e_testes_button.png';
 import underBg from './assets/originals/fundo_underconstruction.png';
+import mascote from './assets/generated/mascote.webp';
 import { CalendarView } from './CalendarView';
 
 const API = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? 'http://localhost:3000' : '');
@@ -762,6 +763,18 @@ function Credits() {
   );
 }
 
+function TransitionScreen({ active }: { active: boolean }) {
+  return (
+    <div className={`screen-transition-overlay ${active ? 'active' : ''}`} aria-hidden="true">
+      <div className="transition-loader-card">
+        <img className="transition-mascot" src={mascote} alt="Carregando" />
+        <div className="transition-bar" />
+        <span className="transition-text">Carregando Diário</span>
+      </div>
+    </div>
+  );
+}
+
 export function App() {
   const [user, setUser] = useState<User | null>(() => {
     try {
@@ -772,28 +785,72 @@ export function App() {
   });
 
   const location = useLocation();
+  const navigate = useNavigate();
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  // Efeito de transição suave estilo videogame (fade out to black -> troca -> fade in)
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setIsTransitioning(true);
+    window.scrollTo(0, 0);
+
+    const timer = setTimeout(() => {
+      setIsTransitioning(false);
+    }, 280);
+
+    return () => clearTimeout(timer);
   }, [location.pathname]);
 
+  const handleLoginSuccess = (loggedUser: User) => {
+    setUser(loggedUser);
+    setIsTransitioning(true);
+    setTimeout(() => {
+      navigate('/home');
+      setIsTransitioning(false);
+    }, 250);
+  };
+
+  const handleLogout = () => {
+    setIsTransitioning(true);
+    setTimeout(() => {
+      sessionStorage.clear();
+      setUser(null);
+      navigate('/');
+      setIsTransitioning(false);
+    }, 250);
+  };
+
+  // Se o usuário NÃO estiver logado: a tela inicial (index) É SEMPRE o Login
+  if (!user) {
+    return (
+      <>
+        <TransitionScreen active={isTransitioning} />
+        <Routes>
+          <Route path="/" element={<Login onLogin={handleLoginSuccess} />} />
+          <Route path="/login" element={<Login onLogin={handleLoginSuccess} />} />
+          {/* Qualquer rota acessada sem autenticação redireciona para a tela de login inicial */}
+          <Route path="*" element={<Login onLogin={handleLoginSuccess} />} />
+        </Routes>
+      </>
+    );
+  }
+
+  // Usuário autenticado: acesso às áreas da plataforma
   return (
     <>
-      {user && (
-        <button
-          className="logout"
-          onClick={() => {
-            sessionStorage.clear();
-            setUser(null);
-          }}
-          title={'Sair (' + user.username + ')'}
-        >
-          <LogOut />
-        </button>
-      )}
+      <TransitionScreen active={isTransitioning} />
+      <button
+        className="logout"
+        onClick={handleLogout}
+        title={'Sair (' + user.username + ')'}
+        aria-label="Sair da conta"
+      >
+        <LogOut />
+      </button>
 
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/login" element={!user ? <Login onLogin={setUser} /> : <Home />} />
+        <Route path="/home" element={<Home />} />
+        <Route path="/login" element={<Home />} />
         <Route path="/calendario" element={<CalendarView api={api} user={user} />} />
         <Route path="/:mod" element={<Hub />} />
         <Route path="/:mod/registros" element={<Records />} />
@@ -807,3 +864,4 @@ export function App() {
     </>
   );
 }
+
