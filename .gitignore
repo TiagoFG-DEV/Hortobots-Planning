@@ -13,3 +13,5 @@ Logs/**
 !Logs/testes/.gitkeep
 !Logs/eventos/.gitkeep
 apps/api/Logs/
+backups/
+*.zip

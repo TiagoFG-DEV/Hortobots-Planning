@@ -1,0 +1,72 @@
+name: Automated Disaster Recovery & Database Backup
+
+on:
+  schedule:
+    # Executa todos os dias às 03:00 UTC (00:00 Horário de Brasília) de forma 100% autônoma
+    - cron: '0 3 * * *'
+  workflow_dispatch: # Permite disparo manual a qualquer momento via painel do GitHub Actions
+
+permissions:
+  contents: write # Permissão para criar GitHub Releases e anexar o arquivo ZIP
+
+jobs:
+  backup:
+    name: Backup Supabase (Database & Storage Media)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Backup Generator
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://zinsqfrstpqbnrrxwtnk.supabase.co' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_BUCKET: ${{ secrets.SUPABASE_BUCKET || 'hortobots-planning' }}
+        run: node scripts/backup-database.mjs
+
+      - name: Determine Backup Filename and Date Tag
+        id: backup_meta
+        run: |
+          BACKUP_FILE=$(ls backups/planning-data-*.zip | head -n 1)
+          FILE_NAME=$(basename "$BACKUP_FILE")
+          DATE_TAG="backup-$(date +'%Y-%m-%d-%H%M%S')"
+          echo "backup_file=$BACKUP_FILE" >> $GITHUB_OUTPUT
+          echo "file_name=$FILE_NAME" >> $GITHUB_OUTPUT
+          echo "date_tag=$DATE_TAG" >> $GITHUB_OUTPUT
+
+      - name: Upload Backup to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.backup_meta.outputs.date_tag }}
+          name: "📦 Backup ${{ steps.backup_meta.outputs.file_name }}"
+          body: |
+            ## 🛡️ Backup Automático - Hortobots Planning
+            **Data de Execução:** $(date -u)
+            **Arquivo:** `${{ steps.backup_meta.outputs.file_name }}`
+
+            Este backup contém:
+            - 📑 **database/records.json** (Todos os diários de bordo)
+            - 📑 **database/tests.json** (Todos os testes técnicos e simulações)
+            - 📑 **database/events.json** (Todos os eventos e datas do calendário)
+            - 🎥 **storage/** (Todas as imagens e vídeos originais)
+            - 📋 **MANIFEST.json** (Metadados e contagem de itens)
+          files: ${{ steps.backup_meta.outputs.backup_file }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Backup as Workflow Artifact (Redundância 90 dias)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.backup_meta.outputs.file_name }}
+          path: ${{ steps.backup_meta.outputs.backup_file }}
+          retention-days: 90
