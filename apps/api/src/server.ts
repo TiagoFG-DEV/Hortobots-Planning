@@ -113,9 +113,29 @@ app.get('/api/:kind', async (req, res) => {
   }
 });
 
-// Endpoint de Criação
+// Endpoint para buscar item individual por ID
+app.get('/api/:kind/:id', async (req: Request, res: Response) => {
+  const kind = String(req.params.kind) as 'registros' | 'testes' | 'eventos';
+  const id = String(req.params.id);
+  if (!['registros', 'testes', 'eventos'].includes(kind)) {
+    res.status(404).json({ error: { message: 'Recurso não encontrado.' } });
+    return;
+  }
+  try {
+    const item = await storageService.getItem(kind, id);
+    if (!item) {
+      res.status(404).json({ error: { message: 'Item não encontrado.' } });
+      return;
+    }
+    res.json(item);
+  } catch (err: any) {
+    res.status(500).json({ error: { message: 'Erro ao buscar item.' } });
+  }
+});
+
+// Endpoint de Criação (com upload de mídias para Supabase Storage)
 app.post('/api/:kind', authMiddleware, async (req: AuthRequest, res: Response) => {
-  const kind = req.params.kind as 'registros' | 'testes' | 'eventos';
+  const kind = String(req.params.kind) as 'registros' | 'testes' | 'eventos';
   const body = req.body || {};
   const user = req.user!;
   const modality = String(body.modality || 'FLL').toUpperCase();
@@ -139,18 +159,12 @@ app.post('/api/:kind', authMiddleware, async (req: AuthRequest, res: Response) =
   const id = randomBytes(4).toString('hex');
   const dateStr = body.date || new Date().toISOString().split('T')[0];
   const folderName = `${dateStr}-${id}`;
-  const targetDir = path.join(logsRoot, kind, folderName);
 
-  await mkdir(path.join(targetDir, 'midias'), { recursive: true });
-
+  // Processa uploads de mídias (imagens / vídeos) para Supabase Storage ou local
   const mediaList = [];
   for (const file of body.media || []) {
-    const match = String(file.data || '').match(/^data:([^;]+);base64,(.+)$/);
-    if (match && match[2]) {
-      const fileName = `${randomBytes(3).toString('hex')}-${sanitizeFilename(file.name || 'arquivo')}`;
-      await writeFile(path.join(targetDir, 'midias', fileName), Buffer.from(match[2], 'base64'));
-      mediaList.push({ name: file.name, type: file.type, path: `midias/${fileName}` });
-    }
+    const uploaded = await storageService.uploadMediaItem(kind, folderName, file);
+    mediaList.push(uploaded);
   }
 
   // Eventos começam como PENDENTE quando urgentes ou lançados por mentor, exigindo confirmação da Gestão
@@ -162,7 +176,7 @@ app.post('/api/:kind', authMiddleware, async (req: AuthRequest, res: Response) =
   const recordData = {
     ...body,
     id,
-    media: mediaList.length > 0 ? mediaList : body.media,
+    media: mediaList,
     status,
     createdBy: user.username,
     createdAt: new Date().toISOString()
@@ -174,6 +188,76 @@ app.post('/api/:kind', authMiddleware, async (req: AuthRequest, res: Response) =
   } catch (err: any) {
     res.status(500).json({ error: { message: 'Erro ao salvar no armazenamento.' } });
   }
+});
+
+// Endpoint de Atualização / Edição
+app.put('/api/:kind/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
+  const kind = String(req.params.kind) as 'registros' | 'testes' | 'eventos';
+  const id = String(req.params.id);
+  const body = req.body || {};
+  const user = req.user!;
+  const modality = String(body.modality || 'FLL').toUpperCase();
+
+  if (!['registros', 'testes', 'eventos'].includes(kind)) {
+    res.status(404).json({ error: { message: 'Recurso não encontrado.' } });
+    return;
+  }
+
+  if (kind === 'eventos' && user.role !== 'mentor' && user.role !== 'management') {
+    res.status(403).json({ error: { message: 'Somente Mentor ou Gestão pode editar eventos.' } });
+    return;
+  }
+
+  if (kind !== 'eventos' && !canWrite(user, modality)) {
+    res.status(403).json({ error: { message: 'Sem permissão para editar.' } });
+    return;
+  }
+
+  const dateStr = body.date || new Date().toISOString().split('T')[0];
+  const folderName = `${dateStr}-${id}`;
+
+  const mediaList = [];
+  for (const file of body.media || []) {
+    const uploaded = await storageService.uploadMediaItem(kind, folderName, file);
+    mediaList.push(uploaded);
+  }
+
+  const updateData = {
+    ...body,
+    media: mediaList
+  };
+
+  try {
+    const updated = await storageService.updateItem(kind, id, updateData);
+    res.json(updated);
+  } catch (err: any) {
+    res.status(500).json({ error: { message: 'Erro ao atualizar dados.' } });
+  }
+});
+
+// Endpoint de Exclusão / Remoção
+app.delete('/api/:kind/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
+  const kind = String(req.params.kind) as 'registros' | 'testes' | 'eventos';
+  const id = String(req.params.id);
+  const user = req.user!;
+
+  if (!['registros', 'testes', 'eventos'].includes(kind)) {
+    res.status(404).json({ error: { message: 'Recurso não encontrado.' } });
+    return;
+  }
+
+  // Mentor e Gestão podem excluir; equipes podem excluir registros de suas modalidades
+  if (user.role === 'mentor' || user.role === 'management' || user.role === 'fll' || user.role === 'obr') {
+    try {
+      const result = await storageService.deleteItem(kind, id);
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ error: { message: 'Erro ao excluir item.' } });
+    }
+    return;
+  }
+
+  res.status(403).json({ error: { message: 'Sem permissão para exclusão.' } });
 });
 
 // Endpoint de Confirmação de Evento (Gestão autoriza)

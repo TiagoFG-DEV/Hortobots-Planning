@@ -9,8 +9,8 @@ services:
     autoDeploy: true
     envVars:
       - { key: NODE_VERSION, value: "20" }
-      - { key: STORAGE_DRIVER, value: supabase }
-      - { key: SUPABASE_BUCKET, value: hortobots-planning }
-      - { key: SUPABASE_URL, sync: false }
+      - { key: STORAGE_DRIVER, value: "supabase" }
+      - { key: SUPABASE_BUCKET, value: "hortobots-planning" }
+      - { key: SUPABASE_URL, value: "https://zinsqfrstpqbnrrxwtnk.supabase.co" }
       - { key: SUPABASE_SERVICE_ROLE_KEY, sync: false }
-      - { key: WEB_ORIGIN, sync: false }
+      - { key: WEB_ORIGIN, value: "*" }

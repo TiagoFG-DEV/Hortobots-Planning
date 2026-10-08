@@ -3,6 +3,8 @@ import { Routes, Route, Link, useLocation, useNavigate, useParams } from 'react-
 import {
   CalendarDays,
   ChartNoAxesCombined,
+  CheckCircle2,
+  Edit3,
   FileText,
   Home as HomeIcon,
   Image as ImageIcon,
@@ -277,8 +279,9 @@ function Records() {
   const [date, setDate] = useState('');
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [actionMsg, setActionMsg] = useState('');
 
-  useEffect(() => {
+  const loadRecords = () => {
     setLoading(true);
     void api('/api/registros')
       .then((all: any[]) => {
@@ -287,7 +290,25 @@ function Records() {
       })
       .catch(() => setItems([]))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadRecords();
   }, [mod]);
+
+  const handleDelete = async (id: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!window.confirm('Tem certeza que deseja excluir este registro?')) return;
+    try {
+      await api(`/api/registros/${id}`, { method: 'DELETE' });
+      setItems(prev => prev.filter(r => r.id !== id));
+      setActionMsg('SUCESSO: REGISTRO REMOVIDO DO BANCO DE DADOS!');
+      setTimeout(() => setActionMsg(''), 4000);
+    } catch (err: any) {
+      alert(err.message || 'Erro ao excluir registro');
+    }
+  };
 
   const shown = items
     .filter(r => !date || r.date === date)
@@ -299,6 +320,14 @@ function Records() {
         <div className="page-title">
           <h1>Registros salvos &bull; {mod.toUpperCase()}</h1>
         </div>
+
+        {actionMsg && (
+          <div className="celebration-banner" style={{ marginBottom: '1.2rem' }}>
+            <CheckCircle2 size={20} />
+            <span>{actionMsg}</span>
+          </div>
+        )}
+
         <div className="filters">
           <label>
             <Search />
@@ -312,19 +341,42 @@ function Records() {
         <div className="record-list">
           {shown.length > 0 ? (
             shown.map(r => (
-              <Link className="record-card" to={`/${mod}/registro/${r.id}`} key={r.id}>
-                <div className="date-tab">
-                  {String(r.date || '').slice(8)}
-                  <small>
-                    {String(r.date || '').slice(5, 7)}/{String(r.date || '').slice(0, 4)}
-                  </small>
-                </div>
-                <div>
-                  <span className="kicker">{(r.tags || []).join(' · ')}</span>
-                  <h2>{r.title}</h2>
-                  <p>{r.summary}</p>
-                </div>
-              </Link>
+              <div className="record-card-container" key={r.id} style={{ position: 'relative' }}>
+                <Link className="record-card" to={`/${mod}/registro/${r.id}`}>
+                  <div className="date-tab">
+                    {String(r.date || '').slice(8)}
+                    <small>
+                      {String(r.date || '').slice(5, 7)}/{String(r.date || '').slice(0, 4)}
+                    </small>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <span className="kicker">{(r.tags || []).join(' · ')}</span>
+                    <h2>{r.title}</h2>
+                    <p>{r.summary}</p>
+                  </div>
+                </Link>
+                {auth() && (
+                  <div style={{ position: 'absolute', right: '1rem', top: '1rem', display: 'flex', gap: '0.4rem', zIndex: 2 }}>
+                    <Link
+                      to={`/${mod}/editar/${r.id}`}
+                      className="btn-action-edit"
+                      style={{ padding: '0.4rem 0.6rem' }}
+                      title="Editar"
+                    >
+                      <Edit3 size={13} />
+                    </Link>
+                    <button
+                      type="button"
+                      className="btn-action-delete"
+                      style={{ padding: '0.4rem 0.6rem' }}
+                      onClick={(e) => handleDelete(r.id, e)}
+                      title="Excluir"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                )}
+              </div>
             ))
           ) : (
             <div className="empty-public">
@@ -430,13 +482,42 @@ function MediaPagePanel({
   );
 }
 
-function Editor() {
-  const { mod = 'fll' } = useParams();
+function Editor({ isEdit }: { isEdit?: boolean }) {
+  const { mod = 'fll', id } = useParams();
+  const navigate = useNavigate();
   const [form, setForm] = useState({ date: today, title: '', summary: '', tags: ['treino'] });
   const [tag, setTag] = useState('');
   const [media, setMedia] = useState<MediaSlot[]>([]);
   const [focusSlot, setFocusSlot] = useState<MediaSlot | null>(null);
-  const [saved, setSaved] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [celebration, setCelebration] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+
+  // Se for modo edição, carrega dados atuais
+  useEffect(() => {
+    if (isEdit && id) {
+      api(`/api/registros/${id}`)
+        .then((rec: any) => {
+          if (rec) {
+            setForm({
+              date: rec.date || today,
+              title: rec.title || '',
+              summary: rec.summary || '',
+              tags: Array.isArray(rec.tags) ? rec.tags : ['treino']
+            });
+            if (Array.isArray(rec.media)) {
+              setMedia(rec.media.map((m: any) => ({
+                name: m.name || 'Arquivo',
+                type: m.type || 'image/jpeg',
+                data: m.data || '',
+                url: m.url || ''
+              })));
+            }
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isEdit, id]);
 
   const addFiles = (fileList: FileList) => {
     const remaining = 4 - media.length;
@@ -455,14 +536,33 @@ function Editor() {
     setMedia(m => m.filter((_, i) => i !== idx));
 
   const save = async () => {
+    if (!form.title.trim()) {
+      setErrorMsg('Informe o título do registro.');
+      return;
+    }
+    setErrorMsg('');
+    setIsSaving(true);
     try {
-      await api('/api/registros', {
-        method: 'POST',
-        body: JSON.stringify({ ...form, modality: mod.toUpperCase(), media })
-      });
-      setSaved('Registro salvo com sucesso!');
+      if (isEdit && id) {
+        await api(`/api/registros/${id}`, {
+          method: 'PUT',
+          body: JSON.stringify({ ...form, modality: mod.toUpperCase(), media })
+        });
+      } else {
+        await api('/api/registros', {
+          method: 'POST',
+          body: JSON.stringify({ ...form, modality: mod.toUpperCase(), media })
+        });
+      }
+      setIsSaving(false);
+      setCelebration('SUCESSO: REGISTRO SALVO COM EXITO NO BANCO DE DADOS!');
+      // Redireciona para o calendário destacando o dia que foi gravado
+      setTimeout(() => {
+        navigate(`/calendario?date=${form.date}`, { state: { date: form.date } });
+      }, 1300);
     } catch (e) {
-      setSaved((e as Error).message);
+      setIsSaving(false);
+      setErrorMsg((e as Error).message);
     }
   };
 
@@ -478,7 +578,9 @@ function Editor() {
         <div className="notebook-editor">
           {/* Página Esquerda: Formulário */}
           <form className="notebook-form-page" onSubmit={e => e.preventDefault()}>
-            <span className="paper-label" style={{ textShadow: 'none' }}>NOVO REGISTRO · {mod.toUpperCase()}</span>
+            <span className="paper-label" style={{ textShadow: 'none' }}>
+              {isEdit ? 'EDITAR REGISTRO' : 'NOVO REGISTRO'} · {mod.toUpperCase()}
+            </span>
             <div className="ne-two">
               <label>
                 Data
@@ -512,16 +614,31 @@ function Editor() {
                 </span>
               ))}
             </div>
-            <button type="button" className="button ne-save" onClick={save}>
-              SALVAR REGISTRO
-            </button>
-            {saved && <p className="cal-alert-banner">{saved}</p>}
+
+            {errorMsg && <p className="form-error" role="alert">{errorMsg}</p>}
+
+            {/* Elemento de carregamento não-clicável ou banner de comemoração */}
+            {celebration ? (
+              <div className="celebration-banner">
+                <CheckCircle2 size={20} />
+                <span>{celebration}</span>
+              </div>
+            ) : isSaving ? (
+              <div className="saving-cloud-card">
+                <div className="saving-spinner" />
+                <span>ENVIANDO REGISTRO E MIDIAS PARA A NUVEM SUPABASE...</span>
+              </div>
+            ) : (
+              <button type="button" className="button ne-save" onClick={save}>
+                {isEdit ? 'SALVAR ALTERAÇÕES' : 'SALVAR REGISTRO'}
+              </button>
+            )}
           </form>
 
           {/* Spine / lombo do caderno */}
           <div className="notebook-spine" aria-hidden="true" />
 
-          {/* Página Direita: Mídia */}
+          {/* Página Direita: Mídia (Imagens e Vídeos com preview e player) */}
           <MediaPagePanel
             slots={media}
             onAdd={addFiles}
@@ -580,8 +697,9 @@ function Chart({ attempts, type }: { attempts: Attempt[]; type: string }) {
   );
 }
 
-function Tests() {
-  const { mod = 'fll' } = useParams();
+function Tests({ isEdit }: { isEdit?: boolean }) {
+  const { mod = 'fll', id } = useParams();
+  const navigate = useNavigate();
   const [team, setTeam] = useState('Hortobots');
   const [count, setCount] = useState(3);
   const [chart, setChart] = useState('line');
@@ -589,33 +707,98 @@ function Tests() {
     Array.from({ length: 15 }, () => ({ time: 150, score: 0, failures: 0, observed: 0 }))
   );
   const [focus, setFocus] = useState<string | null>(null);
-  const [media, setMedia] = useState<{ name: string; type: string; url: string; data: string }[]>([]);
-  const [saved, setSaved] = useState('');
+  const [media, setMedia] = useState<MediaSlot[]>([]);
+  const [focusSlot, setFocusSlot] = useState<MediaSlot | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [celebration, setCelebration] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
   const [base, setBase] = useState({ date: today, title: '', objective: '', comments: '', mission: '' });
 
-  const files = (e: React.ChangeEvent<HTMLInputElement>) =>
-    [...(e.target.files || [])].forEach(f => {
+  useEffect(() => {
+    if (isEdit && id) {
+      api(`/api/testes/${id}`)
+        .then((t: any) => {
+          if (t) {
+            setBase({
+              date: t.date || today,
+              title: t.title || '',
+              objective: t.objective || '',
+              comments: t.comments || '',
+              mission: t.mission || ''
+            });
+            if (t.team) setTeam(t.team);
+            if (t.chart) setChart(t.chart);
+            if (Array.isArray(t.attempts) && t.attempts.length > 0) {
+              setCount(t.attempts.length);
+              setAttempts(prev => {
+                const copy = [...prev];
+                t.attempts.forEach((att: any, idx: number) => {
+                  if (idx < copy.length) copy[idx] = att;
+                });
+                return copy;
+              });
+            }
+            if (Array.isArray(t.media)) {
+              setMedia(t.media.map((m: any) => ({
+                name: m.name || 'Arquivo',
+                type: m.type || 'image/jpeg',
+                data: m.data || '',
+                url: m.url || ''
+              })));
+            }
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isEdit, id]);
+
+  const addFiles = (fileList: FileList) => {
+    const remaining = 4 - media.length;
+    const toProcess = Array.from(fileList).slice(0, remaining);
+    toProcess.forEach(f => {
       const r = new FileReader();
-      r.onload = () => setMedia(m => [...m, { name: f.name, type: f.type, url: String(r.result), data: String(r.result) }]);
+      r.onload = () => {
+        const dataUrl = String(r.result);
+        setMedia(m => [...m, { name: f.name, type: f.type, data: dataUrl, url: dataUrl }]);
+      };
       r.readAsDataURL(f);
     });
+  };
+
+  const removeMedia = (idx: number) =>
+    setMedia(m => m.filter((_, i) => i !== idx));
 
   const save = async () => {
+    if (!base.title.trim()) {
+      setErrorMsg('Informe o nome do teste.');
+      return;
+    }
+    setErrorMsg('');
+    setIsSaving(true);
     try {
-      await api('/api/testes', {
-        method: 'POST',
-        body: JSON.stringify({
-          ...base,
-          modality: mod.toUpperCase(),
-          team,
-          chart,
-          attempts: attempts.slice(0, count),
-          media
-        })
-      });
-      setSaved('Teste salvo com sucesso!');
+      const payload = {
+        ...base,
+        modality: mod.toUpperCase(),
+        team,
+        chart,
+        attempts: attempts.slice(0, count),
+        media
+      };
+
+      if (isEdit && id) {
+        await api(`/api/testes/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
+      } else {
+        await api('/api/testes', { method: 'POST', body: JSON.stringify(payload) });
+      }
+
+      setIsSaving(false);
+      setCelebration('SUCESSO: TESTE E SIMULACAO SALVOS COM EXITO NO BANCO DE DADOS!');
+      setTimeout(() => {
+        navigate(`/calendario?date=${base.date}`, { state: { date: base.date } });
+      }, 1300);
     } catch (e) {
-      setSaved((e as Error).message);
+      setIsSaving(false);
+      setErrorMsg((e as Error).message);
     }
   };
 
@@ -628,7 +811,7 @@ function Tests() {
         <div className="tests-head">
           <div>
             <span className="kicker">SIMULAÇÕES E TESTES</span>
-            <h1>{mod.toUpperCase()}</h1>
+            <h1>{isEdit ? 'EDITAR TESTE' : mod.toUpperCase()}</h1>
           </div>
           {mod === 'fll' && (
             <select value={team} onChange={e => setTeam(e.target.value)}>
@@ -721,11 +904,27 @@ function Tests() {
               Comentários opcionais
               <AutoArea value={base.comments} onChange={e => setBase({ ...base, comments: e.target.value })} />
             </label>
-            <button className="button" type="button" onClick={save}>
-              SALVAR TESTE
-            </button>
-            {saved && <p className="cal-alert-banner">{saved}</p>}
+
+            {errorMsg && <p className="form-error" role="alert">{errorMsg}</p>}
+
+            {/* Elemento de carregamento não-clicável ou banner de celebração */}
+            {celebration ? (
+              <div className="celebration-banner">
+                <CheckCircle2 size={20} />
+                <span>{celebration}</span>
+              </div>
+            ) : isSaving ? (
+              <div className="saving-cloud-card">
+                <div className="saving-spinner" />
+                <span>ENVIANDO SIMULAÇÃO E MIDIAS PARA A NUVEM SUPABASE...</span>
+              </div>
+            ) : (
+              <button className="button" type="button" onClick={save}>
+                {isEdit ? 'SALVAR ALTERAÇÕES' : 'SALVAR TESTE'}
+              </button>
+            )}
           </section>
+
           <aside className="test-results">
             <div className="chart-tools">
               <select value={chart} onChange={e => setChart(e.target.value)}>
@@ -737,18 +936,17 @@ function Tests() {
             <button className="chart-focus" onClick={() => setFocus('chart')}>
               <Chart attempts={attempts.slice(0, count)} type={chart} />
             </button>
-            <label className="media-add">
-              <ImageIcon />
-              <Video />
-              Adicionar imagens ou vídeos
-              <input hidden multiple type="file" accept="image/*,video/*" onChange={files} />
-            </label>
-            <div className="media-grid">
-              {media.map((m, i) => (
-                <button key={i} onClick={() => setFocus(m.url)}>
-                  {m.type.startsWith('image') ? <img src={m.url} alt={m.name} /> : <video src={m.url} />}
-                </button>
-              ))}
+
+            {/* Painel de Upload e Prévia de Imagens e Vídeos */}
+            <div style={{ marginTop: '1.2rem' }}>
+              <span className="paper-label" style={{ textShadow: 'none', color: '#cbd5e1' }}>MÍDIAS DO TESTE (FOTOS E VÍDEOS)</span>
+              <MediaPagePanel
+                slots={media}
+                onAdd={addFiles}
+                onRemove={removeMedia}
+                focusSlot={focusSlot}
+                onFocus={setFocusSlot}
+              />
             </div>
           </aside>
         </div>
@@ -773,12 +971,29 @@ function SavedTests() {
   const { mod = 'fll' } = useParams();
   const [items, setItems] = useState<any[]>([]);
   const [q, setQ] = useState('');
+  const [actionMsg, setActionMsg] = useState('');
 
-  useEffect(() => {
+  const loadTests = () => {
     void api('/api/testes')
       .then((all: any[]) => setItems(all.filter(x => String(x.modality).toLowerCase() === mod)))
       .catch(() => {});
+  };
+
+  useEffect(() => {
+    loadTests();
   }, [mod]);
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Tem certeza que deseja excluir este teste?')) return;
+    try {
+      await api(`/api/testes/${id}`, { method: 'DELETE' });
+      setActionMsg('SUCESSO: TESTE EXCLUIDO DO BANCO DE DADOS!');
+      setItems(prev => prev.filter(x => x.id !== id));
+      setTimeout(() => setActionMsg(''), 4000);
+    } catch (err: any) {
+      alert(err.message || 'Erro ao excluir teste');
+    }
+  };
 
   const shown = items.filter(x => JSON.stringify(x).toLowerCase().includes(q.toLowerCase()));
 
@@ -792,6 +1007,14 @@ function SavedTests() {
           </div>
           {auth() && <Link className="button" to={'/' + mod + '/testes'}>LANÇAR NOVO TESTE</Link>}
         </div>
+
+        {actionMsg && (
+          <div className="celebration-banner" style={{ marginBottom: '1.2rem' }}>
+            <CheckCircle2 size={20} />
+            <span>{actionMsg}</span>
+          </div>
+        )}
+
         <div className="filters">
           <label>
             <Search />
@@ -801,20 +1024,36 @@ function SavedTests() {
         <div className="record-list">
           {shown.length ? (
             shown.map(x => (
-              <article className="record-card" key={x.id}>
-                <div className="date-tab">
-                  {String(x.date).slice(8)}
-                  <small>
-                    {String(x.date).slice(5, 7)}/{String(x.date).slice(0, 4)}
-                  </small>
+              <article className="record-card" key={x.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
+                  <div className="date-tab">
+                    {String(x.date).slice(8)}
+                    <small>
+                      {String(x.date).slice(5, 7)}/{String(x.date).slice(0, 4)}
+                    </small>
+                  </div>
+                  <div>
+                    <span className="kicker">
+                      {x.team || mod.toUpperCase()} &bull; {x.mission || 'TESTE TÉCNICO'}
+                    </span>
+                    <h2>{x.title}</h2>
+                    <p>{x.objective}</p>
+                  </div>
                 </div>
-                <div>
-                  <span className="kicker">
-                    {x.team || mod.toUpperCase()} &bull; {x.mission || 'TESTE TÉCNICO'}
-                  </span>
-                  <h2>{x.title}</h2>
-                  <p>{x.objective}</p>
-                </div>
+                {auth() && (
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <Link to={`/${mod}/testes/editar/${x.id}`} className="btn-action-edit">
+                      <Edit3 size={13} /> Editar
+                    </Link>
+                    <button
+                      type="button"
+                      className="btn-action-delete"
+                      onClick={() => handleDelete(x.id)}
+                    >
+                      <Trash2 size={13} /> Excluir
+                    </button>
+                  </div>
+                )}
               </article>
             ))
           ) : (
@@ -832,9 +1071,12 @@ function SavedTests() {
 
 function RecordView() {
   const { mod = 'fll', id } = useParams();
+  const navigate = useNavigate();
   const [rec, setRec] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [focusMedia, setFocusMedia] = useState<any>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [actionMsg, setActionMsg] = useState('');
 
   useEffect(() => {
     void api('/api/registros')
@@ -845,22 +1087,62 @@ function RecordView() {
       .finally(() => setLoading(false));
   }, [id]);
 
+  const handleDelete = async () => {
+    if (!window.confirm('Tem certeza que deseja excluir este registro do diário de bordo?')) return;
+    setIsDeleting(true);
+    try {
+      await api(`/api/registros/${id}`, { method: 'DELETE' });
+      setActionMsg('SUCESSO: REGISTRO EXCLUIDO DO BANCO DE DADOS!');
+      setTimeout(() => {
+        navigate(`/calendario?date=${rec?.date || ''}`, { state: { date: rec?.date } });
+      }, 1200);
+    } catch (err: any) {
+      alert(err.message || 'Erro ao excluir registro');
+      setIsDeleting(false);
+    }
+  };
+
   const mediaItems: any[] = Array.isArray(rec?.media) ? rec.media : [];
 
-  // Resolve URL da mídia: pode ser base64 (data:) ou um path relativo do servidor
+  // Resolve URL da mídia: se já for URL pública do Supabase Storage ou data:, usa direto
   const resolveUrl = (m: any): string => {
-    if (String(m.data || m.url || '').startsWith('data:')) return m.data || m.url;
-    // Arquivo salvo no servidor; usa path relativo ao endpoint de mídia
-    const folder = `${rec.date}-${rec.id}`;
+    if (String(m.url || '').startsWith('http')) return m.url;
+    if (String(m.data || '').startsWith('data:')) return m.data;
+    const folder = `${rec?.date}-${rec?.id}`;
     return `${API}/api/media/registros/${folder}/${m.path || m.name}`;
   };
 
   return (
     <Shell>
       <main className="content page-transition">
+        {actionMsg && (
+          <div className="celebration-banner" style={{ marginBottom: '1.2rem' }}>
+            <CheckCircle2 size={20} />
+            <span>{actionMsg}</span>
+          </div>
+        )}
+
         <div className="record-view-layout">
           <article className="paper diary">
-            <span className="stamp small">{mod.toUpperCase()}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <span className="stamp small">{mod.toUpperCase()}</span>
+              {auth() && rec && (
+                <div className="item-actions-row" style={{ marginTop: 0 }}>
+                  <Link to={`/${mod}/editar/${id}`} className="btn-action-edit">
+                    <Edit3 size={14} /> Editar
+                  </Link>
+                  <button
+                    type="button"
+                    className="btn-action-delete"
+                    onClick={handleDelete}
+                    disabled={isDeleting}
+                  >
+                    <Trash2 size={14} /> {isDeleting ? 'Excluindo...' : 'Excluir'}
+                  </button>
+                </div>
+              )}
+            </div>
+
             <h1>{loading ? 'Carregando...' : (rec?.title || 'Registro do Diário')}</h1>
             <p className="long-date">{rec?.date ? `Data oficial: ${rec.date}` : ''}</p>
             {rec?.summary && (
@@ -1034,7 +1316,9 @@ export function App() {
         <Route path="/:mod" element={<Hub />} />
         <Route path="/:mod/registros" element={<Records />} />
         <Route path="/:mod/novo" element={<Editor />} />
+        <Route path="/:mod/editar/:id" element={<Editor isEdit />} />
         <Route path="/:mod/testes" element={<Tests />} />
+        <Route path="/:mod/testes/editar/:id" element={<Tests isEdit />} />
         <Route path="/:mod/testes-salvos" element={<SavedTests />} />
         <Route path="/:mod/registro/:id" element={<RecordView />} />
         <Route path="/:mod/creditos" element={<Credits />} />
@@ -1043,4 +1327,3 @@ export function App() {
     </>
   );
 }
-

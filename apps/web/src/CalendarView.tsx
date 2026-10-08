@@ -1,6 +1,18 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { Home as HomeIcon, ChevronLeft, ChevronRight, CheckCircle2, Clock, CalendarDays, List, ChartNoAxesCombined } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import {
+  Home as HomeIcon,
+  ChevronLeft,
+  ChevronRight,
+  CheckCircle2,
+  Clock,
+  CalendarDays,
+  List,
+  ChartNoAxesCombined,
+  Edit3,
+  Trash2,
+  X
+} from 'lucide-react';
 import underBg from './assets/originals/fundo_underconstruction.png';
 
 interface CalendarEvent {
@@ -46,6 +58,10 @@ const MONTH_NAMES = [
 const WEEK_DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
 export function CalendarView({ api, user }: CalendarViewProps) {
+  const location = useLocation();
+  const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const urlDate = searchParams.get('date');
+
   // Data de hoje em tempo real no fuso de São Paulo
   const todayStr = useMemo(() => {
     return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
@@ -54,19 +70,30 @@ export function CalendarView({ api, user }: CalendarViewProps) {
   const [currentYear, setCurrentYear] = useState(2026);
   // O usuário solicitou contemplar Outubro, Novembro e Dezembro (meses 9, 10, 11 em base 0)
   const [currentMonth, setCurrentMonth] = useState(() => {
+    if (urlDate && /^\d{4}-\d{2}-\d{2}$/.test(urlDate)) {
+      const parts = urlDate.split('-');
+      const m = parseInt(parts[1] || '1', 10) - 1;
+      if (m >= 9 && m <= 11) return m;
+    }
     const todayMonth = new Date().getMonth();
     return todayMonth >= 9 && todayMonth <= 11 ? todayMonth : 9; // padrão: Outubro
   });
 
-  const [selectedDate, setSelectedDate] = useState<string>(todayStr);
+  const [selectedDate, setSelectedDate] = useState<string>(() => {
+    if (urlDate && /^\d{4}-\d{2}-\d{2}$/.test(urlDate)) return urlDate;
+    return todayStr;
+  });
+
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [records, setRecords] = useState<StoredRecordSummary[]>([]);
   const [tests, setTests] = useState<StoredTestSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionMsg, setActionMsg] = useState('');
+  const [isSavingEvent, setIsSavingEvent] = useState(false);
 
-  // Formulário de novo evento
+  // Formulário de novo evento ou edição
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [newEvent, setNewEvent] = useState({
     date: todayStr,
     title: '',
@@ -75,6 +102,18 @@ export function CalendarView({ api, user }: CalendarViewProps) {
     lesson: '07:00–07:50',
     comments: ''
   });
+
+  // Atualiza data selecionada se vier por parâmetro de URL
+  useEffect(() => {
+    if (urlDate && /^\d{4}-\d{2}-\d{2}$/.test(urlDate)) {
+      setSelectedDate(urlDate);
+      const parts = urlDate.split('-');
+      const m = parseInt(parts[1] || '1', 10) - 1;
+      if (m >= 9 && m <= 11) {
+        setCurrentMonth(m);
+      }
+    }
+  }, [urlDate]);
 
   // Carregar dados de eventos, registros e testes
   const loadAll = async () => {
@@ -111,7 +150,7 @@ export function CalendarView({ api, user }: CalendarViewProps) {
     return { firstDayIndex, daysInMonth };
   }, [currentYear, currentMonth]);
 
-  // Navegação restrita entre Outubro, Novembro e Dezembro (ou livre para 2026)
+  // Navegação restrita entre Outubro, Novembro e Dezembro
   const handlePrevMonth = () => {
     if (currentMonth > 9) {
       setCurrentMonth(currentMonth - 1);
@@ -160,29 +199,103 @@ export function CalendarView({ api, user }: CalendarViewProps) {
   const dayRecords = recordsByDate.get(selectedDate) || [];
   const dayTests = testsByDate.get(selectedDate) || [];
 
-  // Salvar novo evento
-  const handleCreateEvent = async (e: React.FormEvent) => {
+  // Abrir modal para criar evento
+  const openCreateModal = () => {
+    setEditingEventId(null);
+    setNewEvent({
+      date: selectedDate,
+      title: '',
+      priority: 'COMUM',
+      period: 'MANHÃ',
+      lesson: '07:00–07:50',
+      comments: ''
+    });
+    setShowAddModal(true);
+  };
+
+  // Abrir modal para editar evento
+  const openEditModal = (ev: CalendarEvent) => {
+    setEditingEventId(ev.id);
+    setNewEvent({
+      date: ev.date || selectedDate,
+      title: ev.title || '',
+      priority: ev.priority || 'COMUM',
+      period: ev.period || 'MANHÃ',
+      lesson: ev.lesson || '07:00–07:50',
+      comments: ev.comments || ''
+    });
+    setShowAddModal(true);
+  };
+
+  // Salvar ou atualizar evento
+  const handleSaveEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newEvent.title.trim()) return;
+
+    setIsSavingEvent(true);
     try {
-      const created = await api('/api/eventos', {
-        method: 'POST',
-        body: JSON.stringify(newEvent)
-      });
-      setEvents(prev => [created, ...prev]);
+      if (editingEventId) {
+        const updated = await api(`/api/eventos/${editingEventId}`, {
+          method: 'PUT',
+          body: JSON.stringify(newEvent)
+        });
+        setEvents(prev => prev.map(ev => ev.id === editingEventId ? { ...ev, ...updated } : ev));
+        setActionMsg('SUCESSO: EVENTO ATUALIZADO COM EXITO NO BANCO DE DADOS!');
+      } else {
+        const created = await api('/api/eventos', {
+          method: 'POST',
+          body: JSON.stringify(newEvent)
+        });
+        setEvents(prev => [created, ...prev]);
+        setActionMsg('SUCESSO: EVENTO AGENDADO COM EXITO NO BANCO DE DADOS!');
+      }
+
       setShowAddModal(false);
-      setNewEvent({
-        date: selectedDate,
-        title: '',
-        priority: 'COMUM',
-        period: 'MANHÃ',
-        lesson: '07:00–07:50',
-        comments: ''
-      });
-      setActionMsg('Evento enviado com sucesso!');
+      setEditingEventId(null);
+      setTimeout(() => setActionMsg(''), 4500);
+    } catch (err: any) {
+      alert(err.message || 'Erro ao processar evento');
+    } finally {
+      setIsSavingEvent(false);
+    }
+  };
+
+  // Excluir evento
+  const handleDeleteEvent = async (id: string) => {
+    if (!window.confirm('Tem certeza que deseja excluir este evento?')) return;
+    try {
+      await api(`/api/eventos/${id}`, { method: 'DELETE' });
+      setEvents(prev => prev.filter(ev => ev.id !== id));
+      setActionMsg('SUCESSO: EVENTO REMOVIDO DO BANCO DE DADOS!');
       setTimeout(() => setActionMsg(''), 4000);
     } catch (err: any) {
-      alert(err.message || 'Erro ao salvar evento');
+      alert(err.message || 'Erro ao excluir evento');
+    }
+  };
+
+  // Excluir registro
+  const handleDeleteRecord = async (id: string) => {
+    if (!window.confirm('Deseja excluir este registro do diário de bordo?')) return;
+    try {
+      await api(`/api/registros/${id}`, { method: 'DELETE' });
+      setRecords(prev => prev.filter(r => r.id !== id));
+      setActionMsg('SUCESSO: REGISTRO EXCLUIDO DO BANCO DE DADOS!');
+      setTimeout(() => setActionMsg(''), 4000);
+    } catch (err: any) {
+      alert(err.message || 'Erro ao excluir registro');
+    }
+  };
+
+  // Excluir teste
+  const handleDeleteTest = async (id: string) => {
+    if (!window.confirm('Deseja excluir este teste técnico?')) return;
+    try {
+      await api(`/api/testes/${id}`, { method: 'DELETE' });
+      setTests(prev => prev.filter(t => t.id !== id));
+      setActionMsg('SUCESSO: TESTE EXCLUIDO DO BANCO DE DADOS!');
+      setTimeout(() => setActionMsg(''), 4000);
+    } catch (err: any) {
+      alert(err.message || 'Erro ao excluir teste');
     }
   };
 
@@ -191,7 +304,7 @@ export function CalendarView({ api, user }: CalendarViewProps) {
     try {
       const updated = await api(`/api/eventos/${id}/confirmar`, { method: 'PATCH' });
       setEvents(prev => prev.map(ev => ev.id === id ? { ...ev, status: 'CONFIRMADO' } : ev));
-      setActionMsg('Evento autorizado pela Gestão!');
+      setActionMsg('SUCESSO: EVENTO AUTORIZADO PELA GESTAO!');
       setTimeout(() => setActionMsg(''), 4000);
     } catch (err: any) {
       alert(err.message || 'Erro ao confirmar evento');
@@ -220,19 +333,18 @@ export function CalendarView({ api, user }: CalendarViewProps) {
           </p>
         </div>
         {user && (user.role === 'mentor' || user.role === 'management') && (
-          <button
-            className="cal-primary-btn"
-            onClick={() => {
-              setNewEvent(prev => ({ ...prev, date: selectedDate }));
-              setShowAddModal(true);
-            }}
-          >
+          <button className="cal-primary-btn" onClick={openCreateModal}>
             Lançar Evento
           </button>
         )}
       </div>
 
-      {actionMsg && <div className="cal-alert-banner">{actionMsg}</div>}
+      {actionMsg && (
+        <div className="celebration-banner" style={{ margin: '1rem auto', maxWidth: '800px' }}>
+          <CheckCircle2 size={20} />
+          <span>{actionMsg}</span>
+        </div>
+      )}
 
       <div className="cal-main-grid">
         {/* Lado Esquerdo: Calendário Estilo Bloco Técnico */}
@@ -248,11 +360,11 @@ export function CalendarView({ api, user }: CalendarViewProps) {
               disabled={currentMonth <= 9}
               title="Mês anterior"
             >
-              <ChevronLeft size={22} />
+              <ChevronLeft size={20} />
             </button>
-            <div className="cal-month-title">
-              <h2>{MONTH_NAMES[currentMonth]?.toUpperCase()} {currentYear}</h2>
-              <small>Equipes FLL & OBR &bull; SESI 437</small>
+            <div className="cal-month-indicator">
+              <h2>{MONTH_NAMES[currentMonth]} {currentYear}</h2>
+              <small>Hortobots Robotics Planning</small>
             </div>
             <button
               className="cal-nav-btn"
@@ -260,93 +372,87 @@ export function CalendarView({ api, user }: CalendarViewProps) {
               disabled={currentMonth >= 11}
               title="Próximo mês"
             >
-              <ChevronRight size={22} />
+              <ChevronRight size={20} />
             </button>
           </div>
 
-          {/* Abas rápidas para os meses solicitados */}
-          <div className="cal-month-tabs">
-            {[9, 10, 11].map(m => (
-              <button
-                key={m}
-                className={`cal-tab-btn ${currentMonth === m ? 'active' : ''}`}
-                onClick={() => setCurrentMonth(m)}
-              >
-                {MONTH_NAMES[m]}
-              </button>
+          {/* Grade de dias da semana */}
+          <div className="cal-weekdays-row">
+            {WEEK_DAYS.map((wd, i) => (
+              <span key={wd} className={`cal-weekday-label ${i === 0 || i === 6 ? 'weekend' : ''}`}>
+                {wd}
+              </span>
             ))}
           </div>
 
-          <div className="cal-week-labels">
-            {WEEK_DAYS.map(day => (
-              <span key={day} className="cal-day-label">{day}</span>
-            ))}
-          </div>
-
+          {/* Grade Numérica dos Dias */}
           <div className="cal-days-grid">
-            {/* Espaços vazios antes do 1º dia */}
-            {Array.from({ length: monthData.firstDayIndex }).map((_, idx) => (
-              <div key={`empty-${idx}`} className="cal-cell empty" />
+            {/* Dias vazios antes do dia 1 */}
+            {Array.from({ length: monthData.firstDayIndex }).map((_, i) => (
+              <div key={`empty-${i}`} className="cal-day-cell empty" />
             ))}
 
             {/* Dias reais do mês */}
-            {Array.from({ length: monthData.daysInMonth }).map((_, idx) => {
-              const dayNum = idx + 1;
-              const dateString = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
-              const isToday = dateString === todayStr;
-              const isSelected = dateString === selectedDate;
-              const evList = eventsByDate.get(dateString) || [];
-              const recList = recordsByDate.get(dateString) || [];
-              const tstList = testsByDate.get(dateString) || [];
+            {Array.from({ length: monthData.daysInMonth }).map((_, i) => {
+              const dayNum = i + 1;
+              const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+              const isToday = dateStr === todayStr;
+              const isSelected = dateStr === selectedDate;
 
-              const hasUrgente = evList.some(e => e.priority === 'URGENTE');
-              const hasEvents = evList.length > 0;
-              const hasRecords = recList.length > 0;
-              const hasTests = tstList.length > 0;
+              const dayEvts = eventsByDate.get(dateStr) || [];
+              const dayRecs = recordsByDate.get(dateStr) || [];
+              const dayTsts = testsByDate.get(dateStr) || [];
+
+              const hasUrgente = dayEvts.some(e => e.priority === 'URGENTE');
+              const hasPendente = dayEvts.some(e => e.status === 'PENDENTE');
+              const hasConfirmado = dayEvts.some(e => e.status === 'CONFIRMADO' || e.status === 'PUBLICADO');
 
               return (
                 <button
-                  key={dateString}
+                  key={dateStr}
                   type="button"
-                  className={`cal-cell day-cell ${isSelected ? 'selected' : ''} ${isToday ? 'today' : ''}`}
-                  onClick={() => setSelectedDate(dateString)}
+                  className={`cal-day-cell ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''}`}
+                  onClick={() => setSelectedDate(dateStr)}
+                  title={`${dayNum} de ${MONTH_NAMES[currentMonth]}`}
                 >
-                  <span className="cal-cell-num">{dayNum}</span>
-                  {isToday && <span className="cal-today-tag">HOJE</span>}
+                  <span className="cal-day-number">{dayNum}</span>
 
-                  {/* Indicadores visuais do dia */}
-                  <div className="cal-cell-dots">
-                    {hasRecords && <span className="dot dot-record" title={`${recList.length} registros`} />}
-                    {hasTests && <span className="dot dot-test" title={`${tstList.length} testes`} />}
-                    {hasEvents && (
-                      <span
-                        className={`dot ${hasUrgente ? 'dot-urgent' : 'dot-event'}`}
-                        title={`${evList.length} eventos`}
-                      />
-                    )}
+                  {/* Indicadores Visuais de Atividade */}
+                  <div className="cal-dots-row">
+                    {hasUrgente && <span className="dot dot-urgent" title="Evento Urgente" />}
+                    {hasPendente && !hasUrgente && <span className="dot dot-pending" title="Pendente Gestão" />}
+                    {hasConfirmado && !hasUrgente && <span className="dot dot-confirmed" title="Confirmado" />}
+                    {dayRecs.length > 0 && <span className="dot dot-record" title="Registros de Diário" />}
+                    {dayTsts.length > 0 && <span className="dot dot-test" title="Testes Realizados" />}
                   </div>
                 </button>
               );
             })}
           </div>
 
-          <div className="cal-legend">
-            <span><i className="dot dot-record" /> Registros</span>
-            <span><i className="dot dot-test" /> Testes</span>
-            <span><i className="dot dot-event" /> Eventos</span>
-            <span><i className="dot dot-urgent" /> Evento Urgente</span>
+          <div className="cal-legend-bar">
+            <span><i className="dot dot-urgent" /> Urgente</span>
+            <span><i className="dot dot-confirmed" /> Evento</span>
+            <span><i className="dot dot-record" /> Diário de Bordo</span>
+            <span><i className="dot dot-test" /> Teste de Robô</span>
           </div>
         </section>
 
         {/* Lado Direito: Painel Detalhado do Dia Selecionado */}
-        <section className="cal-day-panel">
-          <div className="cal-day-header">
-            <span className="paper-label">DETALHES DO DIA</span>
-            <h2>{selectedDate}</h2>
-            {selectedDate === todayStr && <span className="today-badge">DATA ATUAL (EM TEMPO REAL)</span>}
-          </div>
+        <section className="cal-day-details-card">
+          <header className="cal-details-header">
+            <div>
+              <span className="paper-label" style={{ textShadow: 'none' }}>DETALHES DO DIA</span>
+              <h2>
+                {selectedDate.slice(8)} de {MONTH_NAMES[parseInt(selectedDate.slice(5, 7), 10) - 1]} de {selectedDate.slice(0, 4)}
+              </h2>
+            </div>
+            {selectedDate === todayStr && (
+              <span className="today-badge">HOJE</span>
+            )}
+          </header>
 
-          <div className="cal-day-content">
+          <div className="cal-details-scroll">
             {/* Seção 1: Eventos do Dia */}
             <div className="cal-section-group">
               <h3>
@@ -359,6 +465,7 @@ export function CalendarView({ api, user }: CalendarViewProps) {
                   {dayEvents.map(ev => {
                     const isPending = ev.status === 'PENDENTE';
                     const canAuthorize = user && user.role === 'management' && isPending;
+                    const canManage = user && (user.role === 'mentor' || user.role === 'management');
 
                     return (
                       <div
@@ -377,6 +484,25 @@ export function CalendarView({ api, user }: CalendarViewProps) {
                             {ev.period} &bull; Aula: {ev.lesson} &bull; Prioridade: {ev.priority}
                           </span>
                           {ev.comments && <p className="cal-event-desc">{ev.comments}</p>}
+
+                          {canManage && (
+                            <div className="item-actions-row">
+                              <button
+                                type="button"
+                                className="btn-action-edit"
+                                onClick={() => openEditModal(ev)}
+                              >
+                                <Edit3 size={13} /> Editar
+                              </button>
+                              <button
+                                type="button"
+                                className="btn-action-delete"
+                                onClick={() => handleDeleteEvent(ev.id)}
+                              >
+                                <Trash2 size={13} /> Excluir
+                              </button>
+                            </div>
+                          )}
                         </div>
 
                         {canAuthorize && (
@@ -406,19 +532,32 @@ export function CalendarView({ api, user }: CalendarViewProps) {
               ) : (
                 <div className="cal-items-list">
                   {dayRecords.map(rec => (
-                    <Link
-                      key={rec.id}
-                      to={`/${rec.modality.toLowerCase()}/registros`}
-                      className="cal-record-link"
-                    >
-                      <span className={`mod-pill ${rec.modality.toLowerCase()}`}>
-                        {rec.modality}
-                      </span>
-                      <div>
-                        <strong>{rec.title}</strong>
-                        <p>{rec.summary}</p>
-                      </div>
-                    </Link>
+                    <div key={rec.id} className="cal-record-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                      <Link
+                        to={`/${rec.modality.toLowerCase()}/registro/${rec.id}`}
+                        className="cal-record-link"
+                        style={{ flex: 1 }}
+                      >
+                        <span className={`mod-pill ${rec.modality.toLowerCase()}`}>
+                          {rec.modality}
+                        </span>
+                        <div>
+                          <strong>{rec.title}</strong>
+                          <p>{rec.summary}</p>
+                        </div>
+                      </Link>
+                      {user && (
+                        <button
+                          type="button"
+                          className="btn-action-delete"
+                          onClick={() => handleDeleteRecord(rec.id)}
+                          title="Excluir Registro"
+                          style={{ padding: '0.5rem 0.6rem' }}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
                   ))}
                 </div>
               )}
@@ -434,12 +573,35 @@ export function CalendarView({ api, user }: CalendarViewProps) {
               ) : (
                 <div className="cal-items-list">
                   {dayTests.map(tst => (
-                    <div key={tst.id} className="cal-test-item">
-                      <span className="mod-pill neutral">{tst.modality || 'ROBÔ'}</span>
-                      <div>
-                        <strong>{tst.title}</strong>
-                        <p>{tst.objective}</p>
+                    <div key={tst.id} className="cal-test-item" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+                        <span className="mod-pill neutral">{tst.modality || 'ROBÔ'}</span>
+                        <div>
+                          <strong>{tst.title}</strong>
+                          <p>{tst.objective}</p>
+                        </div>
                       </div>
+                      {user && (
+                        <div style={{ display: 'flex', gap: '0.4rem' }}>
+                          <Link
+                            to={`/${(tst.modality || 'fll').toLowerCase()}/testes/editar/${tst.id}`}
+                            className="btn-action-edit"
+                            style={{ padding: '0.45rem 0.65rem' }}
+                            title="Editar Teste"
+                          >
+                            <Edit3 size={13} />
+                          </Link>
+                          <button
+                            type="button"
+                            className="btn-action-delete"
+                            onClick={() => handleDeleteTest(tst.id)}
+                            style={{ padding: '0.45rem 0.65rem' }}
+                            title="Excluir Teste"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -449,16 +611,16 @@ export function CalendarView({ api, user }: CalendarViewProps) {
         </section>
       </div>
 
-      {/* Modal de Criação de Evento */}
+      {/* Modal de Criação / Edição de Evento */}
       {showAddModal && (
-        <div className="dialog-layer" onClick={() => setShowAddModal(false)}>
+        <div className="dialog-layer" onClick={() => !isSavingEvent && setShowAddModal(false)}>
           <div className="cal-modal-card" onClick={e => e.stopPropagation()}>
             <span className="paper-label">COORDENAÇÃO DE CRONOGRAMA</span>
-            <h2>Lançar Evento</h2>
+            <h2>{editingEventId ? 'Editar Evento' : 'Lançar Evento'}</h2>
             <p className="cal-modal-desc">
               Eventos urgentes ou lançados por mentoria exigem autorização da Gestão.
             </p>
-            <form onSubmit={handleCreateEvent}>
+            <form onSubmit={handleSaveEvent}>
               <label>
                 Data do Acontecimento
                 <input
@@ -537,12 +699,20 @@ export function CalendarView({ api, user }: CalendarViewProps) {
                   type="button"
                   className="cal-cancel-btn"
                   onClick={() => setShowAddModal(false)}
+                  disabled={isSavingEvent}
                 >
                   Cancelar
                 </button>
-                <button type="submit" className="cal-primary-btn">
-                  Confirmar e Salvar
-                </button>
+                {isSavingEvent ? (
+                  <div className="saving-cloud-card" style={{ padding: '0.65rem 1.2rem', minWidth: '220px' }}>
+                    <div className="saving-spinner" />
+                    <span>ENVIANDO PARA A NUVEM...</span>
+                  </div>
+                ) : (
+                  <button type="submit" className="cal-primary-btn">
+                    {editingEventId ? 'Salvar Alterações' : 'Confirmar e Salvar'}
+                  </button>
+                )}
               </div>
             </form>
           </div>
