@@ -99,7 +99,8 @@ export function CalendarView({ api, user }: CalendarViewProps) {
     title: '',
     priority: 'COMUM' as 'COMUM' | 'URGENTE',
     period: 'MANHÃ',
-    lesson: '07:00–07:50',
+    lessonStart: '07:00',
+    lessonEnd: '07:50',
     comments: ''
   });
 
@@ -207,7 +208,8 @@ export function CalendarView({ api, user }: CalendarViewProps) {
       title: '',
       priority: 'COMUM',
       period: 'MANHÃ',
-      lesson: '07:00–07:50',
+      lessonStart: '07:00',
+      lessonEnd: '07:50',
       comments: ''
     });
     setShowAddModal(true);
@@ -216,12 +218,15 @@ export function CalendarView({ api, user }: CalendarViewProps) {
   // Abrir modal para editar evento
   const openEditModal = (ev: CalendarEvent) => {
     setEditingEventId(ev.id);
+    // Parse the lesson string back into start/end or use defaults
+    const lessonParts = (ev.lesson || '07:00–07:50').split('–');
     setNewEvent({
       date: ev.date || selectedDate,
       title: ev.title || '',
       priority: ev.priority || 'COMUM',
       period: ev.period || 'MANHÃ',
-      lesson: ev.lesson || '07:00–07:50',
+      lessonStart: lessonParts[0] || '07:00',
+      lessonEnd: lessonParts[1] || '07:50',
       comments: ev.comments || ''
     });
     setShowAddModal(true);
@@ -232,19 +237,27 @@ export function CalendarView({ api, user }: CalendarViewProps) {
     e.preventDefault();
     if (!newEvent.title.trim()) return;
 
+    // Business rule: COMUM events are auto-published, URGENTE need management approval
+    const lesson = `${newEvent.lessonStart}–${newEvent.lessonEnd}`;
+    const payload = {
+      ...newEvent,
+      lesson,
+      status: newEvent.priority === 'URGENTE' ? 'PENDENTE' : 'PUBLICADO'
+    };
+
     setIsSavingEvent(true);
     try {
       if (editingEventId) {
         const updated = await api(`/api/eventos/${editingEventId}`, {
           method: 'PUT',
-          body: JSON.stringify(newEvent)
+          body: JSON.stringify(payload)
         });
         setEvents(prev => prev.map(ev => ev.id === editingEventId ? { ...ev, ...updated } : ev));
         setActionMsg('SUCESSO: EVENTO ATUALIZADO COM EXITO NO BANCO DE DADOS!');
       } else {
         const created = await api('/api/eventos', {
           method: 'POST',
-          body: JSON.stringify(newEvent)
+          body: JSON.stringify(payload)
         });
         setEvents(prev => [created, ...prev]);
         setActionMsg('SUCESSO: EVENTO AGENDADO COM EXITO NO BANCO DE DADOS!');
@@ -475,13 +488,16 @@ export function CalendarView({ api, user }: CalendarViewProps) {
                         <div className="cal-event-info">
                           <div className="cal-event-title-row">
                             <strong>{ev.title}</strong>
-                            <span className={`status-pill ${ev.status.toLowerCase()}`}>
-                              {ev.status === 'CONFIRMADO' ? <CheckCircle2 size={12} /> : <Clock size={12} />}
-                              {ev.status}
-                            </span>
+                            {/* Only show status pill for URGENTE events */}
+                            {ev.priority === 'URGENTE' && (
+                              <span className={`status-pill ${ev.status.toLowerCase()}`}>
+                                {ev.status === 'CONFIRMADO' ? <CheckCircle2 size={12} /> : <Clock size={12} />}
+                                {ev.status}
+                              </span>
+                            )}
                           </div>
                           <span className="cal-event-meta">
-                            {ev.period} &bull; Aula: {ev.lesson} &bull; Prioridade: {ev.priority}
+                            {ev.period} &bull; {ev.lesson} &bull; <strong>{ev.priority}</strong>
                           </span>
                           {ev.comments && <p className="cal-event-desc">{ev.comments}</p>}
 
@@ -505,7 +521,8 @@ export function CalendarView({ api, user }: CalendarViewProps) {
                           )}
                         </div>
 
-                        {canAuthorize && (
+                        {/* Only URGENTE events pending need management approval */}
+                        {ev.priority === 'URGENTE' && canAuthorize && (
                           <button
                             type="button"
                             className="cal-auth-btn"
@@ -667,22 +684,41 @@ export function CalendarView({ api, user }: CalendarViewProps) {
                 </label>
               </div>
 
-              <label>
-                Horário / Aula
-                <select
-                  value={newEvent.lesson}
-                  onChange={e => setNewEvent({ ...newEvent, lesson: e.target.value })}
-                >
-                  {[
-                    '07:00–07:50', '07:50–08:40', '08:40–09:30',
-                    '09:50–10:40', '10:40–11:30', '11:30–12:20',
-                    '12:40–13:30', '13:30–14:20', '14:20–15:10',
-                    '15:30–16:20', '16:20–17:10', '17:10–18:00'
-                  ].map(slot => (
-                    <option key={slot} value={slot}>{slot}</option>
-                  ))}
-                </select>
-              </label>
+              <div className="two-cols">
+                <label>
+                  Horário Inicial
+                  <select
+                    value={newEvent.lessonStart}
+                    onChange={e => setNewEvent({ ...newEvent, lessonStart: e.target.value })}
+                  >
+                    {[
+                      '07:00', '07:50', '08:40', '09:30',
+                      '09:50', '10:40', '11:30',
+                      '12:00', '12:40', '13:30', '14:20',
+                      '15:10', '15:30', '16:20', '17:10', '18:00'
+                    ].map(slot => (
+                      <option key={slot} value={slot}>{slot}</option>
+                    ))}
+                  </select>
+                </label>
+
+                <label>
+                  Horário Final
+                  <select
+                    value={newEvent.lessonEnd}
+                    onChange={e => setNewEvent({ ...newEvent, lessonEnd: e.target.value })}
+                  >
+                    {[
+                      '07:50', '08:40', '09:30',
+                      '09:50', '10:40', '11:30', '12:20',
+                      '12:40', '13:30', '14:20', '15:10',
+                      '15:30', '16:20', '17:10', '18:00'
+                    ].map(slot => (
+                      <option key={slot} value={slot}>{slot}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
 
               <label>
                 Observações Adicionais

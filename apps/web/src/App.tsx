@@ -650,48 +650,181 @@ function Editor({ isEdit }: { isEdit?: boolean }) {
   );
 }
 
-function Chart({ attempts, type }: { attempts: Attempt[]; type: string }) {
-  const max = Math.max(1, ...attempts.map(x => x.score));
-  if (type === 'pie') {
-    const total = attempts.reduce((s, x) => s + x.score, 0) || 1;
-    let acc = 0;
-    return (
-      <div
-        className="pie"
-        style={{
-          background: `conic-gradient(${attempts
-            .map((x, i) => {
-              const a = (acc / total) * 360;
-              acc += x.score;
-              return `hsl(${i * 45} 75% 48%) ${a}deg ${(acc / total) * 360}deg`;
-            })
-            .join(',')})`
-        }}
-      />
-    );
-  }
+// ── DATA ANALYSIS COMPONENT ─────────────────────────────────────────────────
+// Render a multi-line/bar analytical chart similar to matplotlib with 3 axes:
+// Score, Time, Failures — each with their own scale
+function DataAnalysis({ attempts }: { attempts: Attempt[] }) {
+  const n = attempts.length;
+  if (n === 0) return <p style={{ color: '#64748b', textAlign: 'center', padding: '2rem 0' }}>Nenhuma tentativa para análise.</p>;
+
+  // ── Normalised coordinates for 3 series ──────────────────────────────────
+  const PAD = { l: 52, r: 24, t: 18, b: 36 };
+  const W = 520, H = 200;
+  const plotW = W - PAD.l - PAD.r;
+  const plotH = H - PAD.t - PAD.b;
+
+  const xOf = (i: number) => PAD.l + (n > 1 ? (i / (n - 1)) * plotW : plotW / 2);
+
+  const maxScore   = Math.max(1, ...attempts.map(a => a.score));
+  const maxTime    = Math.max(1, ...attempts.map(a => a.time));
+  const maxFail    = Math.max(1, ...attempts.map(a => a.failures));
+
+  const yScore  = (v: number) => PAD.t + plotH - (v / maxScore) * plotH;
+  const yTime   = (v: number) => PAD.t + plotH - (v / maxTime)  * plotH;
+  const yFail   = (v: number) => PAD.t + plotH - (v / maxFail)  * plotH;
+
+  const linePath = (vals: number[], yFn: (v: number) => number) =>
+    vals.map((v, i) => `${i === 0 ? 'M' : 'L'}${xOf(i).toFixed(1)},${yFn(v).toFixed(1)}`).join(' ');
+
+  const areaPath = (vals: number[], yFn: (v: number) => number) =>
+    `${linePath(vals, yFn)} L${xOf(n - 1).toFixed(1)},${(PAD.t + plotH).toFixed(1)} L${xOf(0).toFixed(1)},${(PAD.t + plotH).toFixed(1)} Z`;
+
+  // ── Statistics summary ───────────────────────────────────────────────────
+  const avg = (arr: number[]) => arr.reduce((s, v) => s + v, 0) / arr.length;
+  const scores = attempts.map(a => a.score);
+  const times  = attempts.map(a => a.time);
+  const fails  = attempts.map(a => a.failures);
+
+  const avgScore = avg(scores);
+  const avgTime  = avg(times);
+  const avgFail  = avg(fails);
+  const maxScoreVal = Math.max(...scores);
+  const minTimeVal  = Math.min(...times);
+
+  // Trend: slope of linear regression on scores
+  const trendSlope = (() => {
+    if (n < 2) return 0;
+    const meanX = (n - 1) / 2;
+    const meanY = avgScore;
+    const num = scores.reduce((s, y, i) => s + (i - meanX) * (y - meanY), 0);
+    const den = scores.reduce((s, _, i) => s + (i - meanX) ** 2, 0);
+    return den === 0 ? 0 : num / den;
+  })();
+
+  // Y-axis ticks
+  const yTicks = [0, 0.25, 0.5, 0.75, 1];
+
   return (
-    <svg className="chart" viewBox="0 0 520 260">
-      {attempts.map((a, i) => {
-        const x = 35 + i * (450 / Math.max(1, attempts.length - 1));
-        const y = 225 - (a.score / max) * 180;
-        return type === 'bar' ? (
-          <rect key={i} x={x - 12} y={y} width="24" height={225 - y} rx="5" />
-        ) : (
-          <g key={i}>
-            <circle cx={x} cy={y} r="6" />
-            {i > 0 && (
-              <line
-                x1={35 + (i - 1) * (450 / Math.max(1, attempts.length - 1))}
-                y1={225 - (attempts[i - 1]!.score / max) * 180}
-                x2={x}
-                y2={y}
+    <div className="da-root">
+      {/* ── Chart Area ───────────────────────────────────────── */}
+      <div className="da-chart-wrap">
+        <svg viewBox={`0 0 ${W} ${H}`} className="da-svg" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="gscore" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.35" />
+              <stop offset="100%" stopColor="#22d3ee" stopOpacity="0" />
+            </linearGradient>
+            <linearGradient id="gtime" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#a78bfa" stopOpacity="0.25" />
+              <stop offset="100%" stopColor="#a78bfa" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+
+          {/* Grid lines */}
+          {yTicks.map(t => {
+            const y = PAD.t + plotH - t * plotH;
+            return (
+              <g key={t}>
+                <line x1={PAD.l} y1={y} x2={W - PAD.r} y2={y} stroke="#334155" strokeWidth="0.8" strokeDasharray="4 3" />
+                <text x={PAD.l - 6} y={y + 4} textAnchor="end" fontSize="9" fill="#64748b">
+                  {Math.round(t * maxScore)}
+                </text>
+              </g>
+            );
+          })}
+
+          {/* X-axis labels */}
+          {attempts.map((_, i) => (
+            <text key={i} x={xOf(i)} y={H - PAD.b + 14} textAnchor="middle" fontSize="9" fill="#64748b">T{i + 1}</text>
+          ))}
+
+          {/* Axes */}
+          <line x1={PAD.l} y1={PAD.t} x2={PAD.l} y2={PAD.t + plotH} stroke="#475569" strokeWidth="1" />
+          <line x1={PAD.l} y1={PAD.t + plotH} x2={W - PAD.r} y2={PAD.t + plotH} stroke="#475569" strokeWidth="1" />
+
+          {/* Area fills */}
+          <path d={areaPath(scores, yScore)} fill="url(#gscore)" />
+          <path d={areaPath(times, yTime)}  fill="url(#gtime)" />
+
+          {/* Failure bars (subtle) */}
+          {attempts.map((a, i) => {
+            const bh = maxFail > 0 ? (a.failures / maxFail) * plotH * 0.4 : 0;
+            const bw = Math.max(4, plotW / n * 0.35);
+            return (
+              <rect
+                key={i}
+                x={xOf(i) - bw / 2}
+                y={PAD.t + plotH - bh}
+                width={bw}
+                height={bh}
+                fill="#f43f5e"
+                opacity="0.55"
+                rx="2"
               />
-            )}
-          </g>
-        );
-      })}
-    </svg>
+            );
+          })}
+
+          {/* Time line */}
+          <path d={linePath(times, yTime)} fill="none" stroke="#a78bfa" strokeWidth="1.5" strokeDasharray="5 3" />
+          {attempts.map((a, i) => (
+            <circle key={i} cx={xOf(i)} cy={yTime(a.time)} r="3.5" fill="#a78bfa" />
+          ))}
+
+          {/* Score line */}
+          <path d={linePath(scores, yScore)} fill="none" stroke="#22d3ee" strokeWidth="2" />
+          {attempts.map((a, i) => (
+            <circle key={i} cx={xOf(i)} cy={yScore(a.score)} r="4.5" fill="#22d3ee" stroke="#0f172a" strokeWidth="1.2" />
+          ))}
+
+          {/* Trend line for score */}
+          {n >= 2 && (() => {
+            const meanX = (n - 1) / 2;
+            const intercept = avgScore - trendSlope * meanX;
+            const ty0 = yScore(Math.max(0, intercept));
+            const ty1 = yScore(Math.max(0, trendSlope * (n - 1) + intercept));
+            return (
+              <line
+                x1={xOf(0)} y1={ty0}
+                x2={xOf(n - 1)} y2={ty1}
+                stroke="#fbbf24" strokeWidth="1.2" strokeDasharray="6 3" opacity="0.7"
+              />
+            );
+          })()}
+        </svg>
+      </div>
+
+      {/* ── Legend ────────────────────────────────────────────── */}
+      <div className="da-legend">
+        <span><i style={{ background: '#22d3ee' }} /> Pontuação</span>
+        <span><i style={{ background: '#a78bfa' }} /> Tempo (s)</span>
+        <span><i style={{ background: '#f43f5e' }} /> Falhas</span>
+        <span><i style={{ background: '#fbbf24', height: '2px', width: '18px', display: 'inline-block', borderRadius: '1px' }} /> Tendência</span>
+      </div>
+
+      {/* ── Stats Cards ───────────────────────────────────────── */}
+      <div className="da-stats">
+        <div className="da-stat-card score">
+          <span className="da-stat-label">Pontuação Máxima</span>
+          <span className="da-stat-value">{maxScoreVal}</span>
+          <span className="da-stat-sub">média {avgScore.toFixed(1)}</span>
+        </div>
+        <div className="da-stat-card time">
+          <span className="da-stat-label">Melhor Tempo</span>
+          <span className="da-stat-value">{minTimeVal}s</span>
+          <span className="da-stat-sub">média {avgTime.toFixed(0)}s</span>
+        </div>
+        <div className="da-stat-card fail">
+          <span className="da-stat-label">Falhas (média)</span>
+          <span className="da-stat-value">{avgFail.toFixed(1)}</span>
+          <span className="da-stat-sub">total {fails.reduce((s, v) => s + v, 0)}</span>
+        </div>
+        <div className={`da-stat-card trend ${trendSlope >= 0 ? 'up' : 'down'}`}>
+          <span className="da-stat-label">Tendência</span>
+          <span className="da-stat-value">{trendSlope >= 0 ? '↑' : '↓'} {Math.abs(trendSlope).toFixed(2)}</span>
+          <span className="da-stat-sub">{trendSlope >= 0 ? 'Melhora' : 'Queda'} por tentativa</span>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -700,17 +833,16 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
   const navigate = useNavigate();
   const [team, setTeam] = useState('Hortobots');
   const [count, setCount] = useState(3);
-  const [chart, setChart] = useState('line');
   const [attempts, setAttempts] = useState<Attempt[]>(
     Array.from({ length: 15 }, () => ({ time: 150, score: 0, failures: 0, observed: 0 }))
   );
-  const [focus, setFocus] = useState<string | null>(null);
   const [media, setMedia] = useState<MediaSlot[]>([]);
   const [focusSlot, setFocusSlot] = useState<MediaSlot | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [celebration, setCelebration] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [base, setBase] = useState({ date: today, title: '', objective: '', comments: '', mission: '' });
+  const [showAnalysis, setShowAnalysis] = useState(false);
 
   useEffect(() => {
     if (isEdit && id) {
@@ -725,7 +857,6 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
               mission: t.mission || ''
             });
             if (t.team) setTeam(t.team);
-            if (t.chart) setChart(t.chart);
             if (Array.isArray(t.attempts) && t.attempts.length > 0) {
               setCount(t.attempts.length);
               setAttempts(prev => {
@@ -778,7 +909,6 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
         ...base,
         modality: mod.toUpperCase(),
         team,
-        chart,
         attempts: attempts.slice(0, count),
         media
       };
@@ -800,6 +930,8 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
     }
   };
 
+  const activeAttempts = attempts.slice(0, count);
+
   return (
     <Shell>
       <main
@@ -818,7 +950,9 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
             </select>
           )}
         </div>
+
         <div className="test-workspace">
+          {/* ── Left: Form ── */}
           <section className="test-form">
             <div className="two">
               <label>
@@ -826,13 +960,13 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
                 <input type="date" value={base.date} onChange={e => setBase({ ...base, date: e.target.value })} />
               </label>
               <label>
-                Quantidade de tentativas
+                Nº de tentativas
                 <input
                   type="number"
-                  min="3"
+                  min="1"
                   max="15"
                   value={count}
-                  onChange={e => setCount(Math.max(3, Math.min(15, +e.target.value)))}
+                  onChange={e => setCount(Math.max(1, Math.min(15, +e.target.value)))}
                 />
               </label>
             </div>
@@ -856,7 +990,7 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
               </label>
             )}
             <div className="attempts">
-              {attempts.slice(0, count).map((a, i) => (
+              {activeAttempts.map((a, i) => (
                 <fieldset key={i}>
                   <legend>Tentativa {i + 1}</legend>
                   <label>
@@ -905,7 +1039,6 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
 
             {errorMsg && <p className="form-error" role="alert">{errorMsg}</p>}
 
-            {/* Elemento de carregamento não-clicável ou banner de celebração */}
             {celebration ? (
               <div className="celebration-banner">
                 <CheckCircle2 size={20} />
@@ -922,21 +1055,23 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
             )}
           </section>
 
+          {/* ── Right: Analysis + Media ── */}
           <aside className="test-results">
-            <div className="chart-tools">
-              <select value={chart} onChange={e => setChart(e.target.value)}>
-                <option value="line">Linha</option>
-                <option value="bar">Barras</option>
-                <option value="pie">Circular</option>
-              </select>
+            <div className="da-panel-header">
+              <span className="kicker">ANÁLISE DE DESEMPENHO</span>
+              <button
+                type="button"
+                className={`da-toggle-btn ${showAnalysis ? 'active' : ''}`}
+                onClick={() => setShowAnalysis(v => !v)}
+              >
+                {showAnalysis ? 'Ocultar gráficos' : 'Ver gráficos'}
+              </button>
             </div>
-            <button className="chart-focus" onClick={() => setFocus('chart')}>
-              <Chart attempts={attempts.slice(0, count)} type={chart} />
-            </button>
 
-            {/* Painel de Upload e Prévia de Imagens e Vídeos */}
+            {showAnalysis && <DataAnalysis attempts={activeAttempts} />}
+
             <div style={{ marginTop: '1.2rem' }}>
-              <span className="paper-label" style={{ textShadow: 'none', color: '#cbd5e1' }}>MÍDIAS DO TESTE (FOTOS E VÍDEOS)</span>
+              <span className="paper-label" style={{ textShadow: 'none', color: '#cbd5e1' }}>MÍDIAS DO TESTE</span>
               <MediaPagePanel
                 slots={media}
                 onAdd={addFiles}
@@ -947,18 +1082,6 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
             </div>
           </aside>
         </div>
-        {focus && (
-          <div className="focus-layer" onClick={() => setFocus(null)}>
-            <button aria-label="Fechar"><X /></button>
-            {focus === 'chart' ? (
-              <Chart attempts={attempts.slice(0, count)} type={chart} />
-            ) : focus.startsWith('data:image') ? (
-              <img src={focus} alt="Foco" />
-            ) : (
-              <video controls src={focus} />
-            )}
-          </div>
-        )}
       </main>
     </Shell>
   );
