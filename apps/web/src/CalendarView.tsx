@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Home as HomeIcon, ChevronLeft, ChevronRight, CheckCircle2, Clock, CalendarDays, List, ChartNoAxesCombined } from 'lucide-react';
+import underBg from './assets/originals/fundo_underconstruction.png';
 
 interface CalendarEvent {
   id: string;
@@ -198,7 +199,15 @@ export function CalendarView({ api, user }: CalendarViewProps) {
   };
 
   return (
-    <main className="calendar-page-pro page-transition">
+    <main
+      className="calendar-page-pro page-transition"
+      style={{
+        backgroundImage: `linear-gradient(rgba(14, 18, 14, 0.82), rgba(10, 14, 10, 0.90)), url(${underBg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
+      }}
+    >
       <div className="cal-header-bar">
         <Link to="/" className="back-home-button">
           <HomeIcon size={18} /> Início
