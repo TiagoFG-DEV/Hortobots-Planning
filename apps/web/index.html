@@ -1,1 +1,58 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#101311"><meta name="description" content="Diário de Bordo das equipes Hortobots"><meta name="robots" content="noindex,nofollow"><link rel="icon" href="/icon-32.png"><link rel="manifest" href="/manifest.webmanifest"><title>Hortobots Planning - Diário de Bordo</title></head><body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body></html>
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="theme-color" content="#090c09">
+    <meta name="description" content="Diário de Bordo das equipes Hortobots">
+    <meta name="robots" content="noindex,nofollow">
+    <link rel="icon" href="/icon-32.png">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <title>Hortobots Planning - Diário de Bordo</title>
+    <style>
+      body {
+        margin: 0;
+        background-color: #090c09;
+      }
+      #initial-loader {
+        position: fixed;
+        inset: 0;
+        z-index: 999999;
+        background: #090c09;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+      .initial-loader-bar {
+        width: 140px;
+        height: 3px;
+        background: rgba(255, 255, 255, 0.12);
+        border-radius: 999px;
+        overflow: hidden;
+        position: relative;
+      }
+      .initial-loader-bar::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 50%;
+        background: linear-gradient(90deg, transparent, #62b300, transparent);
+        animation: initBar 0.9s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      }
+      @keyframes initBar {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(300%); }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="initial-loader">
+      <div class="initial-loader-bar"></div>
+    </div>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

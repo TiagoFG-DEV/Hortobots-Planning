@@ -27,6 +27,8 @@ import salvos from './assets/generated/registros_salvos_button.webp';
 import testsButton from './assets/originals/simulacoes_e_testes_button.png';
 import underBg from './assets/originals/fundo_underconstruction.png';
 import mascote from './assets/generated/mascote.webp';
+import fundo1280 from './assets/generated/fundo-1280.webp';
+import fundo1920 from './assets/generated/fundo-1920.webp';
 import { CalendarView } from './CalendarView';
 
 const API = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? 'http://localhost:3000' : '');
@@ -1451,6 +1453,78 @@ function Credits() {
   );
 }
 
+const preloadImage = (src: string): Promise<void> => {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.src = src;
+    if (img.complete) {
+      if (img.decode) {
+        img.decode().then(() => resolve()).catch(() => resolve());
+      } else {
+        resolve();
+      }
+    } else {
+      img.onload = () => {
+        if (img.decode) {
+          img.decode().then(() => resolve()).catch(() => resolve());
+        } else {
+          resolve();
+        }
+      };
+      img.onerror = () => resolve();
+    }
+  });
+};
+
+const waitForDomImages = async (): Promise<void> => {
+  const imgs = Array.from(document.querySelectorAll('img'));
+  await Promise.all(
+    imgs.map(img => {
+      if (img.complete) {
+        return img.decode ? img.decode().catch(() => {}) : Promise.resolve();
+      }
+      return new Promise<void>(resolve => {
+        const onDone = () => {
+          if (img.decode) {
+            img.decode().then(() => resolve()).catch(() => resolve());
+          } else {
+            resolve();
+          }
+        };
+        img.addEventListener('load', onDone, { once: true });
+        img.addEventListener('error', () => resolve(), { once: true });
+        setTimeout(resolve, 2500);
+      });
+    })
+  );
+};
+
+const waitForRenderComplete = async (criticalSources: string[] = []): Promise<void> => {
+  // Dá um tick de requestAnimationFrame para o React montar os componentes no DOM
+  await new Promise(r => requestAnimationFrame(r));
+
+  // Aguarda carregamento completo das fontes tipográficas do projeto
+  if (document.fonts && document.fonts.ready) {
+    try {
+      await document.fonts.ready;
+    } catch {}
+  }
+
+  // Pré-carrega e decodifica ativos gráficos pesados
+  if (criticalSources.length > 0) {
+    await Promise.all(criticalSources.map(preloadImage));
+  }
+
+  // Aguarda que todas as imagens no DOM estejam baixadas e decodificadas
+  await waitForDomImages();
+
+  // Duplo rAF para garantir que cálculo de layout e paint do navegador foram finalizados
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+  // Pequena pausa (100ms) para transição visual limpa
+  await new Promise(r => setTimeout(r, 100));
+};
+
 function TransitionScreen({ active }: { active: boolean }) {
   return (
     <div className={`screen-transition-overlay ${active ? 'active' : ''}`} aria-hidden="true">
@@ -1466,52 +1540,91 @@ function TransitionScreen({ active }: { active: boolean }) {
 export function App() {
   // O usuário SEMPRE deve autenticar ao carregar ou recarregar a página
   const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    // Limpa qualquer sessão residual para forçar tela de login a cada recarga
-    sessionStorage.clear();
-  }, []);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const isFirstMount = useRef(true);
 
   const location = useLocation();
   const navigate = useNavigate();
-  const [isTransitioning, setIsTransitioning] = useState(false);
 
-  // Efeito de transição suave estilo videogame (fade out to black -> troca -> fade in)
+  // Bloqueio e mascaramento na inicialização: só libera quando a página inicial estiver 100% pronta
   useEffect(() => {
+    sessionStorage.clear();
+
+    const bootLoader = document.getElementById('initial-loader');
+    if (bootLoader) bootLoader.remove();
+
+    let mounted = true;
+    const criticalAssets = [
+      mascote,
+      logo,
+      fllBook,
+      obrBook,
+      fll,
+      obr,
+      fundo1280,
+      fundo1920
+    ];
+
+    waitForRenderComplete(criticalAssets).then(() => {
+      if (mounted) {
+        setIsInitialLoading(false);
+      }
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Transições entre telas: mascara elementos que demoram para renderizar até estarem prontos
+  useEffect(() => {
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      return;
+    }
+
+    let active = true;
     setIsTransitioning(true);
     window.scrollTo(0, 0);
 
-    const timer = setTimeout(() => {
-      setIsTransitioning(false);
-    }, 280);
+    const checkRoute = async () => {
+      await new Promise(r => requestAnimationFrame(r));
+      await waitForDomImages();
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      await new Promise(r => setTimeout(r, 120));
+      if (active) {
+        setIsTransitioning(false);
+      }
+    };
 
-    return () => clearTimeout(timer);
+    checkRoute();
+
+    return () => {
+      active = false;
+    };
   }, [location.pathname]);
 
   const handleLoginSuccess = (loggedUser: User) => {
     setUser(loggedUser);
     setIsTransitioning(true);
-    setTimeout(() => {
-      navigate('/home');
-      setIsTransitioning(false);
-    }, 250);
+    navigate('/home');
   };
 
   const handleLogout = () => {
     setIsTransitioning(true);
-    setTimeout(() => {
-      sessionStorage.clear();
-      setUser(null);
-      navigate('/');
-      setIsTransitioning(false);
-    }, 250);
+    sessionStorage.clear();
+    setUser(null);
+    navigate('/');
   };
+
+  const isOverlayActive = isInitialLoading || isTransitioning;
 
   // Se o usuário NÃO estiver logado: a tela inicial (index) É SEMPRE o Login
   if (!user) {
     return (
       <>
-        <TransitionScreen active={isTransitioning} />
+        <TransitionScreen active={isOverlayActive} />
         <Routes>
           <Route path="/" element={<Login onLogin={handleLoginSuccess} />} />
           <Route path="/login" element={<Login onLogin={handleLoginSuccess} />} />
@@ -1525,7 +1638,7 @@ export function App() {
   // Usuário autenticado: acesso às áreas da plataforma
   return (
     <DialogProvider>
-      <TransitionScreen active={isTransitioning} />
+      <TransitionScreen active={isOverlayActive} />
       <button
         className="logout"
         onClick={handleLogout}
