@@ -1530,8 +1530,15 @@ function TransitionScreen({ active }: { active: boolean }) {
 }
 
 export function App() {
-  // O usuário SEMPRE deve autenticar ao carregar ou recarregar a página
-  const [user, setUser] = useState<User | null>(null);
+  // Restaura sessao anterior da sessionStorage, se existir
+  const [user, setUser] = useState<User | null>(() => {
+    try {
+      const raw = sessionStorage.getItem('hortobots-user');
+      return raw ? (JSON.parse(raw) as User) : null;
+    } catch {
+      return null;
+    }
+  });
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const isFirstMount = useRef(true);
@@ -1541,8 +1548,6 @@ export function App() {
 
   // Bloqueio e mascaramento na inicialização: só libera quando a página inicial estiver 100% pronta
   useEffect(() => {
-    sessionStorage.clear();
-
     const bootLoader = document.getElementById('initial-loader');
     if (bootLoader) bootLoader.remove();
 
@@ -1612,9 +1617,9 @@ export function App() {
   const handleLoginSuccess = (loggedUser: User) => {
     setUser(loggedUser);
     setIsTransitioning(true);
-    navigate('/home');
+    navigate('/');
 
-    // Desativa a transição garantidamente mesmo se a rota atual já for /home
+    // Desativa a transicao garantidamente mesmo se a rota atual ja for /
     setTimeout(async () => {
       try {
         await new Promise(r => requestAnimationFrame(r));

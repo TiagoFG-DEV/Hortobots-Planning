@@ -1,17 +1,17 @@
-name: Automated Disaster Recovery & Database Backup
+name: Automated Disaster Recovery and Database Backup
 
 on:
   schedule:
-    # Executa todos os dias às 03:00 UTC (00:00 Horário de Brasília) de forma 100% autônoma
+    # Executa todos os dias as 03:00 UTC (00:00 Horario de Brasilia) de forma 100% autonoma
     - cron: '0 3 * * *'
   workflow_dispatch: # Permite disparo manual a qualquer momento via painel do GitHub Actions
 
 permissions:
-  contents: write # Permissão para criar GitHub Releases e anexar o arquivo ZIP
+  contents: write # Permissao para criar GitHub Releases e anexar o arquivo ZIP
 
 jobs:
   backup:
-    name: Backup Supabase (Database & Storage Media)
+    name: Backup Supabase - Database and Storage Media
     runs-on: ubuntu-latest
 
     steps:
@@ -48,23 +48,23 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.backup_meta.outputs.date_tag }}
-          name: "📦 Backup ${{ steps.backup_meta.outputs.file_name }}"
+          name: "Backup ${{ steps.backup_meta.outputs.file_name }}"
           body: |
-            ## 🛡️ Backup Automático - Hortobots Planning
-            **Data de Execução:** $(date -u)
+            ## Backup Automatico - Hortobots Planning
+            **Data de Execucao:** $(date -u)
             **Arquivo:** `${{ steps.backup_meta.outputs.file_name }}`
 
-            Este backup contém:
-            - 📑 **database/records.json** (Todos os diários de bordo)
-            - 📑 **database/tests.json** (Todos os testes técnicos e simulações)
-            - 📑 **database/events.json** (Todos os eventos e datas do calendário)
-            - 🎥 **storage/** (Todas as imagens e vídeos originais)
-            - 📋 **MANIFEST.json** (Metadados e contagem de itens)
+            Este backup contem:
+            - **database/records.json** (Todos os diarios de bordo)
+            - **database/tests.json** (Todos os testes tecnicos e simulacoes)
+            - **database/events.json** (Todos os eventos e datas do calendario)
+            - **storage/** (Todas as imagens e videos originais)
+            - **MANIFEST.json** (Metadados e contagem de itens)
           files: ${{ steps.backup_meta.outputs.backup_file }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Backup as Workflow Artifact (Redundância 90 dias)
+      - name: Upload Backup as Workflow Artifact (Redundancia 90 dias)
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.backup_meta.outputs.file_name }}

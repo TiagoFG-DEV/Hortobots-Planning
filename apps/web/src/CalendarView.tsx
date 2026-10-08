@@ -69,16 +69,17 @@ export function CalendarView({ api, user }: CalendarViewProps) {
     return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
   }, []);
 
-  const [currentYear, setCurrentYear] = useState(2026);
-  // O usuário solicitou contemplar Outubro, Novembro e Dezembro (meses 9, 10, 11 em base 0)
+  const [currentYear, setCurrentYear] = useState(() => {
+    if (urlDate && /^\d{4}-\d{2}-\d{2}$/.test(urlDate)) {
+      return parseInt(urlDate.split('-')[0] || String(new Date().getFullYear()), 10);
+    }
+    return new Date().getFullYear();
+  });
   const [currentMonth, setCurrentMonth] = useState(() => {
     if (urlDate && /^\d{4}-\d{2}-\d{2}$/.test(urlDate)) {
-      const parts = urlDate.split('-');
-      const m = parseInt(parts[1] || '1', 10) - 1;
-      if (m >= 9 && m <= 11) return m;
+      return parseInt(urlDate.split('-')[1] || '1', 10) - 1;
     }
-    const todayMonth = new Date().getMonth();
-    return todayMonth >= 9 && todayMonth <= 11 ? todayMonth : 9; // padrão: Outubro
+    return new Date().getMonth();
   });
 
   const [selectedDate, setSelectedDate] = useState<string>(() => {
@@ -106,15 +107,15 @@ export function CalendarView({ api, user }: CalendarViewProps) {
     comments: ''
   });
 
-  // Atualiza data selecionada se vier por parâmetro de URL
+  // Atualiza data selecionada e mes/ano visivel se vier por parametro de URL
   useEffect(() => {
     if (urlDate && /^\d{4}-\d{2}-\d{2}$/.test(urlDate)) {
       setSelectedDate(urlDate);
       const parts = urlDate.split('-');
+      const y = parseInt(parts[0] || String(new Date().getFullYear()), 10);
       const m = parseInt(parts[1] || '1', 10) - 1;
-      if (m >= 9 && m <= 11) {
-        setCurrentMonth(m);
-      }
+      setCurrentYear(y);
+      setCurrentMonth(m);
     }
   }, [urlDate]);
 
@@ -153,16 +154,22 @@ export function CalendarView({ api, user }: CalendarViewProps) {
     return { firstDayIndex, daysInMonth };
   }, [currentYear, currentMonth]);
 
-  // Navegação restrita entre Outubro, Novembro e Dezembro
+  // Navegacao livre entre todos os meses e anos
   const handlePrevMonth = () => {
-    if (currentMonth > 9) {
-      setCurrentMonth(currentMonth - 1);
+    if (currentMonth === 0) {
+      setCurrentYear(y => y - 1);
+      setCurrentMonth(11);
+    } else {
+      setCurrentMonth(m => m - 1);
     }
   };
 
   const handleNextMonth = () => {
-    if (currentMonth < 11) {
-      setCurrentMonth(currentMonth + 1);
+    if (currentMonth === 11) {
+      setCurrentYear(y => y + 1);
+      setCurrentMonth(0);
+    } else {
+      setCurrentMonth(m => m + 1);
     }
   };
 
