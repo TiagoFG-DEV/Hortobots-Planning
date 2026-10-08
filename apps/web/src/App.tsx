@@ -295,7 +295,9 @@ function Home() {
   return (
     <main className="cover page-transition">
       <section className="home-screen">
-        <img className="brand" src={logo} alt="Hortobots Planning" />
+        <Link to="/" aria-label="Hortobots Planning — escolher diário">
+          <img className="brand" src={logo} alt="Hortobots Planning" />
+        </Link>
         <p className="eyebrow home-eyebrow">ESCOLHA O DIÁRIO</p>
         <div className="notebook-select">
           <Link className="notebook-logo" to="/fll">
@@ -342,7 +344,7 @@ function SideMenu({ mod }: { mod: string }) {
             </button>
           </header>
           <nav>
-            <Link to={`/${mod}`}><HomeIcon />HOME</Link>
+            <Link to="/"><HomeIcon />HOME</Link>
             <Link to="/calendario"><CalendarDays />CALENDÁRIO GERAL</Link>
             <Link to={`/${mod}/registros`}><List />REGISTROS</Link>
             <Link to={`/${mod}/testes`}><ChartNoAxesCombined />SIMULAÇÕES E TESTES</Link>
@@ -362,7 +364,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="shell page-transition" data-modality={mod}>
       <SideMenu mod={mod} />
-      <Link className="floating-brand" to={`/${mod}`}>
+      <Link className="floating-brand" to="/" aria-label="Hortobots Planning — escolher diário">
         <img src={logo} alt="Hortobots Planning" />
       </Link>
       <img className="corner-team-logo" src={mod === 'fll' ? fll : obr} alt={mod} />
@@ -1545,7 +1547,9 @@ function Credits() {
     <Shell>
       <main className="content credits page-transition">
         <section className="paper">
-          <img src={logo} alt="Hortobots Planning" />
+          <Link to="/" aria-label="Hortobots Planning — escolher diário">
+            <img src={logo} alt="Hortobots Planning" />
+          </Link>
           <h1>Hortobots Planning</h1>
           <p>SESI 437 &bull; Hortolândia &bull; Diário de Bordo Digital</p>
         </section>
