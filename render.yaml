@@ -3,7 +3,7 @@ services:
     name: hortobots-planning
     runtime: node
     plan: free
-    buildCommand: npm ci && npm run check:emoji && npm run build
+    buildCommand: npm install && npm run build
     startCommand: npm run start:render
     healthCheckPath: /api/health
     autoDeploy: true

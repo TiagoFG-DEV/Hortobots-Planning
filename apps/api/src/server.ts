@@ -200,14 +200,17 @@ app.patch('/api/eventos/:id/confirmar', authMiddleware, async (req: AuthRequest,
 // Servir arquivos de mídia dos registros/testes salvos em Logs/
 // GET /api/media/:kind/:folder/:file
 app.get('/api/media/:kind/:folder/:file', (req: Request, res: Response): void => {
-  const { kind, folder, file } = req.params;
+  const kind = String(req.params['kind'] ?? '');
+  const folder = String(req.params['folder'] ?? '');
+  const file = String(req.params['file'] ?? '');
+
   const allowed = ['registros', 'testes', 'eventos'];
-  if (!allowed.includes(kind)) {
-    res.status(404).json({ error: { message: 'Tipo de mídia não encontrado.' } });
+  if (!allowed.includes(kind) || !folder || !file) {
+    res.status(404).json({ error: { message: 'Recurso de mídia não encontrado.' } });
     return;
   }
 
-  // Sanitiza o caminho para evitar path traversal
+  // Sanitiza para evitar path traversal
   const safeFolder = path.basename(folder);
   const safeFile = path.basename(file);
   const filePath = path.join(logsRoot, kind, safeFolder, 'midias', safeFile);
