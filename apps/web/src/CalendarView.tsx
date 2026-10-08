@@ -202,7 +202,7 @@ export function CalendarView({ api, user }: CalendarViewProps) {
     <main
       className="calendar-page-pro page-transition"
       style={{
-        backgroundImage: `linear-gradient(rgba(14, 18, 14, 0.82), rgba(10, 14, 10, 0.90)), url(${underBg})`,
+        backgroundImage: `linear-gradient(rgba(8, 12, 8, 0.55), rgba(6, 10, 6, 0.65)), url(${underBg})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundAttachment: 'fixed'

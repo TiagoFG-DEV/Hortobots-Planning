@@ -338,19 +338,121 @@ function Records() {
   );
 }
 
+type MediaSlot = { name: string; type: string; data: string; url: string };
+
+function MediaPagePanel({
+  slots,
+  onAdd,
+  onRemove,
+  focusSlot,
+  onFocus
+}: {
+  slots: MediaSlot[];
+  onAdd: (files: FileList) => void;
+  onRemove: (i: number) => void;
+  focusSlot: MediaSlot | null;
+  onFocus: (slot: MediaSlot | null) => void;
+}) {
+  return (
+    <div className="media-notebook-page">
+      <div className="media-notebook-head">
+        <span className="paper-label" style={{ textShadow: 'none' }}>IMAGENS / VIDEOS</span>
+        <small className="media-count-badge">{slots.length} / 4</small>
+      </div>
+      <div className="media-slot-grid">
+        {Array.from({ length: 4 }).map((_, i) => {
+          const slot = slots[i];
+          return (
+            <div key={i} className={`media-slot ${slot ? 'filled' : 'empty'}`}>
+              {slot ? (
+                <>
+                  <button
+                    type="button"
+                    className="media-slot-preview"
+                    onClick={() => onFocus(slot)}
+                    aria-label={`Ver ${slot.name}`}
+                  >
+                    {slot.type.startsWith('image') ? (
+                      <img src={slot.url} alt={slot.name} />
+                    ) : (
+                      <div className="media-slot-video-thumb">
+                        <video src={slot.url} muted playsInline />
+                        <div className="media-slot-play-icon"><Video /></div>
+                      </div>
+                    )}
+                    <div className="media-slot-label">{slot.name}</div>
+                  </button>
+                  <button
+                    type="button"
+                    className="media-slot-remove"
+                    onClick={() => onRemove(i)}
+                    aria-label="Remover"
+                  >
+                    <X />
+                  </button>
+                </>
+              ) : (
+                <label className="media-slot-add">
+                  {slots.length < 4 ? (
+                    <>
+                      <ImageIcon />
+                      <Video />
+                      <span>Adicionar</span>
+                      <input
+                        hidden
+                        type="file"
+                        accept="image/*,video/*"
+                        onChange={e => e.target.files && onAdd(e.target.files)}
+                      />
+                    </>
+                  ) : (
+                    <span style={{ fontSize: '0.78rem', opacity: 0.5, textAlign: 'center' }}>Limite atingido</span>
+                  )}
+                </label>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Player de foco para preview */}
+      {focusSlot && (
+        <div className="focus-layer" onClick={() => onFocus(null)}>
+          <button aria-label="Fechar" onClick={() => onFocus(null)}><X /></button>
+          {focusSlot.type.startsWith('image') ? (
+            <img src={focusSlot.url} alt={focusSlot.name} />
+          ) : (
+            <video controls src={focusSlot.url} autoPlay onClick={e => e.stopPropagation()} />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Editor() {
   const { mod = 'fll' } = useParams();
-  const [form, setForm] = useState({ date: today, title: '', summary: '', body: '', tags: ['treino'] });
+  const [form, setForm] = useState({ date: today, title: '', summary: '', tags: ['treino'] });
   const [tag, setTag] = useState('');
-  const [media, setMedia] = useState<any[]>([]);
+  const [media, setMedia] = useState<MediaSlot[]>([]);
+  const [focusSlot, setFocusSlot] = useState<MediaSlot | null>(null);
   const [saved, setSaved] = useState('');
 
-  const files = (e: React.ChangeEvent<HTMLInputElement>) =>
-    [...(e.target.files || [])].forEach(f => {
+  const addFiles = (fileList: FileList) => {
+    const remaining = 4 - media.length;
+    const toProcess = Array.from(fileList).slice(0, remaining);
+    toProcess.forEach(f => {
       const r = new FileReader();
-      r.onload = () => setMedia(m => [...m, { name: f.name, type: f.type, data: String(r.result) }]);
+      r.onload = () => {
+        const dataUrl = String(r.result);
+        setMedia(m => [...m, { name: f.name, type: f.type, data: dataUrl, url: dataUrl }]);
+      };
       r.readAsDataURL(f);
     });
+  };
+
+  const removeMedia = (idx: number) =>
+    setMedia(m => m.filter((_, i) => i !== idx));
 
   const save = async () => {
     try {
@@ -373,51 +475,61 @@ function Editor() {
   return (
     <Shell>
       <main className="content page-transition">
-        <form className="simple-editor" onSubmit={e => e.preventDefault()}>
-          <span className="paper-label">NOVO REGISTRO · {mod.toUpperCase()}</span>
-          <label>
-            Data
-            <input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} />
-          </label>
-          <label>
-            Título
-            <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
-          </label>
-          <label>
-            Resumo
-            <AutoArea value={form.summary} onChange={e => setForm({ ...form, summary: e.target.value })} />
-          </label>
-          <label>
-            Relato Técnico
-            <AutoArea value={form.body} onChange={e => setForm({ ...form, body: e.target.value })} />
-          </label>
-          <div className="custom-tag">
-            <input value={tag} onChange={e => setTag(e.target.value)} placeholder="Adicionar tag personalizada" />
-            <button type="button" onClick={add}>
-              <Plus /> Adicionar
+        <div className="notebook-editor">
+          {/* Página Esquerda: Formulário */}
+          <form className="notebook-form-page" onSubmit={e => e.preventDefault()}>
+            <span className="paper-label" style={{ textShadow: 'none' }}>NOVO REGISTRO · {mod.toUpperCase()}</span>
+            <div className="ne-two">
+              <label>
+                Data
+                <input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} />
+              </label>
+              <label>
+                Título
+                <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Título do dia" />
+              </label>
+            </div>
+            <label>
+              Resumo do Dia
+              <AutoArea
+                className="ne-textarea"
+                value={form.summary}
+                onChange={e => setForm({ ...form, summary: e.target.value })}
+                placeholder="Descreva o treino, objetivos, conquistas, dificuldades e relato técnico do dia..."
+              />
+            </label>
+            <div className="custom-tag">
+              <input value={tag} onChange={e => setTag(e.target.value)} placeholder="Nova tag" />
+              <button type="button" onClick={add}><Plus /> Adicionar</button>
+            </div>
+            <div className="tags">
+              {form.tags.map(t => (
+                <span key={t}>
+                  {t}
+                  <button type="button" onClick={() => setForm({ ...form, tags: form.tags.filter(x => x !== t) })}>
+                    <X />
+                  </button>
+                </span>
+              ))}
+            </div>
+            <button type="button" className="button ne-save" onClick={save}>
+              SALVAR REGISTRO
             </button>
-          </div>
-          <div className="tags">
-            {form.tags.map(t => (
-              <span key={t}>
-                {t}
-                <button type="button" onClick={() => setForm({ ...form, tags: form.tags.filter(x => x !== t) })}>
-                  <X />
-                </button>
-              </span>
-            ))}
-          </div>
-          <label className="media-add">
-            <ImageIcon />
-            <Video />
-            Adicionar imagens ou vídeos
-            <input hidden multiple type="file" accept="image/*,video/*" onChange={files} />
-          </label>
-          <button type="button" className="button" onClick={save}>
-            SALVAR REGISTRO
-          </button>
-          {saved && <p className="cal-alert-banner">{saved}</p>}
-        </form>
+            {saved && <p className="cal-alert-banner">{saved}</p>}
+          </form>
+
+          {/* Spine / lombo do caderno */}
+          <div className="notebook-spine" aria-hidden="true" />
+
+          {/* Página Direita: Mídia */}
+          <MediaPagePanel
+            slots={media}
+            onAdd={addFiles}
+            onRemove={removeMedia}
+            focusSlot={focusSlot}
+            onFocus={setFocusSlot}
+          />
+        </div>
       </main>
     </Shell>
   );
@@ -722,6 +834,7 @@ function RecordView() {
   const { mod = 'fll', id } = useParams();
   const [rec, setRec] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [focusMedia, setFocusMedia] = useState<any>(null);
 
   useEffect(() => {
     void api('/api/registros')
@@ -732,18 +845,84 @@ function RecordView() {
       .finally(() => setLoading(false));
   }, [id]);
 
+  const mediaItems: any[] = Array.isArray(rec?.media) ? rec.media : [];
+
+  // Resolve URL da mídia: pode ser base64 (data:) ou um path relativo do servidor
+  const resolveUrl = (m: any): string => {
+    if (String(m.data || m.url || '').startsWith('data:')) return m.data || m.url;
+    // Arquivo salvo no servidor; usa path relativo ao endpoint de mídia
+    const folder = `${rec.date}-${rec.id}`;
+    return `${API}/api/media/registros/${folder}/${m.path || m.name}`;
+  };
+
   return (
     <Shell>
       <main className="content page-transition">
-        <article className="paper diary">
-          <span className="stamp small">{mod.toUpperCase()}</span>
-          <h1>{rec?.title || 'Registro do Diário'}</h1>
-          <p className="long-date">{rec?.date ? `Data oficial: ${rec.date}` : ''}</p>
-          <div className="summary">
-            <strong>Resumo:</strong> {rec?.summary || 'Carregando detalhes...'}
+        <div className="record-view-layout">
+          <article className="paper diary">
+            <span className="stamp small">{mod.toUpperCase()}</span>
+            <h1>{loading ? 'Carregando...' : (rec?.title || 'Registro do Diário')}</h1>
+            <p className="long-date">{rec?.date ? `Data oficial: ${rec.date}` : ''}</p>
+            {rec?.summary && (
+              <div className="summary">
+                <strong>Resumo do Dia:</strong>
+                <p style={{ whiteSpace: 'pre-line', marginTop: '0.5rem' }}>{rec.summary}</p>
+              </div>
+            )}
+            {rec?.body && <p style={{ marginTop: '1.5rem', whiteSpace: 'pre-line' }}>{rec.body}</p>}
+            {Array.isArray(rec?.tags) && rec.tags.length > 0 && (
+              <div className="tags" style={{ marginTop: '1.5rem' }}>
+                {rec.tags.map((t: string) => <span key={t}>{t}</span>)}
+              </div>
+            )}
+          </article>
+
+          {/* Painel lateral de mídia do registro */}
+          {mediaItems.length > 0 && (
+            <aside className="record-media-panel">
+              <div className="record-media-head">
+                <span className="paper-label" style={{ textShadow: 'none', color: 'var(--ink)' }}>IMAGENS / VIDEOS</span>
+                <small>{mediaItems.length} arquivo{mediaItems.length !== 1 ? 's' : ''}</small>
+              </div>
+              <div className="record-media-grid">
+                {mediaItems.map((m: any, i: number) => {
+                  const url = resolveUrl(m);
+                  const isVideo = String(m.type || '').startsWith('video');
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      className="record-media-cell"
+                      onClick={() => setFocusMedia({ ...m, resolvedUrl: url })}
+                      aria-label={`Ver ${m.name}`}
+                    >
+                      {isVideo ? (
+                        <div className="record-media-video-thumb">
+                          <video src={url} muted playsInline />
+                          <div className="media-slot-play-icon"><Video /></div>
+                        </div>
+                      ) : (
+                        <img src={url} alt={m.name} />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </aside>
+          )}
+        </div>
+
+        {/* Lightbox de foco */}
+        {focusMedia && (
+          <div className="focus-layer" onClick={() => setFocusMedia(null)}>
+            <button aria-label="Fechar" onClick={() => setFocusMedia(null)}><X /></button>
+            {String(focusMedia.type || '').startsWith('video') ? (
+              <video controls autoPlay src={focusMedia.resolvedUrl} onClick={e => e.stopPropagation()} />
+            ) : (
+              <img src={focusMedia.resolvedUrl} alt={focusMedia.name} />
+            )}
           </div>
-          {rec?.body && <p style={{ marginTop: '1.5rem', whiteSpace: 'pre-line' }}>{rec.body}</p>}
-        </article>
+        )}
       </main>
     </Shell>
   );

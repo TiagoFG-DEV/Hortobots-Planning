@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import accounts from './accounts.json' with { type: 'json' };
@@ -194,6 +195,29 @@ app.patch('/api/eventos/:id/confirmar', authMiddleware, async (req: AuthRequest,
   } catch (err: any) {
     res.status(500).json({ error: { message: 'Erro ao atualizar evento.' } });
   }
+});
+
+// Servir arquivos de mídia dos registros/testes salvos em Logs/
+// GET /api/media/:kind/:folder/:file
+app.get('/api/media/:kind/:folder/:file', (req: Request, res: Response): void => {
+  const { kind, folder, file } = req.params;
+  const allowed = ['registros', 'testes', 'eventos'];
+  if (!allowed.includes(kind)) {
+    res.status(404).json({ error: { message: 'Tipo de mídia não encontrado.' } });
+    return;
+  }
+
+  // Sanitiza o caminho para evitar path traversal
+  const safeFolder = path.basename(folder);
+  const safeFile = path.basename(file);
+  const filePath = path.join(logsRoot, kind, safeFolder, 'midias', safeFile);
+
+  if (!existsSync(filePath)) {
+    res.status(404).json({ error: { message: 'Arquivo de mídia não encontrado.' } });
+    return;
+  }
+
+  res.sendFile(filePath);
 });
 
 // Servir Frontend estático compilado (Web)
