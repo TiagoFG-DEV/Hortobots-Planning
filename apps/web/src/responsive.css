@@ -1,0 +1,272 @@
+/* Layout adaptations, loaded after the original visual identity. */
+:root {
+  --page-gutter: clamp(12px, 3vw, 40px);
+  --header-space: 92px;
+}
+
+html {
+  height: auto;
+  min-height: 100%;
+  overflow-x: clip;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scroll-padding-top: var(--header-space);
+}
+html::-webkit-scrollbar { display: block; width: 8px; }
+html::-webkit-scrollbar-thumb { background: #69b824; border-radius: 8px; }
+body {
+  height: auto;
+  min-width: 0;
+  min-height: 100svh;
+  overflow: visible;
+}
+#root { overflow: visible; min-height: 100svh; isolation: isolate; }
+
+/* Sibling of the routes: animations and content height cannot move the image.
+   lvh keeps mobile browser chrome changes from resizing the artwork on scroll. */
+.app-backdrop {
+  position: fixed;
+  inset: 0;
+  height: 100lvh;
+  z-index: -2;
+  pointer-events: none;
+  background: #101311 url('./assets/generated/fundo-1920.webp') center / cover no-repeat;
+}
+#root:has(.shell[data-modality='obr']) > .app-backdrop {
+  background-image: url('./assets/generated/fundo-obr-1920.webp');
+}
+#root:has(.tests-page.under) > .app-backdrop {
+  background-image: linear-gradient(#18091bbb, #18091bbb), url('./assets/originals/fundo_underconstruction.png');
+}
+#root:has(.calendar-page-pro) > .app-backdrop {
+  background-image: linear-gradient(#080c088c, #060a06a6), url('./assets/originals/fundo_underconstruction.png');
+}
+.shell::before, .cover::before, .calendar-page::before, .login::before { content: none; }
+.calendar-page-pro, .tests-page { background: none !important; }
+.shell, .cover, .content, .home-screen, .hub, .calendar-page-pro, .tests-page {
+  height: auto;
+  overflow: visible;
+}
+.page-transition { animation: responsive-page-enter .3s ease; }
+@keyframes responsive-page-enter { from { opacity: 0; } to { opacity: 1; } }
+
+/* Allow grid/flex children and long user content to actually shrink. */
+:where(main, section, article, aside, form, fieldset, label, nav, header, footer, div) { min-width: 0; }
+:where(h1, h2, h3, p, strong, small, label, a, button, .tags) { overflow-wrap: anywhere; }
+:where(input, select, textarea) { min-width: 0; max-width: 100%; font: inherit; }
+:where(img, video, svg) { max-width: 100%; }
+:where(button, a, input, select, textarea):focus-visible {
+  outline: 3px solid #f6b922;
+  outline-offset: 3px;
+}
+.tags label:focus-within span { outline: 3px solid #d9970b; outline-offset: 2px; }
+input[type='date'] { min-height: 44px; }
+button { cursor: pointer; }
+.visually-hidden { position: absolute; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.media-slot:focus-within { outline: 3px solid #d9970b; outline-offset: 2px; }
+.media-slot:focus-within .media-slot-remove { opacity: 1; }
+.test-media-label { color: var(--ink); text-shadow: none; }
+.content { width: 100%; padding: var(--header-space) var(--page-gutter) 28px; }
+.hub { color: #fff; }
+.page-title, .tests-head { gap: 1rem; flex-wrap: wrap; }
+.page-title h1, .tests-head h1 { font-size: clamp(2rem, 4.5vw, 4.7rem); }
+.tests-head select { max-width: 100%; }
+.filters label:only-child { max-width: none; }
+.form-grid, .two, .two-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.notebook-editor { grid-template-columns: minmax(0, 1fr) 16px minmax(0, 1fr); min-height: 0; }
+.notebook-form-page { overflow: visible; }
+.record-view-layout { grid-template-columns: minmax(0, 1fr) minmax(240px, 340px); }
+.record-view-layout:not(:has(.record-media-panel)) { grid-template-columns: minmax(0, 1fr); }
+.diary, .gallery { min-height: 0; aspect-ratio: auto; }
+.diary h1 { font-size: clamp(2rem, 4vw, 3.5rem); }
+.record-card-actions { display: flex; gap: .4rem; position: absolute; right: 1rem; top: 1rem; }
+.record-card-container:has(.record-card-actions) .record-card { padding-right: 180px; }
+.saved-test-card { display: flex; justify-content: space-between; flex-wrap: wrap; }
+.saved-test-summary { display: flex; align-items: center; gap: 1rem; flex: 1 1 240px; }
+.date-tab { flex: 0 0 auto; }
+.item-actions-row, .cal-event-title-row { flex-wrap: wrap; }
+.da-panel-header, .media-notebook-head, .record-media-head { gap: .5rem; flex-wrap: wrap; }
+.test-results .media-notebook-page { padding: 1rem; border-radius: 12px; }
+.test-results .da-toggle-btn { color: #086374; background: #cff5f5; }
+.test-results > .da-panel-header .kicker { color: var(--ink); text-shadow: none; }
+.da-stat-label, .da-stat-sub { color: #b7c8c1; }
+
+/* Preserve the calendar/detail columns, fitting a normal laptop height. */
+.calendar-page-pro { width: 100%; min-height: 100svh; padding: 20px var(--page-gutter) 24px; }
+.cal-header-bar { margin-bottom: 1rem; }
+.cal-title-section h1 { font-size: clamp(1.8rem, 3vw, 2.8rem); }
+.cal-main-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(1rem, 2.4vw, 2.2rem); }
+.cal-desk-header { padding: 1.5rem 1rem .8rem; }
+.cal-month-indicator h2 { font-size: clamp(1.5rem, 2.5vw, 2.3rem); }
+.cal-weekdays-row { padding-block: .55rem; }
+.cal-day-cell { min-height: clamp(44px, 7.5svh, 74px); margin: 0; padding: .4rem .2rem; }
+.cal-legend-bar { gap: .5rem 1rem; padding: .7rem; }
+.cal-details-header { padding: 1rem 1.25rem; gap: .5rem; }
+.cal-details-header h2 { font-size: clamp(1.4rem, 2.4vw, 2rem); }
+.cal-details-scroll { overflow: visible; max-height: none; padding: 1rem 1.25rem; gap: 1rem; }
+.cal-section-group { margin: 0; }
+.cal-section-group h3 { margin: 0 0 .5rem; }
+.cal-event-item, .cal-test-item { flex-wrap: wrap; gap: .6rem; }
+.cal-test-item > div:first-child { flex: 1 1 180px; }
+.cal-test-item > div:last-child { flex-wrap: wrap; }
+.cal-record-link strong, .cal-record-link p { white-space: normal; -webkit-line-clamp: unset; }
+.cal-record-link { background: transparent; padding: 0; box-shadow: none; }
+.cal-record-link > .mod-pill { flex-shrink: 0; }
+
+/* The form has a natural minimum height; short viewports scroll once. */
+.login { height: auto; min-height: 100svh; padding: clamp(12px, 2vw, 24px); overflow: visible; }
+.login-stage { width: min(1140px, 100%); height: auto; max-height: none; min-height: min(760px, calc(100svh - 48px)); grid-template-columns: minmax(0, 1.05fr) minmax(0, .85fr); }
+.login-art { align-items: center; padding: clamp(1rem, 2.4vw, 2rem); gap: clamp(.5rem, 2svh, 1.5rem); }
+.login .login-logo { bottom: auto; width: min(560px, 100%); max-height: 27svh; margin: 0; object-fit: contain; }
+.login-art > p { bottom: auto; display: block; order: 2; margin: 0; line-height: 1.5; font-size: clamp(.9rem, 1.5vw, 1.2rem); }
+.login-art > div { order: 3; height: clamp(160px, 32svh, 290px); gap: 1rem; }
+.login-art > div img { bottom: auto; width: 44%; margin: 0; }
+.login form { min-width: 0; width: auto; padding: clamp(1rem, 2vw, 1.8rem); overflow: visible; justify-content: center; gap: .2rem; }
+.login-team-icons { gap: 1rem; }
+.login-team-icons img { width: 38%; height: clamp(52px, 10svh, 100px); }
+.login-team-icons span { height: 48px; flex-shrink: 0; }
+.login h1 { font-size: clamp(2rem, 4svh, 2.7rem); }
+.login-copy { font-size: .875rem; line-height: 1.4; }
+.profile-picker button { min-height: 48px; margin: 0; }
+.login input, .login .button { min-height: 44px; }
+.login-orbit { overflow: clip; pointer-events: none; }
+.login-orbit i:nth-child(1) { left: 0; }
+.login-orbit i:nth-child(2) { right: 0; }
+.login-orbit i:nth-child(3) { bottom: 0; }
+
+/* One scroll owner while an overlay is open, including landscape phones. */
+html:has(.menu-layer.open, .dialog-layer, .focus-layer, .hb-dialog-overlay) { overflow: hidden; }
+html:has(.menu-layer.open, .dialog-layer, .focus-layer, .hb-dialog-overlay) .logout { visibility: hidden; }
+.menu-layer { visibility: hidden; }
+.menu-layer.open { visibility: visible; }
+.side-menu { height: 100dvh; overflow-y: auto; overscroll-behavior: contain; padding-bottom: max(22px, env(safe-area-inset-bottom)); }
+.side-menu header, .side-menu footer { flex-shrink: 0; }
+.side-menu footer { padding-top: 1rem; margin-top: auto; }
+.side-menu nav { margin-block: 1rem; gap: .35rem; }
+.side-menu nav a { min-height: 48px; }
+.dialog-layer, .hb-dialog-overlay { overflow-y: auto; overscroll-behavior: contain; padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); }
+.dialog-layer { display: flex; flex-direction: column; }
+.dialog-layer > *, .hb-dialog-overlay > * { margin: auto; flex-shrink: 0; max-width: 100%; }
+.cal-modal-card { width: min(580px, 100%); padding: clamp(1rem, 3vw, 2.4rem); }
+.cal-modal-card input, .cal-modal-card select { color-scheme: dark; }
+.cal-modal-card textarea { min-height: 6rem; }
+.focus-layer { padding: 60px 12px 16px; }
+.focus-layer img, .focus-layer video { max-width: 100%; max-height: calc(100dvh - 90px); object-fit: contain; }
+.logout { right: max(12px, env(safe-area-inset-right)); bottom: max(12px, env(safe-area-inset-bottom)); }
+.hb-toast { width: max-content; max-width: calc(100% - 24px); }
+
+@media (max-width: 1000px) {
+  .test-workspace { grid-template-columns: minmax(0, 1fr); }
+  .attempts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .action-grid.three { width: 100%; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(.5rem, 2vw, 2rem); }
+  .action-grid.three img { height: auto; max-height: none; object-fit: contain; }
+}
+@media (max-width: 900px) {
+  .notebook-editor { grid-template-columns: minmax(0, 1fr); }
+  .record-view-layout { grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+  .notebook-form-page, .media-notebook-page { padding: clamp(1rem, 3vw, 1.8rem); }
+  .form-paper, .maker-paper, .diary, .gallery { min-height: 0; aspect-ratio: auto; }
+}
+@media (max-width: 760px) {
+  :root { --header-space: 80px; }
+  .login-stage { grid-template-columns: minmax(0, 1fr); min-height: 0; border-radius: 24px; }
+  .login-art { gap: .4rem; padding: .8rem 1rem; }
+  .login .login-logo { width: min(280px, 75%); height: 80px; }
+  .login-art > p { font-size: .85rem; max-width: 30ch; }
+  .login-art > div { height: clamp(80px, 13svh, 110px); }
+  .login-art > div img { width: 32%; }
+  .login form { margin: 8px; padding: 1rem; }
+  .login-team-icons img { height: 44px; }
+  .login-team-icons span { height: 28px; }
+  .profile-picker { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+  .profile-picker button { padding: .55rem 1.5rem .55rem .6rem; min-height: 64px; }
+  .profile-picker button::after { right: .4rem; width: 12px; height: 12px; }
+  .profile-picker b { font-size: .8rem; }
+  .login label { margin: .3rem 0; }
+  .login-copy { margin: .25rem auto .5rem; }
+  .login form > small { margin-top: .5rem; }
+  .login .button { margin-top: .3rem; }
+  .cal-main-grid { grid-template-columns: minmax(0, 1fr); }
+  .cal-header-bar { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: .7rem; }
+  .cal-title-section { grid-column: 1 / -1; grid-row: 2; }
+  .back-home-button { justify-self: start; }
+  .cal-header-bar > .cal-primary-btn { justify-self: end; }
+  .cal-header-bar .cal-primary-btn, .back-home-button { min-height: 44px; padding: .6rem .9rem; }
+  .cal-subtitle { font-size: .8rem; }
+  .cal-subtitle strong { white-space: nowrap; }
+  .cal-day-cell { min-height: 44px; }
+  .cal-details-scroll { padding: 1rem; }
+  .cal-desk-rings { padding-inline: 20px; }
+  .cal-dots-row { gap: 3px; }
+  .cal-dots-row .dot { width: 5px; height: 5px; }
+  .menu-trigger { top: max(12px, env(safe-area-inset-top)); left: 12px; width: 44px; height: 44px; margin: 0; }
+  .floating-brand { top: max(10px, env(safe-area-inset-top)); left: 68px; }
+  .floating-brand img { width: 116px; height: 48px; }
+  .corner-team-logo { top: max(10px, env(safe-area-inset-top)); right: 12px; width: 64px; height: 48px; }
+  .page-title { margin-bottom: 1rem; gap: .6rem; }
+  .content, .calendar-page-pro { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
+  .hub { padding: var(--header-space) var(--page-gutter) 24px; min-height: 100svh; justify-content: center; }
+  .home-screen { padding: 20px var(--page-gutter) 64px; gap: .6rem; }
+  .home-eyebrow { margin: .5rem 0; }
+  .notebook-select { width: 100%; gap: .5rem; }
+  .notebook-logo { width: 44%; }
+  .notebook-logo img { height: clamp(150px, 32svh, 300px); }
+  .public-links { max-width: 100%; margin-top: .5rem; }
+  .public-links a { min-height: 44px; }
+  .record-card { gap: .7rem; padding: 1rem; }
+  .record-card-container:has(.record-card-actions) .record-card { padding-right: 1rem; padding-bottom: 68px; }
+  .record-card-actions { top: auto; bottom: .7rem; }
+  .btn-action-edit, .btn-action-delete { min-height: 44px; }
+  .record-card h2 { font-size: 1.2rem; }
+  .record-card p { font-size: .875rem; }
+  .record-card .kicker { text-shadow: none; font-size: .8rem; }
+  .diary { padding: 1.25rem; }
+  .credits { padding-inline: var(--page-gutter); }
+  .credits .paper { padding: 1.5rem; }
+  .credits img { width: 100%; }
+}
+@media (max-width: 560px) {
+  input:not([type='checkbox']):not([type='radio']), select, textarea { font-size: 16px; }
+  .form-grid, .ne-two, .two, .two-cols { grid-template-columns: minmax(0, 1fr); }
+  .test-form > .two { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+  .test-form > .two label { font-size: .85rem; }
+  .ne-textarea { min-height: 150px; }
+  .custom-tag { flex-direction: row; }
+  .custom-tag button { padding-inline: .6rem; }
+  .attempts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .test-form, .test-results { padding: 1rem; border-radius: 16px; }
+  .da-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .da-root { padding: .65rem; }
+  .da-stat-card { padding: .6rem; }
+  .action-grid.three { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 460px; }
+  .action-grid.three a:last-child { grid-column: 1 / -1; width: calc((100% - .5rem) / 2); justify-self: center; }
+  .side-menu { padding: 16px; }
+  .side-menu header { grid-template-columns: 52px minmax(0, 1fr) 44px; padding-bottom: .75rem; }
+  .side-menu header img { width: 52px; height: 52px; }
+  .side-menu header strong { font-size: 1.3rem; }
+  .media-slot-grid, .record-media-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .media-slot-add { min-height: 100px; }
+  .cal-weekday-label { font-size: .85rem; }
+  .cal-day-number { font-size: 1.2rem; }
+  .cal-legend-bar { font-size: .75rem; }
+  .cal-details-header { padding-inline: 1rem; flex-wrap: wrap; }
+  .cal-record-link { display: block; }
+  .cal-record-link > .mod-pill { display: inline-block; margin-bottom: .4rem; }
+  .cal-test-item > div:first-child { flex-basis: 100%; }
+  .cal-test-item > div:last-child:not(:first-child) { margin-left: auto; }
+  .cal-modal-actions, .save-row { flex-wrap: wrap; }
+  .hb-dialog-card { padding: 1.5rem 1rem; }
+  .hb-dialog-actions { flex-wrap: wrap; }
+}
+@media (max-width: 360px) {
+  .attempts { grid-template-columns: minmax(0, 1fr); }
+  .test-form > .two { grid-template-columns: minmax(0, 1fr); }
+}
+@media (hover: none), (pointer: coarse) {
+  .media-slot-remove, .remove-block { opacity: 1; width: 44px; height: 44px; }
+  .notebook-select:has(.notebook-logo:hover) .notebook-logo:not(:hover),
+  .action-grid:has(a:hover) a:not(:hover) { filter: none; opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}

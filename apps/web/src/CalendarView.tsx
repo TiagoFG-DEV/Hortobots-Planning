@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useDialog } from './App';
+import { AutoArea, useDialog } from './App';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Home as HomeIcon,
@@ -14,7 +14,6 @@ import {
   Trash2,
   X
 } from 'lucide-react';
-import underBg from './assets/originals/fundo_underconstruction.png';
 
 interface CalendarEvent {
   id: string;
@@ -339,12 +338,6 @@ export function CalendarView({ api, user }: CalendarViewProps) {
   return (
     <main
       className="calendar-page-pro page-transition"
-      style={{
-        backgroundImage: `linear-gradient(rgba(8, 12, 8, 0.55), rgba(6, 10, 6, 0.65)), url(${underBg})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed'
-      }}
     >
       <div className="cal-header-bar">
         <Link to="/" className="back-home-button">
@@ -438,6 +431,9 @@ export function CalendarView({ api, user }: CalendarViewProps) {
                   type="button"
                   className={`cal-day-cell ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''}`}
                   onClick={() => setSelectedDate(dateStr)}
+                  aria-pressed={isSelected}
+                  aria-current={isToday ? 'date' : undefined}
+                  aria-label={`${dayNum} de ${MONTH_NAMES[currentMonth]} de ${currentYear}, ${dayEvts.length} eventos, ${dayRecs.length} registros, ${dayTsts.length} testes${hasUrgente ? ', evento urgente' : ''}`}
                   title={`${dayNum} de ${MONTH_NAMES[currentMonth]}`}
                 >
                   <span className="cal-day-number">{dayNum}</span>
@@ -734,7 +730,7 @@ export function CalendarView({ api, user }: CalendarViewProps) {
 
               <label>
                 Observações Adicionais
-                <textarea
+                <AutoArea
                   rows={3}
                   value={newEvent.comments}
                   onChange={e => setNewEvent({ ...newEvent, comments: e.target.value })}

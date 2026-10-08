@@ -25,11 +25,11 @@ import obrBook from './assets/generated/obr_book.webp';
 import novo from './assets/generated/novo_registro_button.webp';
 import salvos from './assets/generated/registros_salvos_button.webp';
 import testsButton from './assets/originals/simulacoes_e_testes_button.png';
-import underBg from './assets/originals/fundo_underconstruction.png';
 import mascote from './assets/generated/mascote.webp';
 import fundo1280 from './assets/generated/fundo-1280.webp';
 import fundo1920 from './assets/generated/fundo-1920.webp';
 import { CalendarView } from './CalendarView';
+import { useOverlayAccessibility } from './useOverlayAccessibility';
 
 const API = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? 'http://localhost:3000' : '');
 const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
@@ -71,13 +71,26 @@ const api = async (path: string, init: RequestInit = {}) => {
   return b;
 };
 
-function AutoArea(p: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+export function AutoArea(p: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
   const ref = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
-    if (ref.current) {
-      ref.current.style.height = '0';
-      ref.current.style.height = `${ref.current.scrollHeight}px`;
-    }
+    const element = ref.current;
+    if (!element) return;
+    const resize = () => {
+      element.style.height = '0';
+      element.style.height = `${element.scrollHeight + element.offsetHeight - element.clientHeight}px`;
+    };
+    resize();
+    // Reflow text after rotation, zoom or a narrower form column.
+    let width = element.clientWidth;
+    const observer = new ResizeObserver(() => {
+      if (width !== element.clientWidth) {
+        width = element.clientWidth;
+        resize();
+      }
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
   }, [p.value]);
   return <textarea {...p} ref={ref} />;
 }
@@ -230,11 +243,20 @@ function Login({ onLogin }: { onLogin: (u: User) => void }) {
           <h1>Bem-vindo</h1>
           <p className="login-copy">Escolha seu perfil e informe a senha de acesso.</p>
           <div className="profile-picker" role="radiogroup" aria-label="Perfil de acesso">
-            {profiles.map(profile => (
+            {profiles.map((profile, index) => (
               <button
                 type="button"
                 role="radio"
                 aria-checked={v.username === profile.id}
+                tabIndex={v.username === profile.id || (!v.username && index === 0) ? 0 : -1}
+                onKeyDown={e => {
+                  if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return;
+                  e.preventDefault();
+                  const next = (index + (['ArrowRight', 'ArrowDown'].includes(e.key) ? 1 : -1) + profiles.length) % profiles.length;
+                  setV({ ...v, username: profiles[next]!.id });
+                  setError('');
+                  (e.currentTarget.parentElement?.children[next] as HTMLElement)?.focus();
+                }}
                 className={v.username === profile.id ? 'selected' : ''}
                 onClick={() => {
                   setV({ ...v, username: profile.id });
@@ -304,11 +326,11 @@ function SideMenu({ mod }: { mod: string }) {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button className={`menu-trigger ${mod}-trigger`} onClick={() => setOpen(true)} aria-label="Abrir menu">
+      <button className={`menu-trigger ${mod}-trigger`} onClick={() => setOpen(true)} aria-label="Abrir menu" aria-expanded={open} aria-controls="team-menu">
         <Menu />
       </button>
       <div className={`menu-layer ${open ? 'open' : ''}`} onClick={() => setOpen(false)}>
-        <aside className={`side-menu ${mod}-menu`} onClick={e => e.stopPropagation()}>
+        <aside id="team-menu" className={`side-menu ${mod}-menu`} onClick={e => e.stopPropagation()}>
           <header>
             <img src={mod === 'fll' ? fll : obr} alt={mod} />
             <div>
@@ -433,11 +455,11 @@ function Records() {
         <div className="filters">
           <label>
             <Search />
-            <input value={q} onChange={e => setQ(e.target.value)} placeholder="Pesquisar texto ou tag" />
+            <input aria-label="Pesquisar registros por texto ou tag" value={q} onChange={e => setQ(e.target.value)} placeholder="Pesquisar texto ou tag" />
           </label>
           <label>
             <CalendarDays />
-            <input type="date" value={date} onChange={e => setDate(e.target.value)} />
+            <input aria-label="Filtrar registros por data" type="date" value={date} onChange={e => setDate(e.target.value)} />
           </label>
         </div>
         <div className="record-list">
@@ -458,7 +480,7 @@ function Records() {
                   </div>
                 </Link>
                 {auth() && (
-                  <div style={{ position: 'absolute', right: '1rem', top: '1rem', display: 'flex', gap: '0.4rem', zIndex: 2 }}>
+                  <div className="record-card-actions">
                     <Link
                       to={`/${mod}/editar/${r.id}`}
                       className="btn-action-edit"
@@ -623,7 +645,8 @@ function MediaPagePanel({
                       <Video />
                       <span>Adicionar</span>
                       <input
-                        hidden
+                        className="visually-hidden"
+                        aria-label={`Adicionar imagem ou vídeo no espaço ${i + 1}`}
                         type="file"
                         accept="image/*,video/*"
                         onChange={e => e.target.files && onAdd(e.target.files)}
@@ -775,14 +798,14 @@ function Editor({ isEdit }: { isEdit?: boolean }) {
               />
             </label>
             <div className="custom-tag">
-              <input value={tag} onChange={e => setTag(e.target.value)} placeholder="Nova tag" />
+              <input aria-label="Nova tag" value={tag} onChange={e => setTag(e.target.value)} placeholder="Nova tag" />
               <button type="button" onClick={add}><Plus /> Adicionar</button>
             </div>
             <div className="tags">
               {form.tags.map(t => (
                 <span key={t}>
                   {t}
-                  <button type="button" onClick={() => setForm({ ...form, tags: form.tags.filter(x => x !== t) })}>
+                  <button type="button" aria-label={`Remover tag ${t}`} onClick={() => setForm({ ...form, tags: form.tags.filter(x => x !== t) })}>
                     <X />
                   </button>
                 </span>
@@ -1113,7 +1136,6 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
     <Shell>
       <main
         className={`content tests-page page-transition ${team === 'UnderConstruction' ? 'under' : ''}`}
-        style={team === 'UnderConstruction' ? { backgroundImage: `linear-gradient(#18091bbb,#18091bbb),url(${underBg})` } : {}}
       >
         <div className="tests-head">
           <div>
@@ -1248,7 +1270,7 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
             {showAnalysis && <DataAnalysis attempts={activeAttempts} />}
 
             <div style={{ marginTop: '1.2rem' }}>
-              <span className="paper-label" style={{ textShadow: 'none', color: '#cbd5e1' }}>MÍDIAS DO TESTE</span>
+              <span className="paper-label test-media-label">MÍDIAS DO TESTE</span>
               <MediaPagePanel
                 slots={media}
                 onAdd={addFiles}
@@ -1318,14 +1340,14 @@ function SavedTests() {
         <div className="filters">
           <label>
             <Search />
-            <input value={q} onChange={e => setQ(e.target.value)} placeholder="Pesquisar teste, missão ou equipe" />
+            <input aria-label="Pesquisar teste, missão ou equipe" value={q} onChange={e => setQ(e.target.value)} placeholder="Pesquisar teste, missão ou equipe" />
           </label>
         </div>
         <div className="record-list">
           {shown.length ? (
             shown.map(x => (
-              <article className="record-card" key={x.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
+              <article className="record-card saved-test-card" key={x.id}>
+                <div className="saved-test-summary">
                   <div className="date-tab">
                     {String(x.date).slice(8)}
                     <small>
@@ -1341,7 +1363,7 @@ function SavedTests() {
                   </div>
                 </div>
                 {auth() && (
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <div className="item-actions-row">
                     <Link to={`/${mod}/testes/editar/${x.id}`} className="btn-action-edit">
                       <Edit3 size={13} /> Editar
                     </Link>
@@ -1609,6 +1631,7 @@ function TransitionScreen({ active }: { active: boolean }) {
 }
 
 export function App() {
+  useOverlayAccessibility();
   // Restaura sessao anterior da sessionStorage, se existir
   const [user, setUser] = useState<User | null>(() => {
     try {
