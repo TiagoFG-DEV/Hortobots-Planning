@@ -2214,7 +2214,7 @@ body {
 }
 
 .login-stage {
-  width: min(1080px, 96vw);
+  width: min(1140px, 96vw);
   display: grid;
   grid-template-columns: 1.05fr .85fr;
   align-items: stretch;
@@ -2287,8 +2287,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1.6rem;
-  margin-bottom: 0.35rem;
+  gap: 1.4rem;
+  margin-bottom: 0.15rem;
 }
 
 .login-team-icons img {
@@ -2466,8 +2466,8 @@ body {
   }
 
   .login-team-icons img {
-    height: 115px;
-    max-width: 200px;
+    height: 120px;
+    max-width: 220px;
   }
 
   .login-team-icons span {
@@ -2623,49 +2623,49 @@ body {
   }
 
   .login-stage {
-    height: min(730px, calc(100svh - 2rem));
-    max-height: calc(100svh - 2rem)
+    height: min(920px, calc(100svh - 1.5rem));
+    max-height: calc(100svh - 1.5rem);
   }
 
   .login-art {
-    padding: 1.5rem 1.8rem;
+    padding: 1.2rem 1.8rem;
   }
 
   .login-logo {
-    width: min(580px, 98%);
-    max-width: 620px;
+    width: min(560px, 96%);
+    max-width: 600px;
   }
 
   .login-art>p {
     order: 2;
-    margin: .6rem auto 1rem;
-    font-size: 1.25rem
+    margin: .35rem auto .75rem;
+    font-size: 1.2rem;
   }
 
   .login-art>div {
     order: 3;
-    height: min(310px, 39svh);
-    gap: 1.4rem
+    height: min(290px, 36svh);
+    gap: 1.2rem;
   }
 
   .login-art>div img {
-    width: 45%
+    width: 45%;
   }
 
   .login form {
-    padding: 1.35rem 2rem;
-    overflow-y: auto;
-    overflow-x: hidden;
+    padding: 1rem 1.8rem;
+    overflow: hidden;
+    justify-content: space-evenly;
   }
 
   .login-team-icons {
     gap: 1.6rem;
-    margin-bottom: 0.35rem;
+    margin-bottom: 0.2rem;
   }
 
   .login-team-icons img {
     height: 150px;
-    max-width: 260px;
+    max-width: 280px;
   }
 
   .login-team-icons span {
@@ -2673,38 +2673,38 @@ body {
   }
 
   .login h1 {
-    font-size: 3rem;
-    margin: .35rem 0
+    font-size: 2.7rem;
+    margin: .15rem 0;
   }
 
   .login-copy {
-    margin: .25rem auto .5rem
+    margin: .1rem auto .35rem;
   }
 
   .profile-picker {
-    gap: .35rem;
-    margin: .2rem 0 .45rem
+    gap: .28rem;
+    margin: .15rem 0 .35rem;
   }
 
   .profile-picker button {
-    padding: .48rem 2.4rem .48rem .75rem
+    padding: .4rem 2.2rem .4rem .75rem;
   }
 
   .login label {
-    margin: .35rem 0
+    margin: .25rem 0;
   }
 
   .login input {
-    min-height: 44px
+    min-height: 42px;
   }
 
   .login .button {
-    min-height: 46px;
-    margin-top: .55rem
+    min-height: 44px;
+    margin-top: .35rem;
   }
 
   .login form>small {
-    margin-top: .45rem
+    margin-top: .25rem;
   }
 }
 
