@@ -1663,7 +1663,7 @@ textarea {
 
 .login img {
   display: block;
-  width: 220px;
+  width: 440px;
   margin: auto
 }
 
@@ -2293,21 +2293,16 @@ body {
 
 .login-team-icons img {
   width: auto;
-  max-width: 135px;
-  height: 78px;
+  max-width: 300px;
+  height: 150px;
   object-fit: contain;
   margin: 0;
   filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.12));
-  transition: transform 0.25s ease;
-}
-
-.login-team-icons img:hover {
-  transform: scale(1.06);
 }
 
 .login-team-icons span {
-  width: 1.5px;
-  height: 56px;
+  width: 2px;
+  height: 100px;
   background: #17201833;
 }
 
@@ -2403,7 +2398,7 @@ body {
   }
 }
 
-@media(max-width:760px) {
+@media(max-width:780px) {
   .login {
     overflow: visible
   }
@@ -2471,12 +2466,12 @@ body {
   }
 
   .login-team-icons img {
-    height: 58px;
-    max-width: 95px;
+    height: 115px;
+    max-width: 200px;
   }
 
   .login-team-icons span {
-    height: 42px;
+    height: 80px;
   }
 
   .login input {
@@ -2669,12 +2664,12 @@ body {
   }
 
   .login-team-icons img {
-    height: 78px;
-    max-width: 135px;
+    height: 150px;
+    max-width: 260px;
   }
 
   .login-team-icons span {
-    height: 56px;
+    height: 100px;
   }
 
   .login h1 {
@@ -3939,10 +3934,13 @@ body {
 }
 
 @keyframes pulse-border {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 0 10px rgba(54, 179, 89, 0.2);
     border-color: #2e9f4e;
   }
+
   50% {
     box-shadow: 0 0 22px rgba(54, 179, 89, 0.45);
     border-color: #55e67e;
@@ -3960,7 +3958,9 @@ body {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .celebration-banner {
@@ -3987,6 +3987,7 @@ body {
     opacity: 0;
     transform: scale(0.92) translateY(6px);
   }
+
   100% {
     opacity: 1;
     transform: scale(1) translateY(0);
@@ -4087,18 +4088,29 @@ body {
     opacity: 0;
     transform: translateY(6px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
-button, a, input, select, textarea, .record-card, .record-media-cell, .cal-event-item, .cal-record-wrapper, .cal-test-item, .cal-day-cell {
+button,
+a,
+input,
+select,
+textarea,
+.record-card,
+.record-media-cell,
+.cal-event-item,
+.cal-record-wrapper,
+.cal-test-item,
+.cal-day-cell {
   transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
-              background 0.22s ease,
-              border-color 0.22s ease,
-              box-shadow 0.22s ease,
-              opacity 0.22s ease;
+    background 0.22s ease,
+    border-color 0.22s ease,
+    box-shadow 0.22s ease,
+    opacity 0.22s ease;
 }
 
 /* ========================================================
@@ -4864,6 +4876,7 @@ button, a, input, select, textarea, .record-card, .record-media-cell, .cal-event
   cursor: pointer;
   transition: background 0.2s, border-color 0.2s;
 }
+
 .da-toggle-btn:hover,
 .da-toggle-btn.active {
   background: rgba(34, 211, 238, 0.22);
@@ -4883,7 +4896,7 @@ button, a, input, select, textarea, .record-card, .record-media-cell, .cal-event
   width: 100%;
   overflow: hidden;
   border-radius: 8px;
-  background: rgba(0,0,0,0.3);
+  background: rgba(0, 0, 0, 0.3);
   margin-bottom: 0.75rem;
 }
 
@@ -4926,11 +4939,15 @@ button, a, input, select, textarea, .record-card, .record-media-cell, .cal-event
 }
 
 @media (max-width: 900px) {
-  .da-stats { grid-template-columns: repeat(2, 1fr); }
+  .da-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (max-width: 500px) {
-  .da-stats { grid-template-columns: 1fr; }
+  .da-stats {
+    grid-template-columns: 1fr;
+  }
 }
 
 .da-stat-card {
@@ -4939,16 +4956,30 @@ button, a, input, select, textarea, .record-card, .record-media-cell, .cal-event
   gap: 0.15rem;
   padding: 0.65rem 0.85rem;
   border-radius: 10px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   transition: transform 0.18s;
 }
-.da-stat-card:hover { transform: translateY(-2px); }
 
-.da-stat-card.score { border-color: rgba(34, 211, 238, 0.3); }
-.da-stat-card.time  { border-color: rgba(167, 139, 250, 0.3); }
-.da-stat-card.fail  { border-color: rgba(244, 63, 94, 0.3); }
-.da-stat-card.trend { border-color: rgba(251, 191, 36, 0.3); }
+.da-stat-card:hover {
+  transform: translateY(-2px);
+}
+
+.da-stat-card.score {
+  border-color: rgba(34, 211, 238, 0.3);
+}
+
+.da-stat-card.time {
+  border-color: rgba(167, 139, 250, 0.3);
+}
+
+.da-stat-card.fail {
+  border-color: rgba(244, 63, 94, 0.3);
+}
+
+.da-stat-card.trend {
+  border-color: rgba(251, 191, 36, 0.3);
+}
 
 .da-stat-label {
   font: 700 0.72rem 'Barlow Condensed', sans-serif;
@@ -4962,11 +4993,25 @@ button, a, input, select, textarea, .record-card, .record-media-cell, .cal-event
   line-height: 1;
 }
 
-.da-stat-card.score .da-stat-value { color: #22d3ee; }
-.da-stat-card.time  .da-stat-value { color: #a78bfa; }
-.da-stat-card.fail  .da-stat-value { color: #f43f5e; }
-.da-stat-card.trend.up   .da-stat-value { color: #4ade80; }
-.da-stat-card.trend.down .da-stat-value { color: #f43f5e; }
+.da-stat-card.score .da-stat-value {
+  color: #22d3ee;
+}
+
+.da-stat-card.time .da-stat-value {
+  color: #a78bfa;
+}
+
+.da-stat-card.fail .da-stat-value {
+  color: #f43f5e;
+}
+
+.da-stat-card.trend.up .da-stat-value {
+  color: #4ade80;
+}
+
+.da-stat-card.trend.down .da-stat-value {
+  color: #f43f5e;
+}
 
 .da-stat-sub {
   font: 400 0.76rem 'Open Sans', sans-serif;
@@ -4974,8 +5019,15 @@ button, a, input, select, textarea, .record-card, .record-media-cell, .cal-event
 }
 
 @keyframes daFadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -4997,8 +5049,13 @@ button, a, input, select, textarea, .record-card, .record-media-cell, .cal-event
 }
 
 @keyframes hbOverlayIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 /* Card */
@@ -5016,8 +5073,15 @@ button, a, input, select, textarea, .record-card, .record-media-cell, .cal-event
 }
 
 @keyframes hbCardIn {
-  from { opacity: 0; transform: scale(0.88) translateY(14px); }
-  to   { opacity: 1; transform: scale(1) translateY(0); }
+  from {
+    opacity: 0;
+    transform: scale(0.88) translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 /* Icon */
@@ -5070,14 +5134,20 @@ button, a, input, select, textarea, .record-card, .record-media-cell, .cal-event
   transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
 }
 
-.hb-dialog-btn:hover { transform: translateY(-2px); }
-.hb-dialog-btn:active { transform: translateY(0); }
+.hb-dialog-btn:hover {
+  transform: translateY(-2px);
+}
+
+.hb-dialog-btn:active {
+  transform: translateY(0);
+}
 
 .hb-dialog-btn.cancel {
   background: rgba(255, 255, 255, 0.07);
   border: 1px solid rgba(255, 255, 255, 0.15);
   color: #cbd5e1;
 }
+
 .hb-dialog-btn.cancel:hover {
   background: rgba(255, 255, 255, 0.13);
 }
@@ -5088,6 +5158,7 @@ button, a, input, select, textarea, .record-card, .record-media-cell, .cal-event
   color: #fff;
   box-shadow: 0 8px 20px rgba(220, 38, 38, 0.35);
 }
+
 .hb-dialog-btn.confirm:hover {
   box-shadow: 0 10px 28px rgba(220, 38, 38, 0.5);
 }
@@ -5107,13 +5178,20 @@ button, a, input, select, textarea, .record-card, .record-media-cell, .cal-event
   font: 600 0.88rem 'Open Sans', sans-serif;
   min-width: 280px;
   max-width: 520px;
-  box-shadow: 0 12px 36px rgba(0,0,0,0.5);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
   animation: hbToastIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 @keyframes hbToastIn {
-  from { opacity: 0; transform: translateX(-50%) translateY(-16px) scale(0.94); }
-  to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-16px) scale(0.94);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
 }
 
 .hb-toast.error {
