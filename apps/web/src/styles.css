@@ -2238,8 +2238,9 @@ body {
 }
 
 .login-logo {
-  width: min(390px, 82%);
-  filter: drop-shadow(0 9px 16px #000)
+  width: min(560px, 96%);
+  max-width: 600px;
+  filter: drop-shadow(0 12px 24px #000);
 }
 
 .login-art>p {
@@ -2286,20 +2287,28 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1rem
+  gap: 1.6rem;
+  margin-bottom: 0.35rem;
 }
 
 .login-team-icons img {
-  width: 72px;
-  height: 58px;
+  width: auto;
+  max-width: 135px;
+  height: 78px;
   object-fit: contain;
-  margin: 0
+  margin: 0;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.12));
+  transition: transform 0.25s ease;
+}
+
+.login-team-icons img:hover {
+  transform: scale(1.06);
 }
 
 .login-team-icons span {
-  width: 1px;
-  height: 38px;
-  background: #17201833
+  width: 1.5px;
+  height: 56px;
+  background: #17201833;
 }
 
 .login form>.paper-label {
@@ -2462,7 +2471,12 @@ body {
   }
 
   .login-team-icons img {
-    height: 42px
+    height: 58px;
+    max-width: 95px;
+  }
+
+  .login-team-icons span {
+    height: 42px;
   }
 
   .login input {
@@ -2619,11 +2633,12 @@ body {
   }
 
   .login-art {
-    padding: 1.5rem 3rem
+    padding: 1.5rem 1.8rem;
   }
 
   .login-logo {
-    width: min(510px, 94%)
+    width: min(580px, 98%);
+    max-width: 620px;
   }
 
   .login-art>p {
@@ -2644,11 +2659,22 @@ body {
 
   .login form {
     padding: 1.35rem 2rem;
-    overflow: hidden
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .login-team-icons {
+    gap: 1.6rem;
+    margin-bottom: 0.35rem;
   }
 
   .login-team-icons img {
-    height: 42px
+    height: 78px;
+    max-width: 135px;
+  }
+
+  .login-team-icons span {
+    height: 56px;
   }
 
   .login h1 {
