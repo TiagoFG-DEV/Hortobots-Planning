@@ -260,6 +260,37 @@ app.delete('/api/:kind/:id', authMiddleware, async (req: AuthRequest, res: Respo
   res.status(403).json({ error: { message: 'Sem permissão para exclusão.' } });
 });
 
+// Endpoint para obter URL de upload direto para nuvem (Supabase Storage)
+// Permite que navegadores enviem vídeos e fotos diretamente para a nuvem sem sobrecarregar a API
+app.post('/api/storage/upload-url', authMiddleware, async (req: AuthRequest, res: Response) => {
+  const { filename, kind = 'registros', folderName } = req.body || {};
+  if (!filename) {
+    res.status(400).json({ error: { message: 'Nome do arquivo obrigatório.' } });
+    return;
+  }
+
+  try {
+    const uploadData = await storageService.createDirectUploadUrl(
+      kind as any,
+      String(filename),
+      folderName ? String(folderName) : undefined
+    );
+
+    if (!uploadData) {
+      res.json({ direct: false });
+      return;
+    }
+
+    res.json({
+      direct: true,
+      ...uploadData
+    });
+  } catch (err: any) {
+    console.error('Erro ao gerar URL de upload direto:', err);
+    res.status(500).json({ error: { message: 'Não foi possível gerar a autorização de upload na nuvem.' } });
+  }
+});
+
 // Endpoint de Confirmação de Evento (Gestão autoriza)
 app.patch('/api/eventos/:id/confirmar', authMiddleware, async (req: AuthRequest, res: Response) => {
   const user = req.user!;

@@ -492,7 +492,74 @@ function Records() {
   );
 }
 
-type MediaSlot = { name: string; type: string; data: string; url: string };
+type MediaSlot = {
+  name: string;
+  type: string;
+  data?: string;
+  url: string;
+  file?: File;
+  path?: string;
+};
+
+// Faz o upload direto e assinado de mídias para a nuvem do Supabase Storage
+// Sem sobrecarregar a memória do servidor nem salvar em disco local
+async function uploadMediaList(
+  items: MediaSlot[],
+  kind: 'registros' | 'testes' = 'registros'
+): Promise<Array<{ name: string; type: string; url: string; path?: string }>> {
+  return Promise.all(
+    items.map(async (m) => {
+      // 1. Se já tem URL pública na nuvem e não tem arquivo local pendente, reutiliza direto
+      if (m.url && m.url.startsWith('http') && !m.file) {
+        return { name: m.name, type: m.type, url: m.url, path: m.path };
+      }
+
+      // 2. Se há um arquivo novo para enviar (armazenamento 100% na nuvem Supabase Storage)
+      if (m.file) {
+        try {
+          const authData = await api('/api/storage/upload-url', {
+            method: 'POST',
+            body: JSON.stringify({ filename: m.name, type: m.type, kind })
+          });
+
+          if (authData && authData.direct && authData.signedUrl) {
+            // Upload direto do arquivo bruto para o bucket da nuvem
+            const upRes = await fetch(authData.signedUrl, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': m.type || 'application/octet-stream'
+              },
+              body: m.file
+            });
+
+            if (upRes.ok) {
+              return {
+                name: m.name,
+                type: m.type,
+                url: authData.publicUrl,
+                path: authData.path
+              };
+            }
+          }
+        } catch (err) {
+          console.warn('[Storage] Fallback para envio legado:', err);
+        }
+
+        // Fallback legado em base64 se o upload direto falhar
+        const base64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result || ''));
+          reader.onerror = () => resolve('');
+          reader.readAsDataURL(m.file!);
+        });
+
+        return { name: m.name, type: m.type, url: '', data: base64 };
+      }
+
+      return { name: m.name, type: m.type, url: m.url || '', data: m.data || '' };
+    })
+  );
+}
 
 function MediaPagePanel({
   slots,
@@ -507,6 +574,9 @@ function MediaPagePanel({
   focusSlot: MediaSlot | null;
   onFocus: (slot: MediaSlot | null) => void;
 }) {
+  const isImage = (s: MediaSlot) =>
+    s.type.startsWith('image') || /\.(png|jpe?g|webp|gif|svg|avif)$/i.test(s.name);
+
   return (
     <div className="media-notebook-page">
       <div className="media-notebook-head">
@@ -526,11 +596,11 @@ function MediaPagePanel({
                     onClick={() => onFocus(slot)}
                     aria-label={`Ver ${slot.name}`}
                   >
-                    {slot.type.startsWith('image') ? (
+                    {isImage(slot) ? (
                       <img src={slot.url} alt={slot.name} />
                     ) : (
                       <div className="media-slot-video-thumb">
-                        <video src={slot.url} muted playsInline />
+                        <video src={slot.url} muted playsInline preload="metadata" />
                         <div className="media-slot-play-icon"><Video /></div>
                       </div>
                     )}
@@ -573,7 +643,7 @@ function MediaPagePanel({
       {focusSlot && (
         <div className="focus-layer" onClick={() => onFocus(null)}>
           <button aria-label="Fechar" onClick={() => onFocus(null)}><X /></button>
-          {focusSlot.type.startsWith('image') ? (
+          {isImage(focusSlot) ? (
             <img src={focusSlot.url} alt={focusSlot.name} />
           ) : (
             <video controls src={focusSlot.url} autoPlay onClick={e => e.stopPropagation()} />
@@ -624,14 +694,13 @@ function Editor({ isEdit }: { isEdit?: boolean }) {
   const addFiles = (fileList: FileList) => {
     const remaining = 4 - media.length;
     const toProcess = Array.from(fileList).slice(0, remaining);
-    toProcess.forEach(f => {
-      const r = new FileReader();
-      r.onload = () => {
-        const dataUrl = String(r.result);
-        setMedia(m => [...m, { name: f.name, type: f.type, data: dataUrl, url: dataUrl }]);
-      };
-      r.readAsDataURL(f);
-    });
+    const newItems: MediaSlot[] = toProcess.map(f => ({
+      name: f.name,
+      type: f.type,
+      url: URL.createObjectURL(f),
+      file: f
+    }));
+    setMedia(m => [...m, ...newItems]);
   };
 
   const removeMedia = (idx: number) =>
@@ -645,15 +714,18 @@ function Editor({ isEdit }: { isEdit?: boolean }) {
     setErrorMsg('');
     setIsSaving(true);
     try {
+      // 1. Upload seguro e direto de todas as mídias para a nuvem Supabase Storage
+      const processedMedia = await uploadMediaList(media, 'registros');
+
       if (isEdit && id) {
         await api(`/api/registros/${id}`, {
           method: 'PUT',
-          body: JSON.stringify({ ...form, modality: mod.toUpperCase(), media })
+          body: JSON.stringify({ ...form, modality: mod.toUpperCase(), media: processedMedia })
         });
       } else {
         await api('/api/registros', {
           method: 'POST',
-          body: JSON.stringify({ ...form, modality: mod.toUpperCase(), media })
+          body: JSON.stringify({ ...form, modality: mod.toUpperCase(), media: processedMedia })
         });
       }
       setIsSaving(false);
@@ -987,14 +1059,13 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
   const addFiles = (fileList: FileList) => {
     const remaining = 4 - media.length;
     const toProcess = Array.from(fileList).slice(0, remaining);
-    toProcess.forEach(f => {
-      const r = new FileReader();
-      r.onload = () => {
-        const dataUrl = String(r.result);
-        setMedia(m => [...m, { name: f.name, type: f.type, data: dataUrl, url: dataUrl }]);
-      };
-      r.readAsDataURL(f);
-    });
+    const newItems: MediaSlot[] = toProcess.map(f => ({
+      name: f.name,
+      type: f.type,
+      url: URL.createObjectURL(f),
+      file: f
+    }));
+    setMedia(m => [...m, ...newItems]);
   };
 
   const removeMedia = (idx: number) =>
@@ -1008,12 +1079,15 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
     setErrorMsg('');
     setIsSaving(true);
     try {
+      // 1. Upload seguro e direto de todas as mídias para a nuvem Supabase Storage
+      const processedMedia = await uploadMediaList(media, 'testes');
+
       const payload = {
         ...base,
         modality: mod.toUpperCase(),
         team,
         attempts: attempts.slice(0, count),
-        media
+        media: processedMedia
       };
 
       if (isEdit && id) {
@@ -1341,6 +1415,11 @@ function RecordView() {
     return `${API}/api/media/registros/${folder}/${m.path || m.name}`;
   };
 
+  const isVideoItem = (m: any, url: string) =>
+    String(m?.type || '').startsWith('video') ||
+    /\.(mp4|mov|webm|ogg|m4v)$/i.test(url) ||
+    /\.(mp4|mov|webm|ogg|m4v)$/i.test(m?.name || '');
+
   return (
     <Shell>
       <main className="content page-transition">
@@ -1398,22 +1477,22 @@ function RecordView() {
               <div className="record-media-grid">
                 {mediaItems.map((m: any, i: number) => {
                   const url = resolveUrl(m);
-                  const isVideo = String(m.type || '').startsWith('video');
+                  const isVideo = isVideoItem(m, url);
                   return (
                     <button
                       key={i}
                       type="button"
                       className="record-media-cell"
-                      onClick={() => setFocusMedia({ ...m, resolvedUrl: url })}
+                      onClick={() => setFocusMedia({ ...m, resolvedUrl: url, isVideo })}
                       aria-label={`Ver ${m.name}`}
                     >
                       {isVideo ? (
                         <div className="record-media-video-thumb">
-                          <video src={url} muted playsInline />
+                          <video src={url} muted playsInline preload="metadata" />
                           <div className="media-slot-play-icon"><Video /></div>
                         </div>
                       ) : (
-                        <img src={url} alt={m.name} />
+                        <img src={url} alt={m.name} loading="lazy" />
                       )}
                     </button>
                   );
@@ -1427,10 +1506,10 @@ function RecordView() {
         {focusMedia && (
           <div className="focus-layer" onClick={() => setFocusMedia(null)}>
             <button aria-label="Fechar" onClick={() => setFocusMedia(null)}><X /></button>
-            {String(focusMedia.type || '').startsWith('video') ? (
-              <video controls autoPlay src={focusMedia.resolvedUrl} onClick={e => e.stopPropagation()} />
+            {focusMedia.isVideo || isVideoItem(focusMedia, focusMedia.resolvedUrl || focusMedia.url) ? (
+              <video controls autoPlay src={focusMedia.resolvedUrl || focusMedia.url} onClick={e => e.stopPropagation()} />
             ) : (
-              <img src={focusMedia.resolvedUrl} alt={focusMedia.name} />
+              <img src={focusMedia.resolvedUrl || focusMedia.url} alt={focusMedia.name} />
             )}
           </div>
         )}

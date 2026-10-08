@@ -111,6 +111,41 @@ export interface StoredEvent {
 }
 
 export const storageService = {
+  // Cria URL pré-assinada para upload direto para o Supabase Storage da nuvem
+  async createDirectUploadUrl(
+    kind: 'registros' | 'testes' | 'eventos',
+    fileName: string,
+    folderName?: string
+  ) {
+    if (!supabase || !isSupabaseEnabled) {
+      return null;
+    }
+
+    const safeName = `${Date.now()}-${fileName.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+    const targetFolder = folderName || `${new Date().toISOString().split('T')[0]}-cloud`;
+    const storagePath = `midias/${kind}/${targetFolder}/${safeName}`;
+
+    const { data, error } = await supabase.storage
+      .from(supabaseBucket)
+      .createSignedUploadUrl(storagePath);
+
+    if (error || !data) {
+      console.error('[Supabase Storage] Erro ao criar signed upload URL:', error);
+      throw error || new Error('Falha ao gerar URL de upload');
+    }
+
+    const { data: publicData } = supabase.storage
+      .from(supabaseBucket)
+      .getPublicUrl(storagePath);
+
+    return {
+      signedUrl: data.signedUrl,
+      token: data.token,
+      path: storagePath,
+      publicUrl: publicData.publicUrl
+    };
+  },
+
   // Faz upload de arquivos de imagem/vídeo para o Supabase Storage
   async uploadMediaItem(
     kind: 'registros' | 'testes' | 'eventos',
@@ -145,7 +180,7 @@ export const storageService = {
 
     let publicUrl = '';
 
-    // 1. Upload para o Supabase Storage se ativo
+    // 1. Upload para o Supabase Storage se ativo (NUVEM OFICIAL)
     if (supabase) {
       try {
         const { error } = await supabase.storage
@@ -168,16 +203,18 @@ export const storageService = {
       }
     }
 
-    // 2. Gravação local como backup/cache
-    try {
-      const localDir = path.join(logsRoot, kind, folderName, 'midias');
-      await mkdir(localDir, { recursive: true });
-      await writeFile(path.join(localDir, safeName), fileBuffer);
-      if (!publicUrl) {
-        publicUrl = `/api/media/${kind}/${folderName}/${safeName}`;
+    // 2. Gravação local APENAS se Supabase não estiver habilitado (modo offline local)
+    if (!isSupabaseEnabled) {
+      try {
+        const localDir = path.join(logsRoot, kind, folderName, 'midias');
+        await mkdir(localDir, { recursive: true });
+        await writeFile(path.join(localDir, safeName), fileBuffer);
+        if (!publicUrl) {
+          publicUrl = `/api/media/${kind}/${folderName}/${safeName}`;
+        }
+      } catch {
+        // ignora caso fs local não seja gravável
       }
-    } catch {
-      // ignora caso fs local não seja gravável
     }
 
     return {
@@ -373,13 +410,15 @@ export const storageService = {
       }
     }
 
-    // 2. Salva localmente na pasta Logs como backup
-    try {
-      const dir = path.join(logsRoot, kind, folderName);
-      await mkdir(dir, { recursive: true });
-      await writeFile(path.join(dir, 'dados.json'), JSON.stringify(data, null, 2), 'utf8');
-    } catch {
-      // ignora caso sistema de arquivos local seja read-only
+    // 2. Salva localmente na pasta Logs apenas em modo offline (sem Supabase)
+    if (!isSupabaseEnabled) {
+      try {
+        const dir = path.join(logsRoot, kind, folderName);
+        await mkdir(dir, { recursive: true });
+        await writeFile(path.join(dir, 'dados.json'), JSON.stringify(data, null, 2), 'utf8');
+      } catch {
+        // ignora caso sistema de arquivos local seja read-only
+      }
     }
 
     return data;
@@ -435,21 +474,23 @@ export const storageService = {
       }
     }
 
-    // 2. Atualiza localmente
-    try {
-      const dirs = await readdir(path.join(logsRoot, kind), { withFileTypes: true });
-      for (const d of dirs.filter(x => x.isDirectory() && x.name.endsWith(id))) {
-        const filePath = path.join(logsRoot, kind, d.name, 'dados.json');
-        let prev = {};
-        try {
-          prev = JSON.parse(await readFile(filePath, 'utf8'));
-        } catch {}
-        const merged = { ...prev, ...data, id };
-        await writeFile(filePath, JSON.stringify(merged, null, 2), 'utf8');
-        break;
+    // 2. Atualiza localmente apenas em modo offline (sem Supabase)
+    if (!isSupabaseEnabled) {
+      try {
+        const dirs = await readdir(path.join(logsRoot, kind), { withFileTypes: true });
+        for (const d of dirs.filter(x => x.isDirectory() && x.name.endsWith(id))) {
+          const filePath = path.join(logsRoot, kind, d.name, 'dados.json');
+          let prev = {};
+          try {
+            prev = JSON.parse(await readFile(filePath, 'utf8'));
+          } catch {}
+          const merged = { ...prev, ...data, id };
+          await writeFile(filePath, JSON.stringify(merged, null, 2), 'utf8');
+          break;
+        }
+      } catch {
+        // ignora caso local falhe
       }
-    } catch {
-      // ignora caso local falhe
     }
 
     return { id, ...data };
