@@ -4,7 +4,7 @@ services:
     runtime: node
     plan: free
     buildCommand: npm ci && npm run check:emoji && npm run build
-    startCommand: npm run start -w @hortobots/api
+    startCommand: npm run start:render
     healthCheckPath: /api/health
     autoDeploy: true
     envVars:

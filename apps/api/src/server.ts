@@ -1,8 +1,221 @@
-import Fastify from 'fastify';import cors from '@fastify/cors';import helmet from '@fastify/helmet';import rateLimit from '@fastify/rate-limit';import fastifyStatic from '@fastify/static';import {randomBytes,scryptSync,timingSafeEqual} from 'node:crypto';import {mkdir,readdir,readFile,writeFile} from 'node:fs/promises';import path from 'node:path';import {fileURLToPath} from 'node:url';
-type Role='management'|'mentor'|'obr'|'fll';const accounts=[{username:'gestao',role:'management' as Role,salt:'78b5b1751628501c9983b561e56e30af',hash:'c564db70ef5af10f373a7ba1e72b0bebc90c901d724509fb9e7c2fa463a39d44b820effa3ba03f33d30efe958036cd2e18ef5c30771a91b6a46125d95d4ed4e9'},{username:'mentor',role:'mentor' as Role,salt:'875f7ee6480d1f7fa7577d7ad1443b1d',hash:'ddad905922b120ae95e4df113a69adcc1ec5535679f90c8c9799325635135db0ab9800bcb15e3d3441ef2685dd994ad50cc9dd0cc6cc57825a44dfe07fa93235'},{username:'obr',role:'obr' as Role,salt:'1a80ad26bf7ca79052c156dd20e531fc',hash:'05cb06a935b292f434b1f2c588d3881fecfb83cdc0b7aad9e01078d0d7474681dc998181b7f8f611723c215da766f3f149b9f8a39e0951c42b1bdb50c1af1f82'},{username:'fll',role:'fll' as Role,salt:'7a3ace28e5a2f1c5d04ca2c818e48e4b',hash:'7ce7c98c5d2b3119f4e65c077c1f2aca6052cc5b6f8440b39cdf5106717bf31331af31160324b82d9823d90a8cc8dac646084a10ccbee3077adaced946f88bbc'}];const sessions=new Map<string,{username:string;role:Role}>();const apiRoot=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),root=path.resolve(apiRoot,'../../Logs'),webRoot=path.resolve(apiRoot,'../web/dist');for(const folder of ['registros','testes','eventos'])await mkdir(path.join(root,folder),{recursive:true});
-const app=Fastify({logger:true,bodyLimit:80*1024*1024});await app.register(cors,{origin:true});await app.register(helmet);await app.register(rateLimit,{max:180,timeWindow:'1 minute'});const auth=async(req:any,reply:any)=>{const token=String(req.headers.authorization||'').replace('Bearer ','');const user=sessions.get(token);if(!user)return reply.code(401).send({error:{message:'Faça login para continuar.'}});req.user=user};const canWrite=(u:any,m:string)=>u.role==='mentor'||(u.role==='fll'&&m==='FLL')||(u.role==='obr'&&m==='OBR');const safe=(v:string)=>v.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9.-]/g,'-').replace(/-+/g,'-').slice(0,60);const list=async(kind:string)=>{const base=path.join(root,kind),dirs=await readdir(base,{withFileTypes:true}),out=[];for(const d of dirs.filter(x=>x.isDirectory()))try{out.push(JSON.parse(await readFile(path.join(base,d.name,'dados.json'),'utf8')))}catch{}return out.sort((a:any,b:any)=>String(b.date).localeCompare(String(a.date)))};
-app.get('/api/health',async()=>({ok:true,storage:root}));app.post('/api/auth/login',async(req,reply)=>{const {username,password}=req.body as any,a=accounts.find(x=>x.username===String(username).toLowerCase());if(!a)return reply.code(401).send({error:{message:'Acesso inválido.'}});const got=scryptSync(String(password),a.salt,64),expected=Buffer.from(a.hash,'hex');if(!timingSafeEqual(got,expected))return reply.code(401).send({error:{message:'Acesso inválido.'}});const token=randomBytes(32).toString('hex');sessions.set(token,{username:a.username,role:a.role});return {token,user:{username:a.username,role:a.role}}});
-app.get('/api/:kind',async req=>list((req.params as any).kind));app.post('/api/:kind',{preHandler:auth},async(req:any,reply)=>{const kind=String(req.params.kind),body=req.body as any,modality=String(body.modality||'FLL').toUpperCase();if(!['registros','testes','eventos'].includes(kind))return reply.code(404).send();if(kind==='eventos'&&req.user.role!=='mentor')return reply.code(403).send({error:{message:'Somente a conta Mentor pode lançar eventos.'}});if(kind!=='eventos'&&!canWrite(req.user,modality))return reply.code(403).send({error:{message:'Este perfil possui acesso apenas para visualização.'}});const id=randomBytes(4).toString('hex'),folder=`${body.date}-${id}`,dir=path.join(root,kind,folder);await mkdir(path.join(dir,'midias'),{recursive:true});const media=[];for(const file of body.media||[]){const match=String(file.data||'').match(/^data:([^;]+);base64,(.+)$/);if(match){const target=`${randomBytes(3).toString('hex')}-${safe(file.name||'arquivo')}`;await writeFile(path.join(dir,'midias',target),Buffer.from(match[2]!,'base64'));media.push({name:file.name,type:file.type,path:`midias/${target}`})}}const data={...body,id,media,status:kind==='eventos'&&body.priority==='URGENTE'?'PENDENTE':'PUBLICADO',createdBy:req.user.username,createdAt:new Date().toISOString()};await writeFile(path.join(dir,'dados.json'),JSON.stringify(data,null,2),'utf8');return data});
-app.patch('/api/eventos/:id/confirmar',{preHandler:auth},async(req:any,reply)=>{if(req.user.role!=='management')return reply.code(403).send({error:{message:'Apenas a Gestão pode confirmar.'}});const events=await list('eventos'),event=events.find((x:any)=>x.id===req.params.id);if(!event)return reply.code(404).send();event.status='CONFIRMADO';const dirs=await readdir(path.join(root,'eventos')),dir=dirs.find(x=>x.endsWith(event.id));if(dir)await writeFile(path.join(root,'eventos',dir,'dados.json'),JSON.stringify(event,null,2));return event});await app.register(fastifyStatic,{root:webRoot,prefix:'/',wildcard:false});app.setNotFoundHandler((req,reply)=>{if(req.url.startsWith('/api/'))return reply.code(404).send({error:{message:'Rota não encontrada.'}});return reply.type('text/html').sendFile('index.html')});app.setErrorHandler((e,req,reply)=>{req.log.error(e);reply.code(500).send({error:{message:'Não foi possível concluir esta ação.'}})});await app.listen({port:Number(process.env.PORT||3000),host:'0.0.0.0'});
+import express, { Request, Response, NextFunction } from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
+import { mkdir, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import accounts from './accounts.json' with { type: 'json' };
+import { storageService, logsRoot, isSupabaseEnabled } from './storageService.js';
 
+type Role = 'management' | 'mentor' | 'obr' | 'fll';
+interface UserSession {
+  username: string;
+  role: Role;
+}
 
+const sessions = new Map<string, UserSession>();
+const apiRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const webRoot = path.resolve(apiRoot, '../web/dist');
+
+const app = express();
+
+// Middlewares essenciais
+app.use(cors({ origin: true, credentials: true }));
+app.use(helmet({
+  contentSecurityPolicy: false // Permite servir o front e recursos integrados sem bloqueio estrito em dev/prod
+}));
+app.use(express.json({ limit: '80mb' }));
+app.use(express.urlencoded({ extended: true, limit: '80mb' }));
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 200,
+  message: { error: { message: 'Muitas requisições. Aguarde um minuto.' } }
+});
+app.use('/api', limiter);
+
+// Middleware de Autenticação
+export interface AuthRequest extends Request {
+  user?: UserSession;
+}
+
+const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction): void => {
+  const token = String(req.headers.authorization || '').replace('Bearer ', '');
+  const user = sessions.get(token);
+  if (!user) {
+    res.status(401).json({ error: { message: 'Faça login para continuar.' } });
+    return;
+  }
+  req.user = user;
+  next();
+};
+
+const canWrite = (user: UserSession, modality: string) =>
+  user.role === 'mentor' ||
+  (user.role === 'fll' && modality === 'FLL') ||
+  (user.role === 'obr' && modality === 'OBR');
+
+const sanitizeFilename = (v: string) =>
+  v.normalize('NFD')
+   .replace(/[\u0300-\u036f]/g, '')
+   .replace(/[^a-zA-Z0-9.-]/g, '-')
+   .replace(/-+/g, '-')
+   .slice(0, 60);
+
+// Endpoint de Saúde
+app.get('/api/health', (req, res) => {
+  res.json({
+    ok: true,
+    storage: isSupabaseEnabled ? 'supabase' : 'local',
+    logsRoot,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Endpoint de Login
+app.post('/api/auth/login', (req, res) => {
+  const { username, password } = req.body || {};
+  const account = (accounts as any[]).find(x => x.username === String(username).toLowerCase());
+  if (!account) {
+    res.status(401).json({ error: { message: 'Acesso inválido.' } });
+    return;
+  }
+
+  const got = scryptSync(String(password), account.salt, 64);
+  const expected = Buffer.from(account.hash, 'hex');
+  if (!timingSafeEqual(got, expected)) {
+    res.status(401).json({ error: { message: 'Acesso inválido.' } });
+    return;
+  }
+
+  const token = randomBytes(32).toString('hex');
+  sessions.set(token, { username: account.username, role: account.role as Role });
+  res.json({ token, user: { username: account.username, role: account.role } });
+});
+
+// Endpoint de Listagem (registros, testes, eventos)
+app.get('/api/:kind', async (req, res) => {
+  const kind = req.params.kind as 'registros' | 'testes' | 'eventos';
+  if (!['registros', 'testes', 'eventos'].includes(kind)) {
+    res.status(404).json({ error: { message: 'Recurso não encontrado.' } });
+    return;
+  }
+
+  try {
+    const items = await storageService.listItems(kind);
+    res.json(items);
+  } catch (err: any) {
+    res.status(500).json({ error: { message: 'Erro ao buscar itens.' } });
+  }
+});
+
+// Endpoint de Criação
+app.post('/api/:kind', authMiddleware, async (req: AuthRequest, res: Response) => {
+  const kind = req.params.kind as 'registros' | 'testes' | 'eventos';
+  const body = req.body || {};
+  const user = req.user!;
+  const modality = String(body.modality || 'FLL').toUpperCase();
+
+  if (!['registros', 'testes', 'eventos'].includes(kind)) {
+    res.status(404).json({ error: { message: 'Recurso não encontrado.' } });
+    return;
+  }
+
+  // Regra de Permissão
+  if (kind === 'eventos' && user.role !== 'mentor' && user.role !== 'management') {
+    res.status(403).json({ error: { message: 'Somente Mentor ou Gestão pode cadastrar eventos.' } });
+    return;
+  }
+
+  if (kind !== 'eventos' && !canWrite(user, modality)) {
+    res.status(403).json({ error: { message: 'Este perfil possui acesso apenas para visualização.' } });
+    return;
+  }
+
+  const id = randomBytes(4).toString('hex');
+  const dateStr = body.date || new Date().toISOString().split('T')[0];
+  const folderName = `${dateStr}-${id}`;
+  const targetDir = path.join(logsRoot, kind, folderName);
+
+  await mkdir(path.join(targetDir, 'midias'), { recursive: true });
+
+  const mediaList = [];
+  for (const file of body.media || []) {
+    const match = String(file.data || '').match(/^data:([^;]+);base64,(.+)$/);
+    if (match && match[2]) {
+      const fileName = `${randomBytes(3).toString('hex')}-${sanitizeFilename(file.name || 'arquivo')}`;
+      await writeFile(path.join(targetDir, 'midias', fileName), Buffer.from(match[2], 'base64'));
+      mediaList.push({ name: file.name, type: file.type, path: `midias/${fileName}` });
+    }
+  }
+
+  // Eventos começam como PENDENTE quando urgentes ou lançados por mentor, exigindo confirmação da Gestão
+  let status = 'PUBLICADO';
+  if (kind === 'eventos') {
+    status = body.priority === 'URGENTE' || user.role === 'mentor' ? 'PENDENTE' : 'CONFIRMADO';
+  }
+
+  const recordData = {
+    ...body,
+    id,
+    media: mediaList.length > 0 ? mediaList : body.media,
+    status,
+    createdBy: user.username,
+    createdAt: new Date().toISOString()
+  };
+
+  try {
+    const saved = await storageService.saveItem(kind, recordData, folderName);
+    res.json(saved);
+  } catch (err: any) {
+    res.status(500).json({ error: { message: 'Erro ao salvar no armazenamento.' } });
+  }
+});
+
+// Endpoint de Confirmação de Evento (Gestão autoriza)
+app.patch('/api/eventos/:id/confirmar', authMiddleware, async (req: AuthRequest, res: Response) => {
+  const user = req.user!;
+  if (user.role !== 'management') {
+    res.status(403).json({ error: { message: 'Apenas a Gestão pode autorizar eventos.' } });
+    return;
+  }
+
+  const id = String(req.params.id || '');
+  try {
+    const updated = await storageService.updateEventStatus(id, 'CONFIRMADO');
+    if (!updated) {
+      res.status(404).json({ error: { message: 'Evento não encontrado.' } });
+      return;
+    }
+    res.json(updated);
+  } catch (err: any) {
+    res.status(500).json({ error: { message: 'Erro ao atualizar evento.' } });
+  }
+});
+
+// Servir Frontend estático compilado (Web)
+app.use(express.static(webRoot));
+
+// Fallback SPA para rotas não-API
+app.use((req: Request, res: Response) => {
+  if (req.url.startsWith('/api/')) {
+    res.status(404).json({ error: { message: 'Rota de API não encontrada.' } });
+    return;
+  }
+  res.sendFile(path.join(webRoot, 'index.html'));
+});
+
+// Tratador de erros global
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  console.error('Erro na aplicação:', err);
+  res.status(500).json({ error: { message: 'Não foi possível concluir esta ação no servidor.' } });
+});
+
+const PORT = Number(process.env.PORT || 3000);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`[Hortobots Express Server] Rodando na porta ${PORT}`);
+  console.log(`Modo de Armazenamento: ${isSupabaseEnabled ? 'SUPABASE NUVEM' : 'LOCAL (Logs/)'}`);
+});
