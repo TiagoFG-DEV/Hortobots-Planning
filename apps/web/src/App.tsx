@@ -1476,53 +1476,45 @@ const preloadImage = (src: string): Promise<void> => {
   });
 };
 
-const waitForDomImages = async (): Promise<void> => {
+const waitForDomImages = async (timeoutMs = 450): Promise<void> => {
   const imgs = Array.from(document.querySelectorAll('img'));
-  await Promise.all(
+  const checkImgs = Promise.all(
     imgs.map(img => {
-      if (img.complete) {
-        return img.decode ? img.decode().catch(() => {}) : Promise.resolve();
+      if (img.complete && (img.naturalWidth > 0 || img.naturalHeight > 0)) {
+        return Promise.resolve();
       }
       return new Promise<void>(resolve => {
-        const onDone = () => {
-          if (img.decode) {
-            img.decode().then(() => resolve()).catch(() => resolve());
-          } else {
-            resolve();
-          }
-        };
-        img.addEventListener('load', onDone, { once: true });
-        img.addEventListener('error', () => resolve(), { once: true });
-        setTimeout(resolve, 2500);
+        if (img.complete) return resolve();
+        const done = () => resolve();
+        img.addEventListener('load', done, { once: true });
+        img.addEventListener('error', done, { once: true });
+        setTimeout(done, timeoutMs);
       });
     })
   );
+
+  await Promise.race([
+    checkImgs,
+    new Promise(r => setTimeout(r, timeoutMs))
+  ]);
 };
 
 const waitForRenderComplete = async (criticalSources: string[] = []): Promise<void> => {
-  // Dá um tick de requestAnimationFrame para o React montar os componentes no DOM
   await new Promise(r => requestAnimationFrame(r));
 
-  // Aguarda carregamento completo das fontes tipográficas do projeto
   if (document.fonts && document.fonts.ready) {
     try {
       await document.fonts.ready;
     } catch {}
   }
 
-  // Pré-carrega e decodifica ativos gráficos pesados
   if (criticalSources.length > 0) {
     await Promise.all(criticalSources.map(preloadImage));
   }
 
-  // Aguarda que todas as imagens no DOM estejam baixadas e decodificadas
-  await waitForDomImages();
-
-  // Duplo rAF para garantir que cálculo de layout e paint do navegador foram finalizados
+  await waitForDomImages(500);
   await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-
-  // Pequena pausa (100ms) para transição visual limpa
-  await new Promise(r => setTimeout(r, 100));
+  await new Promise(r => setTimeout(r, 80));
 };
 
 function TransitionScreen({ active }: { active: boolean }) {
@@ -1566,18 +1558,24 @@ export function App() {
       fundo1920
     ];
 
+    const safetyTimer = setTimeout(() => {
+      if (mounted) setIsInitialLoading(false);
+    }, 1500);
+
     waitForRenderComplete(criticalAssets).then(() => {
       if (mounted) {
+        clearTimeout(safetyTimer);
         setIsInitialLoading(false);
       }
     });
 
     return () => {
       mounted = false;
+      clearTimeout(safetyTimer);
     };
   }, []);
 
-  // Transições entre telas: mascara elementos que demoram para renderizar até estarem prontos
+  // Transições entre telas: mascara elementos com timeout garantido de saída
   useEffect(() => {
     if (isFirstMount.current) {
       isFirstMount.current = false;
@@ -1588,12 +1586,17 @@ export function App() {
     setIsTransitioning(true);
     window.scrollTo(0, 0);
 
+    const safetyTimer = setTimeout(() => {
+      if (active) setIsTransitioning(false);
+    }, 450);
+
     const checkRoute = async () => {
       await new Promise(r => requestAnimationFrame(r));
-      await waitForDomImages();
+      await waitForDomImages(350);
       await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-      await new Promise(r => setTimeout(r, 120));
+      await new Promise(r => setTimeout(r, 60));
       if (active) {
+        clearTimeout(safetyTimer);
         setIsTransitioning(false);
       }
     };
@@ -1602,6 +1605,7 @@ export function App() {
 
     return () => {
       active = false;
+      clearTimeout(safetyTimer);
     };
   }, [location.pathname]);
 
@@ -1609,6 +1613,17 @@ export function App() {
     setUser(loggedUser);
     setIsTransitioning(true);
     navigate('/home');
+
+    // Desativa a transição garantidamente mesmo se a rota atual já for /home
+    setTimeout(async () => {
+      try {
+        await new Promise(r => requestAnimationFrame(r));
+        await waitForDomImages(350);
+        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      } finally {
+        setIsTransitioning(false);
+      }
+    }, 80);
   };
 
   const handleLogout = () => {
@@ -1616,6 +1631,15 @@ export function App() {
     sessionStorage.clear();
     setUser(null);
     navigate('/');
+
+    setTimeout(async () => {
+      try {
+        await new Promise(r => requestAnimationFrame(r));
+        await waitForDomImages(350);
+      } finally {
+        setIsTransitioning(false);
+      }
+    }, 80);
   };
 
   const isOverlayActive = isInitialLoading || isTransitioning;
