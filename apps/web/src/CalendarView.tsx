@@ -704,9 +704,8 @@ export function CalendarView({ api, user }: CalendarViewProps) {
                   Cancelar
                 </button>
                 {isSavingEvent ? (
-                  <div className="saving-cloud-card" style={{ padding: '0.65rem 1.2rem', minWidth: '220px' }}>
+                  <div className="saving-cloud-card" style={{ padding: '0.65rem 1.2rem', minWidth: '70px', width: 'auto' }} aria-label="Carregando">
                     <div className="saving-spinner" />
-                    <span>ENVIANDO PARA A NUVEM...</span>
                   </div>
                 ) : (
                   <button type="submit" className="cal-primary-btn">

@@ -191,7 +191,6 @@ function Home() {
           <Link to="/fll/registros"><List />Registros FLL</Link>
           <Link to="/obr/registros"><List />Registros OBR</Link>
           <Link to="/fll/testes-salvos"><ChartNoAxesCombined />Testes salvos</Link>
-          <Link className="access-link" to="/login">ACESSAR CONTA</Link>
         </nav>
         <Link className="global-calendar" to="/calendario">
           <CalendarDays /> VER CALENDÁRIO <b>URGENTES</b>
@@ -624,9 +623,8 @@ function Editor({ isEdit }: { isEdit?: boolean }) {
                 <span>{celebration}</span>
               </div>
             ) : isSaving ? (
-              <div className="saving-cloud-card">
+              <div className="saving-cloud-card" aria-label="Carregando">
                 <div className="saving-spinner" />
-                <span>ENVIANDO REGISTRO E MIDIAS PARA A NUVEM SUPABASE...</span>
               </div>
             ) : (
               <button type="button" className="button ne-save" onClick={save}>
@@ -914,9 +912,8 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
                 <span>{celebration}</span>
               </div>
             ) : isSaving ? (
-              <div className="saving-cloud-card">
+              <div className="saving-cloud-card" aria-label="Carregando">
                 <div className="saving-spinner" />
-                <span>ENVIANDO SIMULAÇÃO E MIDIAS PARA A NUVEM SUPABASE...</span>
               </div>
             ) : (
               <button className="button" type="button" onClick={save}>
@@ -1237,13 +1234,13 @@ function TransitionScreen({ active }: { active: boolean }) {
 }
 
 export function App() {
-  const [user, setUser] = useState<User | null>(() => {
-    try {
-      return JSON.parse(sessionStorage.getItem('hortobots-user') || 'null');
-    } catch {
-      return null;
-    }
-  });
+  // O usuário SEMPRE deve autenticar ao carregar ou recarregar a página
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    // Limpa qualquer sessão residual para forçar tela de login a cada recarga
+    sessionStorage.clear();
+  }, []);
 
   const location = useLocation();
   const navigate = useNavigate();

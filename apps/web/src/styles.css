@@ -3897,22 +3897,18 @@ body {
 
 .saving-cloud-card {
   width: 100%;
+  min-height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.9rem;
-  padding: 1rem 1.4rem;
+  padding: 0.85rem 1.4rem;
   border-radius: 10px;
   background: linear-gradient(135deg, #122115, #1c3520);
   border: 1.5px solid #36b359;
-  color: #a3f7ba;
-  font: 700 0.95rem 'Barlow Condensed', sans-serif;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
   cursor: wait;
   user-select: none;
   pointer-events: none;
-  box-shadow: 0 4px 18px rgba(34, 197, 94, 0.2);
+  box-shadow: 0 4px 18px rgba(34, 197, 94, 0.25);
   animation: pulse-border 1.5s infinite ease-in-out;
 }
 
@@ -4050,4 +4046,772 @@ body {
   display: flex;
   justify-content: center;
   gap: 0.8rem;
-}
+}
+
+/* ========================================================
+   TRANSIÇÕES SUAVES EM TODOS OS ELEMENTOS DA PLATAFORMA
+   ======================================================== */
+
+.page-transition {
+  animation: smooth-page-fade 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes smooth-page-fade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+button, a, input, select, textarea, .record-card, .record-media-cell, .cal-event-item, .cal-record-wrapper, .cal-test-item, .cal-day-cell {
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              background 0.22s ease,
+              border-color 0.22s ease,
+              box-shadow 0.22s ease,
+              opacity 0.22s ease;
+}
+
+/* ========================================================
+   TELA DE CALENDÁRIO & CRONOGRAMA - DESIGN COMPLETO
+   ======================================================== */
+
+.calendar-page-pro {
+  width: 100vw;
+  max-width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 1.6rem 2.5rem 3.5rem;
+  box-sizing: border-box;
+  background-size: cover !important;
+  background-position: center center !important;
+  background-repeat: no-repeat !important;
+  background-attachment: fixed !important;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.cal-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto 2rem;
+  position: relative;
+  z-index: 5;
+  gap: 1rem;
+}
+
+.back-home-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.3rem;
+  background: rgba(18, 24, 20, 0.8);
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  color: #f1f5f9;
+  font: 800 0.88rem 'Barlow Condensed', sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+.back-home-button:hover {
+  background: rgba(34, 197, 94, 0.25);
+  border-color: #22c55e;
+  color: #a3f7ba;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.3);
+}
+
+.cal-title-section {
+  text-align: center;
+  flex: 1;
+}
+
+.cal-badge-pill {
+  display: inline-block;
+  background: #62b300;
+  color: #0c1c0a;
+  font: 900 0.75rem 'Barlow Condensed', sans-serif;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.95rem;
+  border-radius: 999px;
+  margin-bottom: 0.4rem;
+  box-shadow: 0 2px 10px rgba(98, 179, 0, 0.45);
+}
+
+.cal-title-section h1 {
+  font: 900 2.8rem 'Barlow Condensed', sans-serif;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0;
+  line-height: 1.05;
+  text-shadow: 0 3px 12px rgba(0, 0, 0, 0.8);
+}
+
+.cal-subtitle {
+  font: 500 0.92rem 'Open Sans', sans-serif;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0.4rem 0 0;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+}
+
+.cal-subtitle strong {
+  color: #86efac;
+}
+
+.cal-primary-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.6rem;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #052e16;
+  border: none;
+  border-radius: 999px;
+  font: 900 0.95rem 'Barlow Condensed', sans-serif;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 4px 18px rgba(34, 197, 94, 0.45);
+}
+
+.cal-primary-btn:hover {
+  background: linear-gradient(135deg, #4ade80, #22c55e);
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 8px 25px rgba(34, 197, 94, 0.65);
+}
+
+/* Grade Principal: Calendário à Esquerda + Detalhes à Direita */
+.cal-main-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2.2rem;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  align-items: start;
+  position: relative;
+  z-index: 5;
+}
+
+@media (max-width: 1040px) {
+  .cal-main-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ========================================================
+   LADO ESQUERDO: BLOCO DE CALENDÁRIO DE MESA
+   ======================================================== */
+
+.cal-desk-card {
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.12);
+  position: relative;
+  margin-top: 18px;
+  overflow: visible;
+}
+
+/* Espirais / anéis de fixação no topo */
+.cal-desk-rings {
+  position: absolute;
+  top: -18px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-around;
+  padding: 0 35px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.cal-desk-rings span {
+  width: 14px;
+  height: 36px;
+  background: linear-gradient(180deg, #f4f4f5 0%, #71717a 50%, #27272a 100%);
+  border-radius: 8px;
+  border: 1px solid #ffffff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+}
+
+/* Cabeçalho Vermelho do Bloco */
+.cal-desk-header {
+  background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+  border-radius: 20px 20px 0 0;
+  padding: 2rem 1.6rem 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #ffffff;
+  position: relative;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.cal-nav-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.cal-nav-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.38);
+  transform: scale(1.1);
+}
+
+.cal-nav-btn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+.cal-month-indicator {
+  text-align: center;
+}
+
+.cal-month-indicator h2 {
+  font: 900 2.3rem 'Barlow Condensed', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0;
+  color: #ffffff;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+}
+
+.cal-month-indicator small {
+  font: 800 0.82rem 'Barlow Condensed', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: rgba(255, 255, 255, 0.9);
+  display: block;
+  margin-top: 2px;
+}
+
+/* Barra de Dias da Semana (7 colunas iguais) */
+.cal-weekdays-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  background: #f4f4f5;
+  border-bottom: 2px solid #e4e4e7;
+  padding: 0.85rem 0;
+}
+
+.cal-weekday-label {
+  text-align: center;
+  font: 900 1rem 'Barlow Condensed', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #52525b;
+}
+
+.cal-weekday-label.weekend {
+  color: #dc2626;
+}
+
+/* Grade Numérica de Dias (7 colunas reais) */
+.cal-days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  background: #e4e4e7;
+  gap: 1px;
+}
+
+.cal-day-cell {
+  background: #ffffff;
+  min-height: 74px;
+  padding: 0.6rem 0.35rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  border: none;
+  cursor: pointer;
+  position: relative;
+}
+
+.cal-day-cell.empty {
+  background: #fafafa;
+  cursor: default;
+}
+
+.cal-day-cell:not(.empty):hover {
+  background: #f0fdf4;
+  transform: scale(1.03);
+  z-index: 5;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14);
+}
+
+.cal-day-cell.today {
+  background: #fefce8;
+  border: 2px solid #eab308;
+}
+
+.cal-day-cell.today .cal-day-number {
+  color: #ca8a04;
+  font-weight: 900;
+}
+
+.cal-day-cell.selected {
+  background: #15803d !important;
+  color: #ffffff !important;
+  box-shadow: inset 0 0 0 2px #4ade80, 0 6px 18px rgba(21, 128, 61, 0.45);
+  z-index: 6;
+}
+
+.cal-day-cell.selected .cal-day-number {
+  color: #ffffff !important;
+}
+
+.cal-day-number {
+  font: 900 1.45rem 'Barlow Condensed', sans-serif;
+  color: #18181b;
+  line-height: 1;
+}
+
+/* Indicadores de bolinha (dots) */
+.cal-dots-row {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 4px;
+  min-height: 8px;
+}
+
+.cal-dots-row .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.dot-urgent {
+  background: #ef4444;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.85);
+}
+
+.dot-pending {
+  background: #f59e0b;
+}
+
+.dot-confirmed {
+  background: #3b82f6;
+}
+
+.dot-record {
+  background: #22c55e;
+}
+
+.dot-test {
+  background: #a855f7;
+}
+
+/* Legenda na base do calendário */
+.cal-legend-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.6rem;
+  padding: 1rem 1.4rem;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  border-radius: 0 0 20px 20px;
+  font: 800 0.88rem 'Barlow Condensed', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #475569;
+}
+
+.cal-legend-bar span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.cal-legend-bar .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* ========================================================
+   LADO DIREITO: PAINEL DE DETALHES DO DIA SELECIONADO
+   ======================================================== */
+
+.cal-day-details-card {
+  background: rgba(18, 24, 20, 0.92);
+  backdrop-filter: blur(20px);
+  border: 1.5px solid rgba(74, 222, 128, 0.35);
+  border-radius: 20px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.65);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.cal-details-header {
+  padding: 1.6rem 2rem 1.2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.cal-details-header h2 {
+  font: 900 2rem 'Barlow Condensed', sans-serif;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0.2rem 0 0;
+  line-height: 1.1;
+}
+
+.today-badge {
+  background: linear-gradient(135deg, #eab308, #ca8a04);
+  color: #000000;
+  font: 900 0.8rem 'Barlow Condensed', sans-serif;
+  letter-spacing: 0.12em;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  box-shadow: 0 2px 10px rgba(234, 179, 8, 0.5);
+}
+
+.cal-details-scroll {
+  padding: 1.8rem 2rem;
+  overflow-y: auto;
+  max-height: calc(100vh - 270px);
+  display: flex;
+  flex-direction: column;
+  gap: 1.8rem;
+}
+
+.cal-section-group h3 {
+  font: 900 1.25rem 'Barlow Condensed', sans-serif;
+  color: #86efac;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0 0 1rem;
+  border-bottom: 1px dashed rgba(134, 239, 172, 0.25);
+  padding-bottom: 0.6rem;
+}
+
+.cal-empty-text {
+  font: italic 400 0.92rem 'Open Sans', sans-serif;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0.4rem 0 0.8rem;
+}
+
+.cal-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+/* Eventos */
+.cal-event-item {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  padding: 1.1rem 1.3rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.cal-event-item:hover {
+  background: rgba(34, 197, 94, 0.08);
+  border-color: rgba(34, 197, 94, 0.5);
+  transform: translateX(4px);
+}
+
+.cal-event-item.urgent {
+  border-left: 5px solid #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.cal-event-info {
+  flex: 1;
+}
+
+.cal-event-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.cal-event-title-row strong {
+  font: 900 1.25rem 'Barlow Condensed', sans-serif;
+  color: #ffffff;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.cal-event-meta {
+  display: block;
+  font: 600 0.82rem 'Open Sans', sans-serif;
+  color: #94a3b8;
+  margin: 0.35rem 0;
+}
+
+.cal-event-desc {
+  font: 400 0.88rem 'Open Sans', sans-serif;
+  color: #cbd5e1;
+  margin: 0.5rem 0 0;
+  line-height: 1.45;
+}
+
+.cal-auth-btn {
+  padding: 0.45rem 0.9rem;
+  background: #22c55e;
+  color: #052e16;
+  border: none;
+  border-radius: 8px;
+  font: 900 0.82rem 'Barlow Condensed', sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.cal-auth-btn:hover {
+  background: #4ade80;
+  transform: scale(1.05);
+}
+
+/* Registros de Diário */
+.cal-record-wrapper {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  padding: 0.95rem 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.cal-record-wrapper:hover {
+  background: rgba(74, 222, 128, 0.1);
+  border-color: #4ade80;
+  transform: translateX(4px);
+}
+
+.cal-record-link {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  flex: 1;
+  text-decoration: none;
+}
+
+.cal-record-link strong {
+  font: 900 1.2rem 'Barlow Condensed', sans-serif;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  display: block;
+}
+
+.cal-record-link p {
+  font: 400 0.86rem 'Open Sans', sans-serif;
+  color: #94a3b8;
+  margin: 0.25rem 0 0;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Testes de Robô */
+.cal-test-item {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  padding: 0.95rem 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.cal-test-item:hover {
+  background: rgba(168, 85, 247, 0.1);
+  border-color: #c084fc;
+  transform: translateX(4px);
+}
+
+.cal-test-item strong {
+  font: 900 1.2rem 'Barlow Condensed', sans-serif;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  display: block;
+}
+
+.cal-test-item p {
+  font: 400 0.86rem 'Open Sans', sans-serif;
+  color: #94a3b8;
+  margin: 0.25rem 0 0;
+  line-height: 1.4;
+}
+
+/* Badges e Pílulas */
+.mod-pill {
+  font: 900 0.78rem 'Barlow Condensed', sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.65rem;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.mod-pill.fll {
+  background: #0284c7;
+  color: #ffffff;
+}
+
+.mod-pill.obr {
+  background: #d97706;
+  color: #ffffff;
+}
+
+.mod-pill.neutral {
+  background: #71717a;
+  color: #ffffff;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font: 900 0.75rem 'Barlow Condensed', sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+}
+
+.status-pill.confirmado {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+  border: 1px solid #22c55e;
+}
+
+.status-pill.pendente {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border: 1px solid #f59e0b;
+}
+
+.status-pill.publicado {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  border: 1px solid #3b82f6;
+}
+
+/* Modal de Evento */
+.cal-modal-card {
+  background: #141c16;
+  border: 1.5px solid #22c55e;
+  border-radius: 20px;
+  padding: 2.2rem 2.4rem;
+  max-width: 580px;
+  width: 92%;
+  color: #f1f5f9;
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.85);
+  animation: smooth-page-fade 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cal-modal-card h2 {
+  font: 900 2rem 'Barlow Condensed', sans-serif;
+  color: #22c55e;
+  text-transform: uppercase;
+  margin: 0.2rem 0 0.4rem;
+}
+
+.cal-modal-desc {
+  font: 400 0.88rem 'Open Sans', sans-serif;
+  color: #94a3b8;
+  margin-bottom: 1.4rem;
+  line-height: 1.45;
+}
+
+.cal-modal-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font: 800 0.82rem 'Barlow Condensed', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #cbd5e1;
+  margin-bottom: 1rem;
+}
+
+.cal-modal-card input,
+.cal-modal-card select,
+.cal-modal-card textarea {
+  background: #0d130e;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  color: #f1f5f9;
+  padding: 0.65rem 0.9rem;
+  font: 400 0.92rem 'Open Sans', sans-serif;
+}
+
+.cal-modal-card input:focus,
+.cal-modal-card select:focus,
+.cal-modal-card textarea:focus {
+  border-color: #22c55e;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+}
+
+.cal-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.8rem;
+  margin-top: 1.4rem;
+}
+
+.cal-cancel-btn {
+  padding: 0.7rem 1.4rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  color: #e2e8f0;
+  font: 800 0.88rem 'Barlow Condensed', sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.cal-cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
