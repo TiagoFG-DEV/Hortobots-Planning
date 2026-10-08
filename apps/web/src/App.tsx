@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useRef, useState, createContext } from 'react';
 import { Routes, Route, Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   CalendarDays,
@@ -78,6 +78,104 @@ function AutoArea(p: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
     }
   }, [p.value]);
   return <textarea {...p} ref={ref} />;
+}
+
+// ── Shared Dialog Context ─────────────────────────────────────────────────────
+// Provides styled confirm modals and error toasts across the app,
+// replacing all browser-native window.confirm() and alert() calls.
+type DialogCtx = {
+  confirm: (message: string) => Promise<boolean>;
+  showError: (message: string) => void;
+};
+const DialogContext = createContext<DialogCtx>({
+  confirm: () => Promise.resolve(false),
+  showError: () => {}
+});
+export const useDialog = () => useContext(DialogContext);
+
+function ConfirmModal({
+  message,
+  onConfirm,
+  onCancel
+}: {
+  message: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="hb-dialog-overlay" onClick={onCancel}>
+      <div className="hb-dialog-card" onClick={e => e.stopPropagation()}>
+        <div className="hb-dialog-icon" aria-hidden="true">
+          <Trash2 size={28} />
+        </div>
+        <h2 className="hb-dialog-title">Confirmar Ação</h2>
+        <p className="hb-dialog-message">{message}</p>
+        <div className="hb-dialog-actions">
+          <button className="hb-dialog-btn cancel" onClick={onCancel}>
+            Cancelar
+          </button>
+          <button className="hb-dialog-btn confirm" onClick={onConfirm}>
+            Confirmar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ErrorToast({ message, onClose }: { message: string; onClose: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onClose, 4500);
+    return () => clearTimeout(t);
+  }, []);
+  return (
+    <div className="hb-toast error" role="alert">
+      <X size={16} onClick={onClose} style={{ cursor: 'pointer', flexShrink: 0 }} />
+      <span>{message}</span>
+    </div>
+  );
+}
+
+function DialogProvider({ children }: { children: React.ReactNode }) {
+  type ConfirmState = { message: string; resolve: (v: boolean) => void } | null;
+  const [confirmState, setConfirmState] = useState<ConfirmState>(null);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const confirm = useCallback((message: string): Promise<boolean> => {
+    return new Promise(resolve => {
+      setConfirmState({ message, resolve });
+    });
+  }, []);
+
+  const showError = useCallback((message: string) => {
+    setErrorMsg(message);
+  }, []);
+
+  const handleConfirm = () => {
+    confirmState?.resolve(true);
+    setConfirmState(null);
+  };
+
+  const handleCancel = () => {
+    confirmState?.resolve(false);
+    setConfirmState(null);
+  };
+
+  return (
+    <DialogContext.Provider value={{ confirm, showError }}>
+      {children}
+      {confirmState && (
+        <ConfirmModal
+          message={confirmState.message}
+          onConfirm={handleConfirm}
+          onCancel={handleCancel}
+        />
+      )}
+      {errorMsg && (
+        <ErrorToast message={errorMsg} onClose={() => setErrorMsg('')} />
+      )}
+    </DialogContext.Provider>
+  );
 }
 
 function Login({ onLogin }: { onLogin: (u: User) => void }) {
@@ -295,17 +393,20 @@ function Records() {
     loadRecords();
   }, [mod]);
 
+  const { confirm, showError } = useDialog();
+
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!window.confirm('Tem certeza que deseja excluir este registro?')) return;
+    const ok = await confirm('Tem certeza que deseja excluir este registro?');
+    if (!ok) return;
     try {
       await api(`/api/registros/${id}`, { method: 'DELETE' });
       setItems(prev => prev.filter(r => r.id !== id));
       setActionMsg('SUCESSO: REGISTRO REMOVIDO DO BANCO DE DADOS!');
       setTimeout(() => setActionMsg(''), 4000);
     } catch (err: any) {
-      alert(err.message || 'Erro ao excluir registro');
+      showError(err.message || 'Erro ao excluir registro');
     }
   };
 
@@ -1103,15 +1204,18 @@ function SavedTests() {
     loadTests();
   }, [mod]);
 
+  const { confirm, showError } = useDialog();
+
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Tem certeza que deseja excluir este teste?')) return;
+    const ok = await confirm('Tem certeza que deseja excluir este teste?');
+    if (!ok) return;
     try {
       await api(`/api/testes/${id}`, { method: 'DELETE' });
       setActionMsg('SUCESSO: TESTE EXCLUIDO DO BANCO DE DADOS!');
       setItems(prev => prev.filter(x => x.id !== id));
       setTimeout(() => setActionMsg(''), 4000);
     } catch (err: any) {
-      alert(err.message || 'Erro ao excluir teste');
+      showError(err.message || 'Erro ao excluir teste');
     }
   };
 
@@ -1207,8 +1311,11 @@ function RecordView() {
       .finally(() => setLoading(false));
   }, [id]);
 
+  const { confirm, showError } = useDialog();
+
   const handleDelete = async () => {
-    if (!window.confirm('Tem certeza que deseja excluir este registro do diário de bordo?')) return;
+    const ok = await confirm('Tem certeza que deseja excluir este registro do diário de bordo?');
+    if (!ok) return;
     setIsDeleting(true);
     try {
       await api(`/api/registros/${id}`, { method: 'DELETE' });
@@ -1217,7 +1324,7 @@ function RecordView() {
         navigate(`/calendario?date=${rec?.date || ''}`, { state: { date: rec?.date } });
       }, 1200);
     } catch (err: any) {
-      alert(err.message || 'Erro ao excluir registro');
+      showError(err.message || 'Erro ao excluir registro');
       setIsDeleting(false);
     }
   };
@@ -1417,7 +1524,7 @@ export function App() {
 
   // Usuário autenticado: acesso às áreas da plataforma
   return (
-    <>
+    <DialogProvider>
       <TransitionScreen active={isTransitioning} />
       <button
         className="logout"
@@ -1444,6 +1551,6 @@ export function App() {
         <Route path="/:mod/creditos" element={<Credits />} />
         <Route path="*" element={<Home />} />
       </Routes>
-    </>
+    </DialogProvider>
   );
 }

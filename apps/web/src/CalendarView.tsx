@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useDialog } from './App';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Home as HomeIcon,
@@ -58,6 +59,7 @@ const MONTH_NAMES = [
 const WEEK_DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
 export function CalendarView({ api, user }: CalendarViewProps) {
+  const { confirm, showError } = useDialog();
   const location = useLocation();
   const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const urlDate = searchParams.get('date');
@@ -267,7 +269,7 @@ export function CalendarView({ api, user }: CalendarViewProps) {
       setEditingEventId(null);
       setTimeout(() => setActionMsg(''), 4500);
     } catch (err: any) {
-      alert(err.message || 'Erro ao processar evento');
+      showError(err.message || 'Erro ao processar evento');
     } finally {
       setIsSavingEvent(false);
     }
@@ -275,52 +277,55 @@ export function CalendarView({ api, user }: CalendarViewProps) {
 
   // Excluir evento
   const handleDeleteEvent = async (id: string) => {
-    if (!window.confirm('Tem certeza que deseja excluir este evento?')) return;
+    const ok = await confirm('Tem certeza que deseja excluir este evento?');
+    if (!ok) return;
     try {
       await api(`/api/eventos/${id}`, { method: 'DELETE' });
       setEvents(prev => prev.filter(ev => ev.id !== id));
       setActionMsg('SUCESSO: EVENTO REMOVIDO DO BANCO DE DADOS!');
       setTimeout(() => setActionMsg(''), 4000);
     } catch (err: any) {
-      alert(err.message || 'Erro ao excluir evento');
+      showError(err.message || 'Erro ao excluir evento');
     }
   };
 
   // Excluir registro
   const handleDeleteRecord = async (id: string) => {
-    if (!window.confirm('Deseja excluir este registro do diário de bordo?')) return;
+    const ok = await confirm('Deseja excluir este registro do diário de bordo?');
+    if (!ok) return;
     try {
       await api(`/api/registros/${id}`, { method: 'DELETE' });
       setRecords(prev => prev.filter(r => r.id !== id));
       setActionMsg('SUCESSO: REGISTRO EXCLUIDO DO BANCO DE DADOS!');
       setTimeout(() => setActionMsg(''), 4000);
     } catch (err: any) {
-      alert(err.message || 'Erro ao excluir registro');
+      showError(err.message || 'Erro ao excluir registro');
     }
   };
 
   // Excluir teste
   const handleDeleteTest = async (id: string) => {
-    if (!window.confirm('Deseja excluir este teste técnico?')) return;
+    const ok = await confirm('Deseja excluir este teste técnico?');
+    if (!ok) return;
     try {
       await api(`/api/testes/${id}`, { method: 'DELETE' });
       setTests(prev => prev.filter(t => t.id !== id));
       setActionMsg('SUCESSO: TESTE EXCLUIDO DO BANCO DE DADOS!');
       setTimeout(() => setActionMsg(''), 4000);
     } catch (err: any) {
-      alert(err.message || 'Erro ao excluir teste');
+      showError(err.message || 'Erro ao excluir teste');
     }
   };
 
   // Gestão autoriza evento
   const handleConfirmEvent = async (id: string) => {
     try {
-      const updated = await api(`/api/eventos/${id}/confirmar`, { method: 'PATCH' });
+      await api(`/api/eventos/${id}/confirmar`, { method: 'PATCH' });
       setEvents(prev => prev.map(ev => ev.id === id ? { ...ev, status: 'CONFIRMADO' } : ev));
       setActionMsg('SUCESSO: EVENTO AUTORIZADO PELA GESTAO!');
       setTimeout(() => setActionMsg(''), 4000);
     } catch (err: any) {
-      alert(err.message || 'Erro ao confirmar evento');
+      showError(err.message || 'Erro ao confirmar evento');
     }
   };
 

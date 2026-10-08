@@ -4951,3 +4951,147 @@ button, a, input, select, textarea, .record-card, .record-media-cell, .cal-event
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   CUSTOM DIALOG — styled confirm modal & error toast
+   Replaces all browser-native window.confirm() and alert() calls
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Overlay */
+.hb-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: hbOverlayIn 0.18s ease;
+}
+
+@keyframes hbOverlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Card */
+.hb-dialog-card {
+  background: linear-gradient(145deg, #0f1a10, #1a2e1b);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  padding: 2.2rem 2rem 1.8rem;
+  width: min(420px, 90vw);
+  text-align: center;
+  box-shadow:
+    0 0 0 1px rgba(34, 197, 94, 0.08),
+    0 30px 70px rgba(0, 0, 0, 0.55);
+  animation: hbCardIn 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes hbCardIn {
+  from { opacity: 0; transform: scale(0.88) translateY(14px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Icon */
+.hb-dialog-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(244, 63, 94, 0.1);
+  border: 1.5px solid rgba(244, 63, 94, 0.35);
+  color: #f43f5e;
+  margin-bottom: 1.2rem;
+}
+
+/* Title */
+.hb-dialog-title {
+  font: 900 1.7rem 'Barlow Condensed', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #f1f5f9;
+  margin: 0 0 0.5rem;
+}
+
+/* Message */
+.hb-dialog-message {
+  font: 400 0.95rem 'Open Sans', sans-serif;
+  color: #94a3b8;
+  line-height: 1.55;
+  margin: 0 0 1.8rem;
+}
+
+/* Actions */
+.hb-dialog-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.hb-dialog-btn {
+  flex: 1;
+  max-width: 160px;
+  padding: 0.75rem 1.2rem;
+  border-radius: 10px;
+  font: 800 0.9rem 'Barlow Condensed', sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+}
+
+.hb-dialog-btn:hover { transform: translateY(-2px); }
+.hb-dialog-btn:active { transform: translateY(0); }
+
+.hb-dialog-btn.cancel {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
+}
+.hb-dialog-btn.cancel:hover {
+  background: rgba(255, 255, 255, 0.13);
+}
+
+.hb-dialog-btn.confirm {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  border: 1px solid rgba(220, 38, 38, 0.5);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(220, 38, 38, 0.35);
+}
+.hb-dialog-btn.confirm:hover {
+  box-shadow: 0 10px 28px rgba(220, 38, 38, 0.5);
+}
+
+/* ── Error Toast ─────────────────────────────────────────────────────────────── */
+.hb-toast {
+  position: fixed;
+  top: 1.2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1.4rem;
+  border-radius: 12px;
+  font: 600 0.88rem 'Open Sans', sans-serif;
+  min-width: 280px;
+  max-width: 520px;
+  box-shadow: 0 12px 36px rgba(0,0,0,0.5);
+  animation: hbToastIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes hbToastIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(-16px) scale(0.94); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+}
+
+.hb-toast.error {
+  background: linear-gradient(135deg, #1c0a0a, #2d1010);
+  border: 1px solid rgba(244, 63, 94, 0.4);
+  color: #fca5a5;
+}
