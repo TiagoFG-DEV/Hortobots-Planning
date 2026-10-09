@@ -1,15 +1,17 @@
 export type TeamKey = 'fll' | 'under' | 'obr';
-export const TEAMS: Record<TeamKey, { label: string; short: string; storedName: string }> = {
-  fll: { label: 'SESI Hortobots (FLL)', short: 'SESI Hortobots', storedName: 'Hortobots' },
-  under: { label: 'Under Construction (FLL)', short: 'Under Construction', storedName: 'UnderConstruction' },
-  obr: { label: 'Hortobots (OBR)', short: 'Hortobots', storedName: 'Hortobots' }
+export const TEAMS: Record<TeamKey, { label: string; short: string; storedName: string; route: string; modality: 'FLL' | 'OBR' }> = {
+  fll: { label: 'SESI Hortobots (FLL)', short: 'SESI Hortobots', storedName: 'Hortobots', route: 'fll', modality: 'FLL' },
+  under: { label: 'Under Construction (FLL)', short: 'Under Construction', storedName: 'UnderConstruction', route: 'underconstruction', modality: 'FLL' },
+  obr: { label: 'Hortobots (OBR)', short: 'Hortobots', storedName: 'Hortobots', route: 'obr', modality: 'OBR' }
 };
+export const teamFromRoute = (route: string): TeamKey => route === 'obr' ? 'obr' : route === 'underconstruction' ? 'under' : 'fll';
 export const normalizeText = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const compact = (value: string) => normalizeText(value).replace(/[^a-z0-9]/g, '');
 export function getTeamKey(item: { modality?: string; team?: string; tags?: string[] }): TeamKey {
   if (item.modality?.toUpperCase() === 'OBR') return 'obr';
-  return [item.team || '', ...(item.tags || [])].some(value => compact(value).includes('underconstruction')) ? 'under' : 'fll';
+  return [item.team || '', ...(item.tags || [])].some(value => ['underconstruction', 'underconstructionfll', 'teamunderconstruction'].includes(compact(value))) ? 'under' : 'fll';
 }
+export const notebookRoute = (item: Parameters<typeof getTeamKey>[0]) => TEAMS[getTeamKey(item)].route;
 export function isTeamTag(tag: string) {
   return Object.values(TEAMS).some(team => compact(team.label) === compact(tag)) || ['underconstruction', 'sesihortobots', 'teamunderconstruction', 'teamfll', 'teamobr'].includes(compact(tag));
 }

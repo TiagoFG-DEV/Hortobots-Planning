@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { AutoArea, useDialog } from './App';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { ActivityCard, type ActivityKind, type ActivitySource } from './ActivityCard';
-import { TEAMS, type TeamKey } from './teams';
+import { TEAMS, notebookRoute, type TeamKey } from './teams';
 import { findActivities } from './activities';
 import {
   Home as HomeIcon,
@@ -374,7 +374,7 @@ export function CalendarView({ api, user }: CalendarViewProps) {
         </>}
         {user?.role === 'management' && item.priority === 'URGENTE' && item.status === 'PENDENTE' && <button type="button" className="cal-auth-btn" onClick={() => handleConfirmEvent(item.id)}>Autorizar evento</button>}
       </> : user && <>
-        {kind === 'test' && <Link className="btn-action-edit" to={`/${item.modality?.toLowerCase() === 'obr' ? 'obr' : 'fll'}/testes/editar/${item.id}`}><Edit3 size={15} /> Editar</Link>}
+        {kind === 'test' && <Link className="btn-action-edit" to={`/${notebookRoute(item)}/testes/editar/${item.id}`}><Edit3 size={15} /> Editar</Link>}
         <button type="button" className="btn-action-delete" onClick={() => kind === 'record' ? handleDeleteRecord(item.id) : handleDeleteTest(item.id)}><Trash2 size={15} /> Excluir</button>
       </>}
     </ActivityCard>;

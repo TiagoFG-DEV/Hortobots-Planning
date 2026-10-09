@@ -1,5 +1,5 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState, createContext } from 'react';
-import { Routes, Route, Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Routes, Route, Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   CalendarDays,
   ChartNoAxesCombined,
@@ -22,6 +22,8 @@ import fll from './assets/generated/fll_team_logo.webp';
 import obr from './assets/generated/obr_team_logo.webp';
 import fllBook from './assets/generated/fll_book.webp';
 import obrBook from './assets/generated/obr_book.webp';
+import underBook from './assets/originals/underconstruction_book.png';
+import underLogo from './assets/originals/underconstruction_logo.png';
 import novo from './assets/generated/novo_registro_button.webp';
 import salvos from './assets/generated/registros_salvos_button.webp';
 import testsButton from './assets/originals/simulacoes_e_testes_button.png';
@@ -30,8 +32,19 @@ import fundo1280 from './assets/generated/fundo-1280.webp';
 import fundo1920 from './assets/generated/fundo-1920.webp';
 import { CalendarView } from './CalendarView';
 import { useOverlayAccessibility } from './useOverlayAccessibility';
-import { ThemePicker, useTeamTheme } from './TeamTheme';
-import { TEAMS, getTeamKey, withTeamTag, isTeamTag, displayDate, type TeamKey } from './teams';
+import { TEAMS, getTeamKey, withTeamTag, isTeamTag, displayDate, teamFromRoute, notebookRoute } from './teams';
+
+const teamLogos = { fll, under: underLogo, obr };
+const teamBooks = { fll: fllBook, under: underBook, obr: obrBook };
+function useNotebook() {
+  const { mod = 'fll' } = useParams();
+  const key = teamFromRoute(mod);
+  return { key, ...TEAMS[key], logo: teamLogos[key] };
+}
+function NotebookIdentity({ hub = false }: { hub?: boolean }) {
+  const notebook = useNotebook();
+  return <div className={hub ? 'hub-identity' : 'notebook-identity'}><img src={notebook.logo} alt="" /><span>{notebook.short}</span></div>;
+}
 
 const API = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? 'http://localhost:3000' : '');
 const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
@@ -232,12 +245,15 @@ function Login({ onLogin }: { onLogin: (u: User) => void }) {
           <p>PLANEJAMENTO, TESTES E HISTÓRIA EM UM SÓ LUGAR</p>
           <div>
             <img src={fllBook} alt="Caderno FLL" />
+            <img src={underBook} alt="Caderno Under Construction" />
             <img src={obrBook} alt="Caderno OBR" />
           </div>
         </div>
         <form onSubmit={submit}>
           <div className="login-team-icons">
             <img src={fll} alt="FLL" />
+            <span />
+            <img src={underLogo} alt="Under Construction" />
             <span />
             <img src={obr} alt="OBR" />
           </div>
@@ -301,22 +317,18 @@ function Home() {
           <img className="brand" src={logo} alt="Hortobots Planning" />
         </Link>
         <p className="eyebrow home-eyebrow">ESCOLHA O DIÁRIO</p>
-        <div className="notebook-select">
-          <Link className="notebook-logo" to="/fll">
-            <img src={fllBook} alt="Caderno FLL" />
-            <strong>FLL</strong>
-          </Link>
-          <span className="choice-line" />
-          <Link className="notebook-logo" to="/obr">
-            <img src={obrBook} alt="Caderno OBR" />
-            <strong>OBR</strong>
-          </Link>
+        <div className="notebook-select three-notebooks">
+          {(['fll', 'under', 'obr'] as const).map(key => <Link className="notebook-logo" data-team={key} to={`/${TEAMS[key].route}`} key={key}>
+            <img src={teamBooks[key]} alt={`Caderno ${TEAMS[key].short}`} />
+            <strong>{TEAMS[key].short}</strong><small>{TEAMS[key].modality}</small>
+          </Link>)}
         </div>
         <nav className="public-links">
           <Link to="/calendario"><CalendarDays />Calendário</Link>
-          <Link to="/fll/registros"><List />Registros FLL</Link>
+          <Link to="/fll/registros"><List />SESI Hortobots</Link>
+          <Link to="/underconstruction/registros"><List />Under Construction</Link>
           <Link to="/obr/registros"><List />Registros OBR</Link>
-          <Link to="/fll/testes-salvos"><ChartNoAxesCombined />Testes salvos</Link>
+          <Link to="/calendario?view=list"><ChartNoAxesCombined />Pesquisa geral</Link>
         </nav>
         <Link className="global-calendar" to="/calendario">
           <CalendarDays /> VER CALENDÁRIO <b>URGENTES</b>
@@ -328,7 +340,7 @@ function Home() {
 
 function SideMenu({ mod }: { mod: string }) {
   const [open, setOpen] = useState(false);
-  const { team } = useTeamTheme();
+  const notebook = useNotebook();
   return (
     <>
       <button className={`menu-trigger ${mod}-trigger`} onClick={() => setOpen(true)} aria-label="Abrir menu" aria-expanded={open} aria-controls="team-menu">
@@ -337,21 +349,21 @@ function SideMenu({ mod }: { mod: string }) {
       <div className={`menu-layer ${open ? 'open' : ''}`} onClick={() => setOpen(false)}>
         <aside id="team-menu" className={`side-menu ${mod}-menu`} onClick={e => e.stopPropagation()}>
           <header>
-            <img src={mod === 'fll' ? fll : obr} alt={mod} />
+            <img src={notebook.logo} alt={notebook.short} />
             <div>
-              <strong>{mod === 'fll' && team === 'under' ? 'UNDER CONSTRUCTION' : 'HORTOBOTS'}</strong>
-              <span>{mod.toUpperCase()}</span>
+              <strong>{notebook.short.toUpperCase()}</strong>
+              <span>{notebook.modality}</span>
             </div>
             <button onClick={() => setOpen(false)} aria-label="Fechar menu">
               <X />
             </button>
           </header>
-          {mod === 'fll' && <ThemePicker />}
           <nav>
             <Link to="/"><HomeIcon />HOME</Link>
             <Link to="/calendario"><CalendarDays />CALENDÁRIO GERAL</Link>
             <Link to={`/${mod}/registros`}><List />REGISTROS</Link>
             <Link to={`/${mod}/testes`}><ChartNoAxesCombined />SIMULAÇÕES E TESTES</Link>
+            <Link to={`/${mod}/testes-salvos`}><List />TESTES SALVOS</Link>
             <Link to={`/${mod}/creditos`}><FileText />CRÉDITOS</Link>
           </nav>
           <footer>
@@ -365,14 +377,15 @@ function SideMenu({ mod }: { mod: string }) {
 
 function Shell({ children }: { children: React.ReactNode }) {
   const { mod = 'fll' } = useParams();
-  const { team } = useTeamTheme();
+  const notebook = useNotebook();
+  if (!Object.values(TEAMS).some(team => team.route === mod)) return <Navigate to="/" replace />;
   return (
-    <div className="shell page-transition" data-modality={mod} data-team={mod === 'obr' ? 'obr' : team}>
+    <div className="shell page-transition" data-modality={notebook.modality.toLowerCase()} data-team={notebook.key}>
       <SideMenu mod={mod} />
       <Link className="floating-brand" to="/" aria-label="Hortobots Planning — escolher diário">
         <img src={logo} alt="Hortobots Planning" />
       </Link>
-      <img className="corner-team-logo" src={mod === 'fll' ? fll : obr} alt={mod} />
+      <img className="corner-team-logo" src={notebook.logo} alt={notebook.short} />
       {children}
     </div>
   );
@@ -380,13 +393,13 @@ function Shell({ children }: { children: React.ReactNode }) {
 
 function Hub() {
   const { mod = 'fll' } = useParams();
-  const { team } = useTeamTheme();
+  const notebook = useNotebook();
   return (
     <Shell>
       <section className="hub page-transition">
-        <div className="stamp">{mod.toUpperCase()}</div>
+        <div className="stamp">{notebook.modality}</div>
         <h1>Diário de Bordo</h1>
-        {mod === 'fll' && <div className="hub-theme"><span className="team-badge">{TEAMS[team].label}</span><ThemePicker /></div>}
+        <NotebookIdentity hub />
         <div className="action-grid three">
           <Link to={`/${mod}/novo`} aria-label="Novo registro">
             <img src={novo} alt="Novo Registro" />
@@ -405,6 +418,7 @@ function Hub() {
 
 function Records() {
   const { mod = 'fll' } = useParams();
+  const notebook = useNotebook();
   const [q, setQ] = useState('');
   const [date, setDate] = useState('');
   const [items, setItems] = useState<any[]>([]);
@@ -415,7 +429,7 @@ function Records() {
     setLoading(true);
     void api('/api/registros')
       .then((all: any[]) => {
-        const filtered = Array.isArray(all) ? all.filter(x => String(x.modality).toLowerCase() === mod) : [];
+        const filtered = Array.isArray(all) ? all.filter(x => getTeamKey(x) === notebook.key) : [];
         setItems(filtered);
       })
       .catch(() => setItems([]))
@@ -451,7 +465,7 @@ function Records() {
     <Shell>
       <main className="content page-transition">
         <div className="page-title">
-          <h1>Registros salvos &bull; {mod.toUpperCase()}</h1>
+          <div><span className="kicker">{notebook.short}</span><h1>Registros salvos</h1></div>
         </div>
 
         {actionMsg && (
@@ -688,9 +702,8 @@ function MediaPagePanel({
 
 function Editor({ isEdit }: { isEdit?: boolean }) {
   const { mod = 'fll', id } = useParams();
-  const { team: preferredTeam } = useTeamTheme();
-  const [recordTeam, setRecordTeam] = useState<TeamKey>(mod === 'obr' ? 'obr' : preferredTeam);
-  useEffect(() => { if (!isEdit) setRecordTeam(mod === 'obr' ? 'obr' : preferredTeam); }, [preferredTeam, mod, isEdit]);
+  const notebook = useNotebook();
+  const [loaded, setLoaded] = useState(!isEdit);
   const navigate = useNavigate();
   const [form, setForm] = useState({ date: today, title: '', summary: '', tags: ['treino'] });
   const [tag, setTag] = useState('');
@@ -702,17 +715,26 @@ function Editor({ isEdit }: { isEdit?: boolean }) {
 
   // Se for modo edição, carrega dados atuais
   useEffect(() => {
+    let active = true;
     if (isEdit && id) {
+      setLoaded(false);
+      setErrorMsg('');
       api(`/api/registros/${id}`)
         .then((rec: any) => {
+          if (!active) return;
           if (rec) {
+            if (notebookRoute(rec) !== mod) {
+              navigate(`/${notebookRoute(rec)}/editar/${id}`, { replace: true });
+              return;
+            }
             setForm({
               date: rec.date || today,
               title: rec.title || '',
               summary: rec.summary || '',
               tags: Array.isArray(rec.tags) ? rec.tags : ['treino']
             });
-            setRecordTeam(getTeamKey(rec));
+            setLoaded(true);
+            setMedia([]);
             if (Array.isArray(rec.media)) {
               setMedia(rec.media.map((m: any) => ({
                 name: m.name || 'Arquivo',
@@ -723,9 +745,10 @@ function Editor({ isEdit }: { isEdit?: boolean }) {
             }
           }
         })
-        .catch(() => {});
+        .catch(err => { if (active) setErrorMsg(err.message || 'Não foi possível carregar o registro.'); });
     }
-  }, [isEdit, id]);
+    return () => { active = false; };
+  }, [isEdit, id, mod]);
 
   const addFiles = (fileList: FileList) => {
     const remaining = 4 - media.length;
@@ -743,6 +766,7 @@ function Editor({ isEdit }: { isEdit?: boolean }) {
     setMedia(m => m.filter((_, i) => i !== idx));
 
   const save = async () => {
+    if (!loaded) return;
     if (!form.title.trim()) {
       setErrorMsg('Informe o título do registro.');
       return;
@@ -756,12 +780,12 @@ function Editor({ isEdit }: { isEdit?: boolean }) {
       if (isEdit && id) {
         await api(`/api/registros/${id}`, {
           method: 'PUT',
-          body: JSON.stringify({ ...form, tags: withTeamTag(form.tags, recordTeam), modality: mod.toUpperCase(), media: processedMedia })
+          body: JSON.stringify({ ...form, tags: withTeamTag(form.tags, notebook.key), modality: notebook.modality, media: processedMedia })
         });
       } else {
         await api('/api/registros', {
           method: 'POST',
-          body: JSON.stringify({ ...form, tags: withTeamTag(form.tags, recordTeam), modality: mod.toUpperCase(), media: processedMedia })
+          body: JSON.stringify({ ...form, tags: withTeamTag(form.tags, notebook.key), modality: notebook.modality, media: processedMedia })
         });
       }
       setIsSaving(false);
@@ -782,6 +806,8 @@ function Editor({ isEdit }: { isEdit?: boolean }) {
     setTag('');
   };
 
+  if (isEdit && !loaded) return <Shell><main className="content"><p className="empty-public" role={errorMsg ? 'alert' : 'status'}>{errorMsg || 'Carregando registro…'}</p></main></Shell>;
+
   return (
     <Shell>
       <main className="content page-transition">
@@ -789,13 +815,9 @@ function Editor({ isEdit }: { isEdit?: boolean }) {
           {/* Página Esquerda: Formulário */}
           <form className="notebook-form-page" onSubmit={e => e.preventDefault()}>
             <span className="paper-label" style={{ textShadow: 'none' }}>
-              {isEdit ? 'EDITAR REGISTRO' : 'NOVO REGISTRO'} · {mod.toUpperCase()}
+              {isEdit ? 'EDITAR REGISTRO' : 'NOVO REGISTRO'} · {notebook.modality}
             </span>
-            <label className="entry-team-field">Time
-              <select value={recordTeam} disabled={mod === 'obr'} onChange={e => setRecordTeam(e.target.value as TeamKey)}>
-                {mod === 'obr' ? <option value="obr">{TEAMS.obr.label}</option> : <><option value="fll">{TEAMS.fll.label}</option><option value="under">{TEAMS.under.label}</option></>}
-              </select>
-            </label>
+            <NotebookIdentity />
             <div className="ne-two">
               <label>
                 Data
@@ -1047,9 +1069,8 @@ function DataAnalysis({ attempts }: { attempts: Attempt[] }) {
 function Tests({ isEdit }: { isEdit?: boolean }) {
   const { mod = 'fll', id } = useParams();
   const navigate = useNavigate();
-  const { team: preferredTeam, setTeam: setPreferredTeam } = useTeamTheme();
-  const [team, setTeam] = useState(TEAMS[mod === 'obr' ? 'obr' : preferredTeam].storedName);
-  useEffect(() => { if (!isEdit) setTeam(TEAMS[mod === 'obr' ? 'obr' : preferredTeam].storedName); }, [preferredTeam, mod, isEdit]);
+  const notebook = useNotebook();
+  const [loaded, setLoaded] = useState(!isEdit);
   const [count, setCount] = useState(3);
   const [attempts, setAttempts] = useState<Attempt[]>(
     Array.from({ length: 15 }, () => ({ time: 150, score: 0, failures: 0, observed: 0 }))
@@ -1063,10 +1084,18 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
   const [showAnalysis, setShowAnalysis] = useState(false);
 
   useEffect(() => {
+    let active = true;
     if (isEdit && id) {
+      setLoaded(false);
+      setErrorMsg('');
       api(`/api/testes/${id}`)
         .then((t: any) => {
+          if (!active) return;
           if (t) {
+            if (notebookRoute(t) !== mod) {
+              navigate(`/${notebookRoute(t)}/testes/editar/${id}`, { replace: true });
+              return;
+            }
             setBase({
               date: t.date || today,
               title: t.title || '',
@@ -1074,7 +1103,8 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
               comments: t.comments || '',
               mission: t.mission || ''
             });
-            setTeam(TEAMS[getTeamKey(t)].storedName);
+            setLoaded(true);
+            setMedia([]);
             if (Array.isArray(t.attempts) && t.attempts.length > 0) {
               setCount(t.attempts.length);
               setAttempts(prev => {
@@ -1095,9 +1125,10 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
             }
           }
         })
-        .catch(() => {});
+        .catch(err => { if (active) setErrorMsg(err.message || 'Não foi possível carregar o teste.'); });
     }
-  }, [isEdit, id]);
+    return () => { active = false; };
+  }, [isEdit, id, mod]);
 
   const addFiles = (fileList: FileList) => {
     const remaining = 4 - media.length;
@@ -1115,6 +1146,7 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
     setMedia(m => m.filter((_, i) => i !== idx));
 
   const save = async () => {
+    if (!loaded) return;
     if (!base.title.trim()) {
       setErrorMsg('Informe o nome do teste.');
       return;
@@ -1127,8 +1159,8 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
 
       const payload = {
         ...base,
-        modality: mod.toUpperCase(),
-        team,
+        modality: notebook.modality,
+        team: notebook.storedName,
         attempts: attempts.slice(0, count),
         media: processedMedia
       };
@@ -1151,6 +1183,7 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
   };
 
   const activeAttempts = attempts.slice(0, count);
+  if (isEdit && !loaded) return <Shell><main className="content"><p className="empty-public" role={errorMsg ? 'alert' : 'status'}>{errorMsg || 'Carregando teste…'}</p></main></Shell>;
 
   return (
     <Shell>
@@ -1160,14 +1193,9 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
         <div className="tests-head">
           <div>
             <span className="kicker">SIMULAÇÕES E TESTES</span>
-            <h1>{isEdit ? 'EDITAR TESTE' : mod.toUpperCase()}</h1>
+            <h1>{isEdit ? 'Editar teste' : notebook.modality}</h1>
           </div>
-          {mod === 'fll' && (
-            <select aria-label="Time do teste" value={team} onChange={e => { setTeam(e.target.value); setPreferredTeam(getTeamKey({ team: e.target.value })); }}>
-              <option value="Hortobots">{TEAMS.fll.label}</option>
-              <option value="UnderConstruction">{TEAMS.under.label}</option>
-            </select>
-          )}
+          <NotebookIdentity />
         </div>
 
         <div className="test-workspace">
@@ -1197,7 +1225,7 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
               Objetivo
               <AutoArea value={base.objective} onChange={e => setBase({ ...base, objective: e.target.value })} />
             </label>
-            {mod === 'fll' && (
+            {notebook.modality === 'FLL' && (
               <label>
                 Missão BIOGLOW
                 <select value={base.mission} onChange={e => setBase({ ...base, mission: e.target.value })}>
@@ -1225,13 +1253,13 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
                     />
                   </label>
                   <label>
-                    {mod === 'fll' ? 'Pontuação' : 'Valor observado'}
+                    {notebook.modality === 'FLL' ? 'Pontuação' : 'Valor observado'}
                     <input
                       type="number"
-                      value={mod === 'fll' ? a.score : a.observed}
+                      value={notebook.modality === 'FLL' ? a.score : a.observed}
                       onChange={e => {
                         const n = [...attempts];
-                        n[i] = { ...a, [mod === 'fll' ? 'score' : 'observed']: +e.target.value, score: +e.target.value };
+                        n[i] = { ...a, [notebook.modality === 'FLL' ? 'score' : 'observed']: +e.target.value, score: +e.target.value };
                         setAttempts(n);
                       }}
                     />
@@ -1308,13 +1336,14 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
 
 function SavedTests() {
   const { mod = 'fll' } = useParams();
+  const notebook = useNotebook();
   const [items, setItems] = useState<any[]>([]);
   const [q, setQ] = useState('');
   const [actionMsg, setActionMsg] = useState('');
 
   const loadTests = () => {
     void api('/api/testes')
-      .then((all: any[]) => setItems(all.filter(x => String(x.modality).toLowerCase() === mod)))
+      .then((all: any[]) => setItems(all.filter(x => getTeamKey(x) === notebook.key)))
       .catch(() => {});
   };
 
@@ -1344,7 +1373,7 @@ function SavedTests() {
       <main className="content page-transition">
         <div className="page-title">
           <div>
-            <span className="kicker">CONSULTA PÚBLICA</span>
+            <span className="kicker">{notebook.short}</span>
             <h1>Testes salvos</h1>
           </div>
           {auth() && <Link className="button" to={'/' + mod + '/testes'}>LANÇAR NOVO TESTE</Link>}
@@ -1376,7 +1405,7 @@ function SavedTests() {
                   </div>
                   <div>
                     <span className="kicker">
-                      {x.team || mod.toUpperCase()} &bull; {x.mission || 'TESTE TÉCNICO'}
+                      {notebook.short} &bull; {x.mission || 'TESTE TÉCNICO'}
                     </span>
                     <h2>{x.title}</h2>
                     <p>{x.objective}</p>
@@ -1384,6 +1413,7 @@ function SavedTests() {
                 </div>
                 {auth() && (
                   <div className="item-actions-row">
+                    <Link to={`/${mod}/teste/${x.id}`} className="btn-action-edit">Visualizar</Link>
                     <Link to={`/${mod}/testes/editar/${x.id}`} className="btn-action-edit">
                       <Edit3 size={13} /> Editar
                     </Link>
@@ -1413,6 +1443,7 @@ function SavedTests() {
 
 function RecordView() {
   const { mod = 'fll', id } = useParams();
+  const notebook = useNotebook();
   const navigate = useNavigate();
   const [rec, setRec] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -1421,13 +1452,22 @@ function RecordView() {
   const [actionMsg, setActionMsg] = useState('');
 
   useEffect(() => {
-    void api('/api/registros')
-      .then((list: any[]) => {
-        const found = list.find((x: any) => x.id === id);
+    let active = true;
+    setLoading(true);
+    setRec(null);
+    void api(`/api/registros/${id}`)
+      .then((found: any) => {
+        if (!active) return;
+        if (found && notebookRoute(found) !== mod) {
+          navigate(`/${notebookRoute(found)}/registro/${id}`, { replace: true });
+          return;
+        }
         setRec(found || null);
       })
-      .finally(() => setLoading(false));
-  }, [id]);
+      .catch(() => { if (active) setRec(null); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [id, mod]);
 
   const { confirm, showError } = useDialog();
 
@@ -1475,7 +1515,7 @@ function RecordView() {
         <div className="record-view-layout">
           <article className="paper diary">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <span className="stamp small">{mod.toUpperCase()}</span>
+              <span className="stamp small">{notebook.modality}</span>
               {auth() && rec && (
                 <div className="item-actions-row" style={{ marginTop: 0 }}>
                   <Link to={`/${mod}/editar/${id}`} className="btn-action-edit">
@@ -1562,15 +1602,23 @@ function RecordView() {
 
 function TestView() {
   const { mod = 'fll', id } = useParams();
+  const navigate = useNavigate();
   const [item, setItem] = useState<any>(null);
   const [error, setError] = useState('');
   const [focus, setFocus] = useState<{ url: string; name: string; video: boolean } | null>(null);
   useEffect(() => {
     let active = true;
     setItem(null); setError('');
-    api(`/api/testes/${id}`).then(value => { if (active) setItem(value); }).catch(err => { if (active) setError(err.message); });
+    api(`/api/testes/${id}`).then(value => {
+      if (!active) return;
+      if (notebookRoute(value) !== mod) {
+        navigate(`/${notebookRoute(value)}/teste/${id}`, { replace: true });
+        return;
+      }
+      setItem(value);
+    }).catch(err => { if (active) setError(err.message); });
     return () => { active = false; };
-  }, [id]);
+  }, [id, mod]);
   return <Shell><main className="content test-detail page-transition">
     <div className="page-title"><h1>Teste e simulação</h1><Link className="button" to="/calendario?view=list">Pesquisa geral</Link></div>
     {error ? <p className="empty-public" role="alert">{error}</p> : !item ? <p className="empty-public" role="status">Carregando teste...</p> : <>
@@ -1717,8 +1765,10 @@ export function App() {
       mascote,
       logo,
       fllBook,
+      underBook,
       obrBook,
       fll,
+      underLogo,
       obr,
       fundo1280,
       fundo1920
@@ -1844,14 +1894,14 @@ export function App() {
         <Route path="/login" element={<Home />} />
         <Route path="/calendario" element={<CalendarView api={api} user={user} />} />
         <Route path="/:mod" element={<Hub />} />
-        <Route path="/:mod/registros" element={<Records />} />
-        <Route path="/:mod/novo" element={<Editor />} />
-        <Route path="/:mod/editar/:id" element={<Editor isEdit />} />
-        <Route path="/:mod/testes" element={<Tests />} />
-        <Route path="/:mod/testes/editar/:id" element={<Tests isEdit />} />
-        <Route path="/:mod/testes-salvos" element={<SavedTests />} />
-        <Route path="/:mod/teste/:id" element={<TestView />} />
-        <Route path="/:mod/registro/:id" element={<RecordView />} />
+        <Route path="/:mod/registros" element={<Records key={location.pathname} />} />
+        <Route path="/:mod/novo" element={<Editor key={location.pathname} />} />
+        <Route path="/:mod/editar/:id" element={<Editor key={location.pathname} isEdit />} />
+        <Route path="/:mod/testes" element={<Tests key={location.pathname} />} />
+        <Route path="/:mod/testes/editar/:id" element={<Tests key={location.pathname} isEdit />} />
+        <Route path="/:mod/testes-salvos" element={<SavedTests key={location.pathname} />} />
+        <Route path="/:mod/teste/:id" element={<TestView key={location.pathname} />} />
+        <Route path="/:mod/registro/:id" element={<RecordView key={location.pathname} />} />
         <Route path="/:mod/creditos" element={<Credits />} />
         <Route path="*" element={<Home />} />
       </Routes>

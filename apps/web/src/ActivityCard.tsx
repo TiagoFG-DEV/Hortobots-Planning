@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarDays, FileText, ChartNoAxesCombined, ArrowUpRight } from 'lucide-react';
-import { displayDate, getTeamKey, TEAMS } from './teams';
+import { displayDate, getTeamKey, notebookRoute, TEAMS } from './teams';
 
 export type ActivityKind = 'record' | 'test' | 'event';
 export interface ActivitySource {
@@ -15,8 +15,8 @@ export function ActivityCard({ item, kind, children }: { item: ActivitySource; k
   const team = kind === 'event' && !item.team && !item.modality ? 'general' : getTeamKey(item);
   const label = team === 'general' ? 'Agenda geral' : TEAMS[team].label;
   const Icon = kind === 'record' ? FileText : kind === 'test' ? ChartNoAxesCombined : CalendarDays;
-  const modality = item.modality?.toLowerCase() === 'obr' ? 'obr' : 'fll';
-  const url = kind === 'record' ? `/${modality}/registro/${item.id}` : `/${modality}/teste/${item.id}`;
+  const route = notebookRoute(item);
+  const url = kind === 'record' ? `/${route}/registro/${item.id}` : `/${route}/teste/${item.id}`;
   const description = item.summary || item.objective || item.comments;
   const heading = <><span className="activity-icon"><Icon size={22} /></span><div className="activity-heading"><span className="activity-kind">{KIND_LABELS[kind]}</span><h3>{item.title}</h3></div>{kind !== 'event' && <ArrowUpRight className="activity-open" size={18} />}</>;
   return <article className={`activity-card activity-${kind}`} data-team={team}>

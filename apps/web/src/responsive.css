@@ -9,11 +9,18 @@ html {
   min-height: 100%;
   overflow-x: clip;
   overflow-y: auto;
-  scrollbar-width: thin;
+  scrollbar-width: none;
   scroll-padding-top: var(--header-space);
 }
-html::-webkit-scrollbar { display: block; width: 8px; }
-html::-webkit-scrollbar-thumb { background: #69b824; border-radius: 8px; }
+/* Keep wheel, touch and keyboard scrolling without drawing scrollbar chrome. */
+*, *::before, *::after {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  scrollbar-gutter: auto !important;
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
 body {
   height: auto;
   min-width: 0;
@@ -32,15 +39,27 @@ body {
   pointer-events: none;
   background: #101311 url('./assets/generated/fundo-1920.webp') center / cover no-repeat;
 }
-#root:has(.shell[data-modality='obr']) > .app-backdrop {
+.backdrop-layer {
+  position: absolute;
+  inset: 0;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  opacity: 0;
+  transition: opacity 850ms cubic-bezier(.22, .61, .36, 1);
+}
+.backdrop-obr {
   background-image: url('./assets/generated/fundo-obr-1920.webp');
 }
-#root:has(.tests-page.under) > .app-backdrop {
-  background-image: linear-gradient(#18091bbb, #18091bbb), url('./assets/originals/fundo_underconstruction.png');
+.backdrop-under {
+  background-image: url('./assets/originals/fundo_underconstruction.png');
 }
-#root:has(.calendar-page-pro) > .app-backdrop {
+.backdrop-calendar {
   background-image: linear-gradient(#080c088c, #060a06a6), url('./assets/originals/fundo_underconstruction.png');
 }
+#root:has(.shell[data-modality='obr']) .backdrop-obr,
+#root:has(.shell[data-team='under']) .backdrop-under,
+#root:has(.calendar-page-pro) .backdrop-calendar { opacity: 1; }
 .shell::before, .cover::before, .calendar-page::before, .login::before { content: none; }
 .calendar-page-pro, .tests-page { background: none !important; }
 .shell, .cover, .content, .home-screen, .hub, .calendar-page-pro, .tests-page {
@@ -67,7 +86,46 @@ button { cursor: pointer; }
 .media-slot:focus-within .media-slot-remove { opacity: 1; }
 .test-media-label { color: var(--ink); text-shadow: none; }
 .content { width: 100%; padding: var(--header-space) var(--page-gutter) 28px; }
-.hub { color: #fff; }
+.hub {
+  min-height: 100svh;
+  padding: var(--header-space) var(--page-gutter) max(40px, env(safe-area-inset-bottom));
+  justify-content: center;
+  gap: clamp(.6rem, 1.5svh, 1rem);
+  color: #fff;
+}
+.hub h1 { margin: 0; }
+.hub .action-grid.three {
+  width: min(1020px, 100%);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(1rem, 2.5vw, 2.5rem);
+  margin: clamp(.6rem, 2svh, 1.5rem) auto 0;
+  align-items: center;
+  justify-items: center;
+}
+.hub .action-grid.three a { width: 100%; max-width: 320px; }
+.hub .action-grid.three img { width: 100%; height: auto; max-height: none; aspect-ratio: 1; object-fit: contain; }
+.notebook-select.three-notebooks {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+  gap: clamp(1rem, 4vw, 4rem);
+  width: min(1060px, 100%);
+  margin-inline: auto;
+}
+.three-notebooks .notebook-logo { width: 100%; gap: .45rem; text-align: center; }
+.three-notebooks .notebook-logo img { width: 100%; height: clamp(190px, 40svh, 370px); }
+.three-notebooks .notebook-logo strong { font-size: clamp(1.1rem, 2.2vw, 1.6rem); letter-spacing: .04em; line-height: 1.15; }
+.three-notebooks .notebook-logo small { font-size: .7rem; font-weight: 700; letter-spacing: .15em; color: #f3f0f4; text-shadow: 0 2px 5px #000; }
+.home-screen:has(.three-notebooks) { gap: clamp(.65rem, 1.7svh, 1.2rem); }
+.home-screen:has(.three-notebooks) .brand { max-height: 18svh; }
+.home-screen:has(.three-notebooks) .home-eyebrow { margin: 0; }
+.home-screen:has(.three-notebooks) footer { position: static; margin-top: .5rem; }
+@media (min-width: 761px) and (max-height: 720px) {
+  .hub { gap: .4rem; padding-bottom: 28px; }
+  .hub h1 { font-size: clamp(2.5rem, 5vw, 3.5rem); }
+  .hub .action-grid.three { width: min(850px, 100%); margin-top: .5rem; gap: 1.5rem; }
+  .hub .action-grid.three a { max-width: min(280px, 40svh); }
+}
 .page-title, .tests-head { gap: 1rem; flex-wrap: wrap; }
 .page-title h1, .tests-head h1 { font-size: clamp(2rem, 4.5vw, 4.7rem); }
 .tests-head select { max-width: 100%; }
@@ -120,10 +178,10 @@ button { cursor: pointer; }
 .login .login-logo { bottom: auto; width: min(560px, 100%); max-height: 27svh; margin: 0; object-fit: contain; }
 .login-art > p { bottom: auto; display: block; order: 2; margin: 0; line-height: 1.5; font-size: clamp(.9rem, 1.5vw, 1.2rem); }
 .login-art > div { order: 3; height: clamp(160px, 32svh, 290px); gap: 1rem; }
-.login-art > div img { bottom: auto; width: 44%; margin: 0; }
+.login-art > div img { bottom: auto; width: calc((100% - 2rem) / 3); margin: 0; }
 .login form { min-width: 0; width: auto; padding: clamp(1rem, 2vw, 1.8rem); overflow: visible; justify-content: center; gap: .2rem; }
-.login-team-icons { gap: 1rem; }
-.login-team-icons img { width: 38%; height: clamp(52px, 10svh, 100px); }
+.login-team-icons { gap: clamp(.5rem, 1vw, 1rem); }
+.login-team-icons img { width: 25%; height: clamp(52px, 10svh, 90px); object-fit: contain; }
 .login-team-icons span { height: 48px; flex-shrink: 0; }
 .login h1 { font-size: clamp(2rem, 4svh, 2.7rem); }
 .login-copy { font-size: .875rem; line-height: 1.4; }
@@ -174,7 +232,7 @@ html:has(.menu-layer.open, .dialog-layer, .focus-layer, .hb-dialog-overlay) .log
   .login .login-logo { width: min(280px, 75%); height: 80px; }
   .login-art > p { font-size: .85rem; max-width: 30ch; }
   .login-art > div { height: clamp(80px, 13svh, 110px); }
-  .login-art > div img { width: 32%; }
+  .login-art > div img { width: calc((100% - 2rem) / 3); }
   .login form { margin: 8px; padding: 1rem; }
   .login-team-icons img { height: 44px; }
   .login-team-icons span { height: 28px; }
@@ -205,7 +263,7 @@ html:has(.menu-layer.open, .dialog-layer, .focus-layer, .hb-dialog-overlay) .log
   .corner-team-logo { top: max(10px, env(safe-area-inset-top)); right: 12px; width: 64px; height: 48px; }
   .page-title { margin-bottom: 1rem; gap: .6rem; }
   .content, .calendar-page-pro { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
-  .hub { padding: var(--header-space) var(--page-gutter) 24px; min-height: 100svh; justify-content: center; }
+  .hub { padding: var(--header-space) var(--page-gutter) calc(72px + env(safe-area-inset-bottom)); min-height: 100svh; justify-content: center; }
   .home-screen { padding: 20px var(--page-gutter) 64px; gap: .6rem; }
   .home-eyebrow { margin: .5rem 0; }
   .notebook-select { width: 100%; gap: .5rem; }
@@ -240,6 +298,8 @@ html:has(.menu-layer.open, .dialog-layer, .focus-layer, .hb-dialog-overlay) .log
   .da-stat-card { padding: .6rem; }
   .action-grid.three { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 460px; }
   .action-grid.three a:last-child { grid-column: 1 / -1; width: calc((100% - .5rem) / 2); justify-self: center; }
+  .hub .action-grid.three { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; max-width: 440px; }
+  .hub .action-grid.three a:last-child { width: calc((100% - 1rem) / 2); }
   .side-menu { padding: 16px; }
   .side-menu header { grid-template-columns: 52px minmax(0, 1fr) 44px; padding-bottom: .75rem; }
   .side-menu header img { width: 52px; height: 52px; }
@@ -257,6 +317,15 @@ html:has(.menu-layer.open, .dialog-layer, .focus-layer, .hb-dialog-overlay) .log
   .cal-modal-actions, .save-row { flex-wrap: wrap; }
   .hb-dialog-card { padding: 1.5rem 1rem; }
   .hb-dialog-actions { flex-wrap: wrap; }
+}
+@media (max-width: 640px) {
+  .notebook-select.three-notebooks { grid-template-columns: repeat(2, minmax(0, 1fr)); width: min(420px, 100%); gap: 1.5rem 1rem; }
+  .three-notebooks .notebook-logo:last-child { grid-column: 1 / -1; width: calc((100% - 1rem) / 2); justify-self: center; }
+  .three-notebooks .notebook-logo img { height: auto; aspect-ratio: 4 / 5; max-height: 260px; }
+  .three-notebooks .notebook-logo strong { font-size: 1.12rem; min-height: 2.3em; display: flex; align-items: center; }
+  .three-notebooks .notebook-logo small { font-size: .65rem; }
+  .home-screen:has(.three-notebooks) { padding-top: 1.25rem; }
+  .home-screen:has(.three-notebooks) .brand { width: min(320px, 90%); max-height: 130px; }
 }
 @media (max-width: 360px) {
   .attempts { grid-template-columns: minmax(0, 1fr); }
