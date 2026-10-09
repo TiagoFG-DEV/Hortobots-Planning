@@ -1,21 +1,24 @@
 import { useState, useEffect, useMemo } from 'react';
 import { AutoArea, useDialog } from './App';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
+import { ActivityCard, type ActivityKind, type ActivitySource } from './ActivityCard';
+import { TEAMS, type TeamKey } from './teams';
+import { findActivities } from './activities';
 import {
   Home as HomeIcon,
   ChevronLeft,
   ChevronRight,
   CheckCircle2,
-  Clock,
   CalendarDays,
   List,
   ChartNoAxesCombined,
   Edit3,
   Trash2,
-  X
+  X,
+  Search
 } from 'lucide-react';
 
-interface CalendarEvent {
+interface CalendarEvent extends ActivitySource {
   id: string;
   date: string;
   title: string;
@@ -28,7 +31,7 @@ interface CalendarEvent {
   createdAt?: string;
 }
 
-interface StoredRecordSummary {
+interface StoredRecordSummary extends ActivitySource {
   id: string;
   modality: 'FLL' | 'OBR';
   date: string;
@@ -37,7 +40,7 @@ interface StoredRecordSummary {
   tags?: string[];
 }
 
-interface StoredTestSummary {
+interface StoredTestSummary extends ActivitySource {
   id: string;
   modality: string;
   team: string;
@@ -60,6 +63,12 @@ const WEEK_DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 export function CalendarView({ api, user }: CalendarViewProps) {
   const { confirm, showError } = useDialog();
   const location = useLocation();
+  const [urlParams, setUrlParams] = useSearchParams();
+  const view = urlParams.get('view') === 'list' ? 'list' : 'calendar';
+  const [query, setQuery] = useState('');
+  const [teamFilter, setTeamFilter] = useState<TeamKey | ''>('');
+  const [kindFilter, setKindFilter] = useState<ActivityKind | ''>('');
+  const [page, setPage] = useState(1);
   const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const urlDate = searchParams.get('date');
 
@@ -90,6 +99,7 @@ export function CalendarView({ api, user }: CalendarViewProps) {
   const [records, setRecords] = useState<StoredRecordSummary[]>([]);
   const [tests, setTests] = useState<StoredTestSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [actionMsg, setActionMsg] = useState('');
   const [isSavingEvent, setIsSavingEvent] = useState(false);
 
@@ -121,12 +131,14 @@ export function CalendarView({ api, user }: CalendarViewProps) {
   // Carregar dados de eventos, registros e testes
   const loadAll = async () => {
     setLoading(true);
+    setLoadError('');
     try {
       const [evts, recs, tsts] = await Promise.allSettled([
         api('/api/eventos'),
         api('/api/registros'),
         api('/api/testes')
       ]);
+      if ([evts, recs, tsts].some(result => result.status === 'rejected')) setLoadError('Parte dos lançamentos não pôde ser carregada. Tente atualizar a consulta.');
 
       if (evts.status === 'fulfilled' && Array.isArray(evts.value)) {
         setEvents(evts.value);
@@ -145,6 +157,23 @@ export function CalendarView({ api, user }: CalendarViewProps) {
   useEffect(() => {
     void loadAll();
   }, []);
+
+  const matches = useMemo(() => {
+    const items: Array<{ kind: ActivityKind; item: ActivitySource }> = [
+      ...records.map(item => ({ kind: 'record' as const, item })),
+      ...tests.map(item => ({ kind: 'test' as const, item })),
+      ...events.map(item => ({ kind: 'event' as const, item }))
+    ];
+    return findActivities(items, query, teamFilter, kindFilter);
+  }, [records, tests, events, query, kindFilter, teamFilter]);
+  useEffect(() => { setPage(1); }, [query, kindFilter, teamFilter]);
+  const totalPages = Math.max(1, Math.ceil(matches.length / 20));
+  const currentPage = Math.min(page, totalPages);
+  const changeView = (next: 'calendar' | 'list') => {
+    const params = new URLSearchParams(urlParams);
+    if (next === 'list') params.set('view', 'list'); else params.delete('view');
+    setUrlParams(params, { replace: true });
+  };
 
   // Calendário Matemático rigoroso (dias reais do mês sem erros de dias inexistentes)
   const monthData = useMemo(() => {
@@ -335,6 +364,22 @@ export function CalendarView({ api, user }: CalendarViewProps) {
     }
   };
 
+  const renderActivity = (kind: ActivityKind, item: ActivitySource) => {
+    const canManageEvent = user && (user.role === 'mentor' || user.role === 'management');
+    return <ActivityCard key={`${kind}-${item.id}`} kind={kind} item={item}>
+      {kind === 'event' ? <>
+        {canManageEvent && <>
+          <button type="button" className="btn-action-edit" onClick={() => openEditModal(item as CalendarEvent)}><Edit3 size={15} /> Editar</button>
+          <button type="button" className="btn-action-delete" onClick={() => handleDeleteEvent(item.id)}><Trash2 size={15} /> Excluir</button>
+        </>}
+        {user?.role === 'management' && item.priority === 'URGENTE' && item.status === 'PENDENTE' && <button type="button" className="cal-auth-btn" onClick={() => handleConfirmEvent(item.id)}>Autorizar evento</button>}
+      </> : user && <>
+        {kind === 'test' && <Link className="btn-action-edit" to={`/${item.modality?.toLowerCase() === 'obr' ? 'obr' : 'fll'}/testes/editar/${item.id}`}><Edit3 size={15} /> Editar</Link>}
+        <button type="button" className="btn-action-delete" onClick={() => kind === 'record' ? handleDeleteRecord(item.id) : handleDeleteTest(item.id)}><Trash2 size={15} /> Excluir</button>
+      </>}
+    </ActivityCard>;
+  };
+
   return (
     <main
       className="calendar-page-pro page-transition"
@@ -364,7 +409,14 @@ export function CalendarView({ api, user }: CalendarViewProps) {
         </div>
       )}
 
-      <div className="cal-main-grid">
+      <nav className="calendar-view-switch" aria-label="Visualização das atividades">
+        <button type="button" aria-pressed={view === 'calendar'} aria-controls="calendar-panel" onClick={() => changeView('calendar')}><CalendarDays size={20} /> Calendário</button>
+        <button type="button" aria-pressed={view === 'list'} aria-controls="activity-search-panel" onClick={() => changeView('list')}><Search size={20} /> Pesquisa geral</button>
+      </nav>
+      {loadError && <div className="activity-load-error" role="alert"><p>{loadError}</p><button type="button" disabled={loading} onClick={() => void loadAll()}>Tentar novamente</button></div>}
+      {loading && <p className="activity-loading" role="status">Carregando atividades…</p>}
+
+      {view === 'calendar' && <div className="cal-main-grid" id="calendar-panel">
         {/* Lado Esquerdo: Calendário Estilo Bloco Técnico */}
         <section className="cal-desk-card">
           <div className="cal-desk-rings" aria-hidden="true">
@@ -474,167 +526,58 @@ export function CalendarView({ api, user }: CalendarViewProps) {
           </header>
 
           <div className="cal-details-scroll">
-            {/* Seção 1: Eventos do Dia */}
             <div className="cal-section-group">
-              <h3>
-                <CalendarDays size={18} /> Eventos & Pautas ({dayEvents.length})
-              </h3>
-              {dayEvents.length === 0 ? (
-                <p className="cal-empty-text">Nenhum evento agendado para esta data.</p>
-              ) : (
-                <div className="cal-items-list">
-                  {dayEvents.map(ev => {
-                    const isPending = ev.status === 'PENDENTE';
-                    const canAuthorize = user && user.role === 'management' && isPending;
-                    const canManage = user && (user.role === 'mentor' || user.role === 'management');
-
-                    return (
-                      <div
-                        key={ev.id}
-                        className={`cal-event-item ${ev.priority === 'URGENTE' ? 'urgent' : ''}`}
-                      >
-                        <div className="cal-event-info">
-                          <div className="cal-event-title-row">
-                            <strong>{ev.title}</strong>
-                            {/* Only show status pill for URGENTE events */}
-                            {ev.priority === 'URGENTE' && (
-                              <span className={`status-pill ${ev.status.toLowerCase()}`}>
-                                {ev.status === 'CONFIRMADO' ? <CheckCircle2 size={12} /> : <Clock size={12} />}
-                                {ev.status}
-                              </span>
-                            )}
-                          </div>
-                          <span className="cal-event-meta">
-                            {ev.period} &bull; {ev.lesson} &bull; <strong>{ev.priority}</strong>
-                          </span>
-                          {ev.comments && <p className="cal-event-desc">{ev.comments}</p>}
-
-                          {canManage && (
-                            <div className="item-actions-row">
-                              <button
-                                type="button"
-                                className="btn-action-edit"
-                                onClick={() => openEditModal(ev)}
-                              >
-                                <Edit3 size={13} /> Editar
-                              </button>
-                              <button
-                                type="button"
-                                className="btn-action-delete"
-                                onClick={() => handleDeleteEvent(ev.id)}
-                              >
-                                <Trash2 size={13} /> Excluir
-                              </button>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Only URGENTE events pending need management approval */}
-                        {ev.priority === 'URGENTE' && canAuthorize && (
-                          <button
-                            type="button"
-                            className="cal-auth-btn"
-                            onClick={() => handleConfirmEvent(ev.id)}
-                            title="Autorizar este evento como Gestão"
-                          >
-                            Autorizar
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+              <h3><CalendarDays size={18} /> Eventos e pautas ({dayEvents.length})</h3>
+              {dayEvents.length ? <div className="cal-items-list">{dayEvents.map(item => renderActivity('event', item))}</div> : <p className="cal-empty-text">Nenhum evento nesta data.</p>}
             </div>
-
-            {/* Seção 2: Registros de Diário de Bordo no Dia */}
             <div className="cal-section-group">
-              <h3>
-                <List size={18} /> Diário de Bordo ({dayRecords.length})
-              </h3>
-              {dayRecords.length === 0 ? (
-                <p className="cal-empty-text">Nenhum registro gravado nesta data.</p>
-              ) : (
-                <div className="cal-items-list">
-                  {dayRecords.map(rec => (
-                    <div key={rec.id} className="cal-record-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                      <Link
-                        to={`/${rec.modality.toLowerCase()}/registro/${rec.id}`}
-                        className="cal-record-link"
-                        style={{ flex: 1 }}
-                      >
-                        <span className={`mod-pill ${rec.modality.toLowerCase()}`}>
-                          {rec.modality}
-                        </span>
-                        <div>
-                          <strong>{rec.title}</strong>
-                          <p>{rec.summary}</p>
-                        </div>
-                      </Link>
-                      {user && (
-                        <button
-                          type="button"
-                          className="btn-action-delete"
-                          onClick={() => handleDeleteRecord(rec.id)}
-                          title="Excluir Registro"
-                          style={{ padding: '0.5rem 0.6rem' }}
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
+              <h3><List size={18} /> Diário de bordo ({dayRecords.length})</h3>
+              {dayRecords.length ? <div className="cal-items-list">{dayRecords.map(item => renderActivity('record', item))}</div> : <p className="cal-empty-text">Nenhum registro nesta data.</p>}
             </div>
-
-            {/* Seção 3: Testes e Simulações no Dia */}
             <div className="cal-section-group">
-              <h3>
-                <ChartNoAxesCombined size={18} /> Testes Realizados ({dayTests.length})
-              </h3>
-              {dayTests.length === 0 ? (
-                <p className="cal-empty-text">Nenhum teste de robô gravado nesta data.</p>
-              ) : (
-                <div className="cal-items-list">
-                  {dayTests.map(tst => (
-                    <div key={tst.id} className="cal-test-item" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
-                        <span className="mod-pill neutral">{tst.modality || 'ROBÔ'}</span>
-                        <div>
-                          <strong>{tst.title}</strong>
-                          <p>{tst.objective}</p>
-                        </div>
-                      </div>
-                      {user && (
-                        <div style={{ display: 'flex', gap: '0.4rem' }}>
-                          <Link
-                            to={`/${(tst.modality || 'fll').toLowerCase()}/testes/editar/${tst.id}`}
-                            className="btn-action-edit"
-                            style={{ padding: '0.45rem 0.65rem' }}
-                            title="Editar Teste"
-                          >
-                            <Edit3 size={13} />
-                          </Link>
-                          <button
-                            type="button"
-                            className="btn-action-delete"
-                            onClick={() => handleDeleteTest(tst.id)}
-                            style={{ padding: '0.45rem 0.65rem' }}
-                            title="Excluir Teste"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
+              <h3><ChartNoAxesCombined size={18} /> Testes ({dayTests.length})</h3>
+              {dayTests.length ? <div className="cal-items-list">{dayTests.map(item => renderActivity('test', item))}</div> : <p className="cal-empty-text">Nenhum teste nesta data.</p>}
             </div>
           </div>
         </section>
-      </div>
+      </div>}
+
+      {view === 'list' && <section id="activity-search-panel" className="activity-search-panel" aria-label="Pesquisa geral de atividades">
+        <header className="activity-search-heading">
+          <div><span className="paper-label">ACERVO DAS EQUIPES</span><h2>Registros, testes e eventos</h2></div>
+          <p>Registros, testes e eventos reunidos, do mais recente para o mais antigo.</p>
+        </header>
+        <div className="activity-filters">
+          <label className="activity-query">Palavras-chave
+            <span><Search size={20} aria-hidden="true" /><input type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder="Título, conteúdo ou tags" /></span>
+          </label>
+          <label>Time
+            <select aria-label="Time" value={teamFilter} onChange={e => setTeamFilter(e.target.value as TeamKey | '')}>
+              <option value="">Todos os times</option>
+              {Object.entries(TEAMS).map(([key, team]) => <option key={key} value={key}>{team.label}</option>)}
+            </select>
+          </label>
+          <label>Tipo
+            <select aria-label="Tipo" value={kindFilter} onChange={e => setKindFilter(e.target.value as ActivityKind | '')}>
+              <option value="">Todos os tipos</option><option value="record">Registro</option><option value="test">Teste</option><option value="event">Evento</option>
+            </select>
+          </label>
+        </div>
+        <div className="activity-results-meta">
+          <p role="status">{loading ? 'Consultando acervo…' : `${matches.length} ${matches.length === 1 ? 'lançamento encontrado' : 'lançamentos encontrados'}`}</p>
+          {(query || teamFilter || kindFilter) && <button type="button" onClick={() => { setQuery(''); setTeamFilter(''); setKindFilter(''); }}>Limpar filtros</button>}
+        </div>
+        {!loading && !matches.length && <div className="activity-empty"><Search size={32} /><h3>Nenhum lançamento encontrado</h3><p>Tente outra palavra ou remova um filtro para ampliar a busca.</p></div>}
+        <div className="activity-results">
+          {matches.slice((currentPage - 1) * 20, currentPage * 20).map(({ kind, item }) => renderActivity(kind, item))}
+        </div>
+        {totalPages > 1 && <nav className="activity-pagination" aria-label="Páginas de resultados">
+          <button type="button" disabled={currentPage === 1} onClick={() => { setPage(currentPage - 1); document.getElementById('activity-search-panel')?.scrollIntoView({ block: 'start' }); }}><ChevronLeft size={18} /> Anterior</button>
+          <span>Página {currentPage} de {totalPages}</span>
+          <button type="button" disabled={currentPage === totalPages} onClick={() => { setPage(currentPage + 1); document.getElementById('activity-search-panel')?.scrollIntoView({ block: 'start' }); }}>Próxima <ChevronRight size={18} /></button>
+        </nav>}
+        <p className="activity-footnote">Eventos sem equipe específica aparecem como Agenda geral, na opção Todos os times.</p>
+      </section>}
 
       {/* Modal de Criação / Edição de Evento */}
       {showAddModal && (

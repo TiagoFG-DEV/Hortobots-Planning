@@ -30,6 +30,8 @@ import fundo1280 from './assets/generated/fundo-1280.webp';
 import fundo1920 from './assets/generated/fundo-1920.webp';
 import { CalendarView } from './CalendarView';
 import { useOverlayAccessibility } from './useOverlayAccessibility';
+import { ThemePicker, useTeamTheme } from './TeamTheme';
+import { TEAMS, getTeamKey, withTeamTag, isTeamTag, displayDate, type TeamKey } from './teams';
 
 const API = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? 'http://localhost:3000' : '');
 const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
@@ -326,6 +328,7 @@ function Home() {
 
 function SideMenu({ mod }: { mod: string }) {
   const [open, setOpen] = useState(false);
+  const { team } = useTeamTheme();
   return (
     <>
       <button className={`menu-trigger ${mod}-trigger`} onClick={() => setOpen(true)} aria-label="Abrir menu" aria-expanded={open} aria-controls="team-menu">
@@ -336,13 +339,14 @@ function SideMenu({ mod }: { mod: string }) {
           <header>
             <img src={mod === 'fll' ? fll : obr} alt={mod} />
             <div>
-              <strong>HORTOBOTS</strong>
+              <strong>{mod === 'fll' && team === 'under' ? 'UNDER CONSTRUCTION' : 'HORTOBOTS'}</strong>
               <span>{mod.toUpperCase()}</span>
             </div>
             <button onClick={() => setOpen(false)} aria-label="Fechar menu">
               <X />
             </button>
           </header>
+          {mod === 'fll' && <ThemePicker />}
           <nav>
             <Link to="/"><HomeIcon />HOME</Link>
             <Link to="/calendario"><CalendarDays />CALENDÁRIO GERAL</Link>
@@ -361,8 +365,9 @@ function SideMenu({ mod }: { mod: string }) {
 
 function Shell({ children }: { children: React.ReactNode }) {
   const { mod = 'fll' } = useParams();
+  const { team } = useTeamTheme();
   return (
-    <div className="shell page-transition" data-modality={mod}>
+    <div className="shell page-transition" data-modality={mod} data-team={mod === 'obr' ? 'obr' : team}>
       <SideMenu mod={mod} />
       <Link className="floating-brand" to="/" aria-label="Hortobots Planning — escolher diário">
         <img src={logo} alt="Hortobots Planning" />
@@ -375,11 +380,13 @@ function Shell({ children }: { children: React.ReactNode }) {
 
 function Hub() {
   const { mod = 'fll' } = useParams();
+  const { team } = useTeamTheme();
   return (
     <Shell>
       <section className="hub page-transition">
         <div className="stamp">{mod.toUpperCase()}</div>
         <h1>Diário de Bordo</h1>
+        {mod === 'fll' && <div className="hub-theme"><span className="team-badge">{TEAMS[team].label}</span><ThemePicker /></div>}
         <div className="action-grid three">
           <Link to={`/${mod}/novo`} aria-label="Novo registro">
             <img src={novo} alt="Novo Registro" />
@@ -681,6 +688,9 @@ function MediaPagePanel({
 
 function Editor({ isEdit }: { isEdit?: boolean }) {
   const { mod = 'fll', id } = useParams();
+  const { team: preferredTeam } = useTeamTheme();
+  const [recordTeam, setRecordTeam] = useState<TeamKey>(mod === 'obr' ? 'obr' : preferredTeam);
+  useEffect(() => { if (!isEdit) setRecordTeam(mod === 'obr' ? 'obr' : preferredTeam); }, [preferredTeam, mod, isEdit]);
   const navigate = useNavigate();
   const [form, setForm] = useState({ date: today, title: '', summary: '', tags: ['treino'] });
   const [tag, setTag] = useState('');
@@ -702,6 +712,7 @@ function Editor({ isEdit }: { isEdit?: boolean }) {
               summary: rec.summary || '',
               tags: Array.isArray(rec.tags) ? rec.tags : ['treino']
             });
+            setRecordTeam(getTeamKey(rec));
             if (Array.isArray(rec.media)) {
               setMedia(rec.media.map((m: any) => ({
                 name: m.name || 'Arquivo',
@@ -745,12 +756,12 @@ function Editor({ isEdit }: { isEdit?: boolean }) {
       if (isEdit && id) {
         await api(`/api/registros/${id}`, {
           method: 'PUT',
-          body: JSON.stringify({ ...form, modality: mod.toUpperCase(), media: processedMedia })
+          body: JSON.stringify({ ...form, tags: withTeamTag(form.tags, recordTeam), modality: mod.toUpperCase(), media: processedMedia })
         });
       } else {
         await api('/api/registros', {
           method: 'POST',
-          body: JSON.stringify({ ...form, modality: mod.toUpperCase(), media: processedMedia })
+          body: JSON.stringify({ ...form, tags: withTeamTag(form.tags, recordTeam), modality: mod.toUpperCase(), media: processedMedia })
         });
       }
       setIsSaving(false);
@@ -780,6 +791,11 @@ function Editor({ isEdit }: { isEdit?: boolean }) {
             <span className="paper-label" style={{ textShadow: 'none' }}>
               {isEdit ? 'EDITAR REGISTRO' : 'NOVO REGISTRO'} · {mod.toUpperCase()}
             </span>
+            <label className="entry-team-field">Time
+              <select value={recordTeam} disabled={mod === 'obr'} onChange={e => setRecordTeam(e.target.value as TeamKey)}>
+                {mod === 'obr' ? <option value="obr">{TEAMS.obr.label}</option> : <><option value="fll">{TEAMS.fll.label}</option><option value="under">{TEAMS.under.label}</option></>}
+              </select>
+            </label>
             <div className="ne-two">
               <label>
                 Data
@@ -804,7 +820,7 @@ function Editor({ isEdit }: { isEdit?: boolean }) {
               <button type="button" onClick={add}><Plus /> Adicionar</button>
             </div>
             <div className="tags">
-              {form.tags.map(t => (
+              {form.tags.filter(t => !isTeamTag(t)).map(t => (
                 <span key={t}>
                   {t}
                   <button type="button" aria-label={`Remover tag ${t}`} onClick={() => setForm({ ...form, tags: form.tags.filter(x => x !== t) })}>
@@ -1031,7 +1047,9 @@ function DataAnalysis({ attempts }: { attempts: Attempt[] }) {
 function Tests({ isEdit }: { isEdit?: boolean }) {
   const { mod = 'fll', id } = useParams();
   const navigate = useNavigate();
-  const [team, setTeam] = useState('Hortobots');
+  const { team: preferredTeam, setTeam: setPreferredTeam } = useTeamTheme();
+  const [team, setTeam] = useState(TEAMS[mod === 'obr' ? 'obr' : preferredTeam].storedName);
+  useEffect(() => { if (!isEdit) setTeam(TEAMS[mod === 'obr' ? 'obr' : preferredTeam].storedName); }, [preferredTeam, mod, isEdit]);
   const [count, setCount] = useState(3);
   const [attempts, setAttempts] = useState<Attempt[]>(
     Array.from({ length: 15 }, () => ({ time: 150, score: 0, failures: 0, observed: 0 }))
@@ -1056,7 +1074,7 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
               comments: t.comments || '',
               mission: t.mission || ''
             });
-            if (t.team) setTeam(t.team);
+            setTeam(TEAMS[getTeamKey(t)].storedName);
             if (Array.isArray(t.attempts) && t.attempts.length > 0) {
               setCount(t.attempts.length);
               setAttempts(prev => {
@@ -1137,7 +1155,7 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
   return (
     <Shell>
       <main
-        className={`content tests-page page-transition ${team === 'UnderConstruction' ? 'under' : ''}`}
+        className="content tests-page page-transition"
       >
         <div className="tests-head">
           <div>
@@ -1145,9 +1163,9 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
             <h1>{isEdit ? 'EDITAR TESTE' : mod.toUpperCase()}</h1>
           </div>
           {mod === 'fll' && (
-            <select value={team} onChange={e => setTeam(e.target.value)}>
-              <option>Hortobots</option>
-              <option>UnderConstruction</option>
+            <select aria-label="Time do teste" value={team} onChange={e => { setTeam(e.target.value); setPreferredTeam(getTeamKey({ team: e.target.value })); }}>
+              <option value="Hortobots">{TEAMS.fll.label}</option>
+              <option value="UnderConstruction">{TEAMS.under.label}</option>
             </select>
           )}
         </div>
@@ -1542,6 +1560,42 @@ function RecordView() {
   );
 }
 
+function TestView() {
+  const { mod = 'fll', id } = useParams();
+  const [item, setItem] = useState<any>(null);
+  const [error, setError] = useState('');
+  const [focus, setFocus] = useState<{ url: string; name: string; video: boolean } | null>(null);
+  useEffect(() => {
+    let active = true;
+    setItem(null); setError('');
+    api(`/api/testes/${id}`).then(value => { if (active) setItem(value); }).catch(err => { if (active) setError(err.message); });
+    return () => { active = false; };
+  }, [id]);
+  return <Shell><main className="content test-detail page-transition">
+    <div className="page-title"><h1>Teste e simulação</h1><Link className="button" to="/calendario?view=list">Pesquisa geral</Link></div>
+    {error ? <p className="empty-public" role="alert">{error}</p> : !item ? <p className="empty-public" role="status">Carregando teste...</p> : <>
+      <article className="paper test-detail-summary" data-team={getTeamKey(item)}>
+        <div className="activity-meta"><span className="team-badge">{TEAMS[getTeamKey(item)].label}</span><time dateTime={item.date}>{displayDate(item.date)}</time></div>
+        <h2>{item.title}</h2><p>{item.objective}</p>
+        {item.mission && <p><strong>Missão:</strong> {item.mission}</p>}
+        {item.comments && <p className="test-comments">{item.comments}</p>}
+        {auth() && <Link className="btn-action-edit" to={`/${mod}/testes/editar/${id}`}><Edit3 size={16} /> Editar teste</Link>}
+      </article>
+      <section className="test-detail-analysis" aria-label="Resultados das tentativas">
+        <h2>Resultados</h2><DataAnalysis attempts={Array.isArray(item.attempts) ? item.attempts : []} />
+        <div className="attempt-results">{(item.attempts || []).map((attempt: Attempt, i: number) => <article key={i}><strong>Tentativa {i + 1}</strong><span>Tempo: {attempt.time} s</span><span>Pontuação: {attempt.score}</span><span>Falhas: {attempt.failures}</span>{mod === 'obr' && <span>Valor observado: {attempt.observed}</span>}</article>)}</div>
+      </section>
+      {item.media?.length > 0 && <section className="test-detail-media" aria-label="Mídias do teste">{item.media.map((media: any, i: number) => {
+        const raw = media.url || media.data || `/api/media/testes/${item.date}-${item.id}/${media.path || media.name}`;
+        const url = raw.startsWith('/api/') ? API + raw : raw;
+        const video = String(media.type || '').startsWith('video') || /\.(mp4|webm|mov|ogg|m4v)(\?|$)/i.test(url) || /\.(mp4|webm|mov|ogg|m4v)$/i.test(media.name || '');
+        return <button key={i} aria-label={`Abrir ${media.name}`} onClick={() => setFocus({ url, name: media.name, video })}>{video ? <video src={url} muted playsInline preload="metadata" /> : <img src={url} alt={media.name} loading="lazy" />}<span>{media.name}</span></button>;
+      })}</section>}
+    </>}
+    {focus && <div className="focus-layer" onClick={() => setFocus(null)}><button aria-label="Fechar mídia" onClick={() => setFocus(null)}><X /></button>{focus.video ? <video src={focus.url} controls autoPlay playsInline onClick={e => e.stopPropagation()} /> : <img src={focus.url} alt={focus.name} />}</div>}
+  </main></Shell>;
+}
+
 function Credits() {
   return (
     <Shell>
@@ -1551,7 +1605,8 @@ function Credits() {
             <img src={logo} alt="Hortobots Planning" />
           </Link>
           <h1>Hortobots Planning</h1>
-          <p>SESI 437 &bull; Hortolândia &bull; Diário de Bordo Digital</p>
+          <p className="credits-attribution">Desenvolvido por <strong>Tiago F. Gregório</strong> para a organização das atividades de robótica extraclasse.</p>
+          <p className="credits-school">Sesi 437 Hortolândia.</p>
         </section>
       </main>
     </Shell>
@@ -1795,6 +1850,7 @@ export function App() {
         <Route path="/:mod/testes" element={<Tests />} />
         <Route path="/:mod/testes/editar/:id" element={<Tests isEdit />} />
         <Route path="/:mod/testes-salvos" element={<SavedTests />} />
+        <Route path="/:mod/teste/:id" element={<TestView />} />
         <Route path="/:mod/registro/:id" element={<RecordView />} />
         <Route path="/:mod/creditos" element={<Credits />} />
         <Route path="*" element={<Home />} />
