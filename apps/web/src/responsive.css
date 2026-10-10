@@ -2,6 +2,8 @@
 :root {
   --page-gutter: clamp(12px, 3vw, 40px);
   --header-space: 92px;
+  --ui-ease: cubic-bezier(.16, 1, .3, 1);
+  --ui-speed: 220ms;
 }
 
 html {
@@ -77,6 +79,42 @@ body {
 :where(button, a, input, select, textarea):focus-visible {
   outline: 3px solid #f6b922;
   outline-offset: 3px;
+}
+/* Explicit properties are more predictable than `transition: all` across engines
+   and keep mouse, keyboard and programmatic selection equally legible. */
+:where(
+  button,
+  a,
+  input,
+  select,
+  textarea,
+  summary,
+  [role='button'],
+  [role='radio'],
+  .notebook-logo,
+  .notebook-logo img,
+  .action-grid a,
+  .record-card,
+  .maker-cell,
+  .content-picker > div button,
+  .media-slot,
+  .record-media-cell,
+  .cal-day-cell,
+  .cal-event-item,
+  .cal-record-wrapper,
+  .cal-test-item,
+  .activity-card,
+  .da-stat-card
+) {
+  transition-property: color, background-color, border-color, box-shadow, opacity, filter, transform;
+  transition-duration: var(--ui-speed);
+  transition-timing-function: var(--ui-ease);
+}
+.screen-transition-overlay,
+.backdrop-layer,
+.menu-layer,
+.side-menu {
+  will-change: opacity, transform;
 }
 .tags label:focus-within span { outline: 3px solid #d9970b; outline-offset: 2px; }
 input[type='date'] { min-height: 44px; }
@@ -337,5 +375,68 @@ html:has(.menu-layer.open, .dialog-layer, .focus-layer, .hb-dialog-overlay) .log
   .action-grid:has(a:hover) a:not(:hover) { filter: none; opacity: 1; transform: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  html { scroll-behavior: auto !important; }
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+  }
+  /* Reduced motion must remove large spatial movement, not the visual feedback
+     that confirms hover, focus and selection. */
+  :where(
+    button,
+    a,
+    input,
+    select,
+    textarea,
+    summary,
+    [role='button'],
+    [role='radio'],
+    .notebook-logo,
+    .notebook-logo img,
+    .action-grid a,
+    .record-card,
+    .maker-cell,
+    .content-picker > div button,
+    .media-slot,
+    .record-media-cell,
+    .cal-day-cell,
+    .cal-event-item,
+    .cal-record-wrapper,
+    .cal-test-item,
+    .activity-card,
+    .da-stat-card
+  ) {
+    transition-property: color, background-color, border-color, box-shadow, opacity, filter !important;
+    transition-duration: 160ms !important;
+    transition-timing-function: ease-out !important;
+  }
+  .screen-transition-overlay,
+  .backdrop-layer,
+  .menu-layer {
+    transition: opacity 180ms ease-out !important;
+  }
+  .side-menu { transition: transform 180ms ease-out !important; }
+  .page-transition { animation: none !important; }
+  .notebook-logo:hover img,
+  .menu-trigger:hover,
+  .side-menu nav a:hover,
+  .action-grid a:hover,
+  .record-card:hover,
+  .maker-cell:hover,
+  .content-picker > div button:hover,
+  .back-home-button:hover,
+  .cal-primary-btn:hover,
+  .cal-nav-btn:hover:not(:disabled),
+  .cal-day-cell:not(.empty):hover,
+  .cal-record-link:hover,
+  .media-slot.filled:hover,
+  .record-media-cell:hover,
+  .cal-event-item:hover,
+  .cal-record-wrapper:hover,
+  .cal-test-item:hover,
+  .cal-auth-btn:hover,
+  .da-stat-card:hover,
+  .hb-dialog-btn:hover {
+    transform: none !important;
+  }
 }

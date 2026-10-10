@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useMemo, useRef, useState, createContext } from 'react';
+import { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, createContext } from 'react';
 import { Routes, Route, Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   CalendarDays,
@@ -30,6 +30,8 @@ import testsButton from './assets/originals/simulacoes_e_testes_button.png';
 import mascote from './assets/generated/mascote.webp';
 import fundo1280 from './assets/generated/fundo-1280.webp';
 import fundo1920 from './assets/generated/fundo-1920.webp';
+import fundoObr1920 from './assets/generated/fundo-obr-1920.webp';
+import fundoUnder from './assets/originals/fundo_underconstruction.png';
 import { CalendarView } from './CalendarView';
 import { useOverlayAccessibility } from './useOverlayAccessibility';
 import { TEAMS, getTeamKey, withTeamTag, isTeamTag, displayDate, teamFromRoute, notebookRoute } from './teams';
@@ -1661,68 +1663,98 @@ function Credits() {
   );
 }
 
-const preloadImage = (src: string): Promise<void> => {
+const delay = (durationMs: number): Promise<void> =>
+  new Promise(resolve => window.setTimeout(resolve, durationMs));
+
+const nextPaint = (): Promise<void> =>
+  new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+
+const preloadImage = (src: string, timeoutMs = 8000): Promise<void> => {
   return new Promise(resolve => {
     const img = new Image();
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      img.onload = null;
+      img.onerror = null;
+      resolve();
+    };
+    const decode = () => img.decode?.().catch(() => undefined).then(finish) ?? finish();
+    const timer = window.setTimeout(finish, timeoutMs);
+    img.onload = decode;
+    img.onerror = finish;
     img.src = src;
-    if (img.complete) {
-      if (img.decode) {
-        img.decode().then(() => resolve()).catch(() => resolve());
-      } else {
-        resolve();
-      }
-    } else {
-      img.onload = () => {
-        if (img.decode) {
-          img.decode().then(() => resolve()).catch(() => resolve());
-        } else {
-          resolve();
-        }
-      };
-      img.onerror = () => resolve();
-    }
+    if (img.complete) decode();
   });
 };
 
-const waitForDomImages = async (timeoutMs = 450): Promise<void> => {
-  const imgs = Array.from(document.querySelectorAll('img'));
-  const checkImgs = Promise.all(
-    imgs.map(img => {
-      if (img.complete && (img.naturalWidth > 0 || img.naturalHeight > 0)) {
-        return Promise.resolve();
-      }
-      return new Promise<void>(resolve => {
-        if (img.complete) return resolve();
-        const done = () => resolve();
-        img.addEventListener('load', done, { once: true });
-        img.addEventListener('error', done, { once: true });
-        setTimeout(done, timeoutMs);
-      });
-    })
-  );
+const waitForImageElement = (img: HTMLImageElement, timeoutMs: number): Promise<void> =>
+  new Promise(resolve => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      img.removeEventListener('load', decode);
+      img.removeEventListener('error', finish);
+      resolve();
+    };
+    const decode = () => img.decode?.().catch(() => undefined).then(finish) ?? finish();
+    const timer = window.setTimeout(finish, timeoutMs);
+    img.addEventListener('load', decode, { once: true });
+    img.addEventListener('error', finish, { once: true });
+    if (img.complete) decode();
+  });
 
-  await Promise.race([
-    checkImgs,
-    new Promise(r => setTimeout(r, timeoutMs))
-  ]);
+const isRenderRelevant = (img: HTMLImageElement): boolean => {
+  if (img.loading !== 'lazy' || img.complete) return true;
+  const bounds = img.getBoundingClientRect();
+  return bounds.bottom >= -window.innerHeight && bounds.top <= window.innerHeight * 2;
 };
 
-const waitForRenderComplete = async (criticalSources: string[] = []): Promise<void> => {
-  await new Promise(r => requestAnimationFrame(r));
+const waitForDomImages = async (timeoutMs = 5000): Promise<void> => {
+  const deadline = performance.now() + timeoutMs;
+  let previousSignature = '';
+  let stablePasses = 0;
 
-  if (document.fonts && document.fonts.ready) {
-    try {
-      await document.fonts.ready;
-    } catch {}
+  while (performance.now() < deadline && stablePasses < 2) {
+    await nextPaint();
+    const images = Array.from(document.querySelectorAll('img')).filter(isRenderRelevant);
+    const remaining = Math.max(120, deadline - performance.now());
+    await Promise.all(images.map(img => waitForImageElement(img, remaining)));
+    await nextPaint();
+
+    const currentImages = Array.from(document.querySelectorAll('img')).filter(isRenderRelevant);
+    const signature = currentImages
+      .map(img => `${img.currentSrc || img.src}:${img.complete}:${img.naturalWidth}x${img.naturalHeight}`)
+      .join('|');
+    stablePasses = signature === previousSignature ? stablePasses + 1 : 0;
+    previousSignature = signature;
+    if (stablePasses < 2) await delay(48);
   }
+};
 
-  if (criticalSources.length > 0) {
-    await Promise.all(criticalSources.map(preloadImage));
-  }
+const waitForRenderComplete = async (
+  criticalSources: string[] = [],
+  { minimumMs = 360, timeoutMs = 6000 }: { minimumMs?: number; timeoutMs?: number } = {}
+): Promise<void> => {
+  const startedAt = performance.now();
+  const readiness = async () => {
+    await nextPaint();
+    if (document.fonts?.ready) {
+      await Promise.race([document.fonts.ready.catch(() => undefined), delay(timeoutMs)]);
+    }
+    await Promise.all(criticalSources.map(src => preloadImage(src, timeoutMs)));
+    await waitForDomImages(timeoutMs);
+    await nextPaint();
+  };
 
-  await waitForDomImages(500);
-  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-  await new Promise(r => setTimeout(r, 80));
+  await Promise.race([readiness(), delay(timeoutMs)]);
+  const remainingMinimum = minimumMs - (performance.now() - startedAt);
+  if (remainingMinimum > 0) await delay(remainingMinimum);
+  await nextPaint();
 };
 
 function TransitionScreen({ active }: { active: boolean }) {
@@ -1750,7 +1782,7 @@ export function App() {
   });
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const isFirstMount = useRef(true);
+  const previousPath = useRef<string | null>(null);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -1771,14 +1803,19 @@ export function App() {
       underLogo,
       obr,
       fundo1280,
-      fundo1920
+      fundo1920,
+      fundoObr1920,
+      fundoUnder,
+      novo,
+      salvos,
+      testsButton
     ];
 
-    const safetyTimer = setTimeout(() => {
+    const safetyTimer = window.setTimeout(() => {
       if (mounted) setIsInitialLoading(false);
-    }, 1500);
+    }, 10000);
 
-    waitForRenderComplete(criticalAssets).then(() => {
+    waitForRenderComplete(criticalAssets, { minimumMs: 1250, timeoutMs: 9000 }).then(() => {
       if (mounted) {
         clearTimeout(safetyTimer);
         setIsInitialLoading(false);
@@ -1792,25 +1829,24 @@ export function App() {
   }, []);
 
   // Transições entre telas: mascara elementos com timeout garantido de saída
-  useEffect(() => {
-    if (isFirstMount.current) {
-      isFirstMount.current = false;
+  useLayoutEffect(() => {
+    if (previousPath.current === null) {
+      previousPath.current = location.pathname;
       return;
     }
+    if (previousPath.current === location.pathname) return;
+    previousPath.current = location.pathname;
 
     let active = true;
     setIsTransitioning(true);
     window.scrollTo(0, 0);
 
-    const safetyTimer = setTimeout(() => {
+    const safetyTimer = window.setTimeout(() => {
       if (active) setIsTransitioning(false);
-    }, 450);
+    }, 5000);
 
     const checkRoute = async () => {
-      await new Promise(r => requestAnimationFrame(r));
-      await waitForDomImages(350);
-      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-      await new Promise(r => setTimeout(r, 60));
+      await waitForRenderComplete([], { minimumMs: 420, timeoutMs: 4200 });
       if (active) {
         clearTimeout(safetyTimer);
         setIsTransitioning(false);
@@ -1833,9 +1869,7 @@ export function App() {
     // Desativa a transicao garantidamente mesmo se a rota atual ja for /
     setTimeout(async () => {
       try {
-        await new Promise(r => requestAnimationFrame(r));
-        await waitForDomImages(350);
-        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+        await waitForRenderComplete([], { minimumMs: 420, timeoutMs: 4200 });
       } finally {
         setIsTransitioning(false);
       }
@@ -1850,8 +1884,7 @@ export function App() {
 
     setTimeout(async () => {
       try {
-        await new Promise(r => requestAnimationFrame(r));
-        await waitForDomImages(350);
+        await waitForRenderComplete([], { minimumMs: 420, timeoutMs: 4200 });
       } finally {
         setIsTransitioning(false);
       }

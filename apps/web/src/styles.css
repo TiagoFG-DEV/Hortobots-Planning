@@ -1359,14 +1359,7 @@ textarea:focus-visible {
 }
 
 @media(prefers-reduced-motion:reduce) {
-
-  *,
-  *:before,
-  *:after {
-    animation: none !important;
-    transition-duration: .01ms !important;
-    scroll-behavior: auto !important
-  }
+  html { scroll-behavior: auto }
 }
 
 .notebook-logo {
