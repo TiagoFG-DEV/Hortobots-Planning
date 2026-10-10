@@ -383,15 +383,15 @@ function SideMenu({ mod }: { mod: string }) {
             </button>
           </header>
           <nav>
-            <Link to="/"><HomeIcon />HOME</Link>
+            <Link to="/"><HomeIcon />{user ? 'HOME' : 'VOLTAR AO LOGIN'}</Link>
             <Link to="/calendario"><CalendarDays />CALENDÁRIO GERAL</Link>
-            <Link to={`/${mod}/registros`}><List />REGISTROS</Link>
-            {canWrite && <Link to={`/${mod}/testes`}><ChartNoAxesCombined />SIMULAÇÕES E TESTES</Link>}
-            <Link to={`/${mod}/testes-salvos`}><List />TESTES SALVOS</Link>
-            <Link to={`/${mod}/creditos`}><FileText />CRÉDITOS</Link>
+            {user && <Link to={`/${mod}/registros`}><List />REGISTROS</Link>}
+            {user && canWrite && <Link to={`/${mod}/testes`}><ChartNoAxesCombined />SIMULAÇÕES E TESTES</Link>}
+            {user && <Link to={`/${mod}/testes-salvos`}><List />TESTES SALVOS</Link>}
+            {user && <Link to={`/${mod}/creditos`}><FileText />CRÉDITOS</Link>}
           </nav>
           <footer>
-            <Link to="/">Trocar de caderno</Link>
+            <Link to={user ? '/' : '/calendario?view=list'}>{user ? 'Trocar de caderno' : 'Voltar à pesquisa geral'}</Link>
           </footer>
         </aside>
       </div>
@@ -1943,7 +1943,7 @@ export function App() {
 
   const isOverlayActive = isInitialLoading || isTransitioning;
 
-  // Se o usuário NÃO estiver logado: a tela inicial (index) É SEMPRE o Login
+  // Sem autenticação, somente login e rotas públicas de consulta ficam disponíveis.
   if (!user) {
     return (
       <UserContext.Provider value={null}>
@@ -1953,6 +1953,8 @@ export function App() {
             <Route path="/" element={<Login onLogin={handleLoginSuccess} />} />
             <Route path="/login" element={<Login onLogin={handleLoginSuccess} />} />
             <Route path="/calendario" element={<CalendarView api={api} user={null} />} />
+            <Route path="/:mod/teste/:id" element={<TestView key={location.pathname} />} />
+            <Route path="/:mod/registro/:id" element={<RecordView key={location.pathname} />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </DialogProvider>

@@ -96,7 +96,7 @@ A cortina de carregamento impede que fontes, fundos e sprites apareçam progress
 
 ![Tela de login](docs/telas/Login-page.png)
 
-O usuário escolhe diretamente um dos quatro perfis fixos e informa a senha correspondente. Gestão acompanha e aprova; Mentor administra eventos e a mentoria; Aluno OBR registra apenas no caderno OBR; Aluno FLL registra nos cadernos FLL. A opção **Somente visualizar** abre o calendário e a pesquisa geral sem autenticação. A sessão controla tanto os elementos exibidos quanto a autorização efetiva de cada requisição no servidor.
+O usuário escolhe diretamente um dos quatro perfis fixos e informa a senha correspondente. Gestão acompanha e aprova; Mentor administra eventos e a mentoria; Aluno OBR registra apenas no caderno OBR; Aluno FLL registra nos cadernos FLL. A opção **Somente visualizar** abre o calendário e a pesquisa geral sem autenticação. Visitantes e contas autenticadas podem abrir o conteúdo completo de registros, testes e eventos; autenticação e autoria são exigidas apenas para as ações de criação, edição, confirmação e exclusão. A sessão controla tanto os elementos exibidos quanto a autorização efetiva de cada requisição no servidor.
 
 ### 4.3 Escolha do diário e atalhos de consulta
 
