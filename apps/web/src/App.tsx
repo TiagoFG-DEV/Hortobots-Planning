@@ -33,8 +33,9 @@ import fundo1280 from './assets/generated/fundo-1280.webp';
 import fundo1920 from './assets/generated/fundo-1920.webp';
 import fundoObr1920 from './assets/generated/fundo-obr-1920.webp';
 import fundoUnder from './assets/originals/fundo_underconstruction.png';
-import fundoNeutro from './assets/originals/neutro.png';
+import fundoNeutro from './assets/originals/fundo_neutro.png';
 import { CalendarView } from './CalendarView';
+import { PdfDownloadButton } from './PdfDownloadButton';
 import { useOverlayAccessibility } from './useOverlayAccessibility';
 import { TEAMS, getTeamKey, withTeamTag, isTeamTag, displayDate, teamFromRoute, notebookRoute } from './teams';
 import {
@@ -1566,19 +1567,22 @@ function RecordView() {
           <article className="paper diary">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <span className="stamp small">{notebook.modality}</span>
-              {rec && canMutateTeamContent(user, rec) && (
+              {rec && (
                 <div className="item-actions-row" style={{ marginTop: 0 }}>
-                  <Link to={`/${mod}/editar/${id}`} className="btn-action-edit">
-                    <Edit3 size={14} /> Editar
-                  </Link>
-                  <button
-                    type="button"
-                    className="btn-action-delete"
-                    onClick={handleDelete}
-                    disabled={isDeleting}
-                  >
-                    <Trash2 size={14} /> {isDeleting ? 'Excluindo...' : 'Excluir'}
-                  </button>
+                  <PdfDownloadButton item={rec} kind="record" team={getTeamKey(rec)} resolveMediaUrl={resolveUrl} />
+                  {canMutateTeamContent(user, rec) && <>
+                    <Link to={`/${mod}/editar/${id}`} className="btn-action-edit">
+                      <Edit3 size={14} /> Editar
+                    </Link>
+                    <button
+                      type="button"
+                      className="btn-action-delete"
+                      onClick={handleDelete}
+                      disabled={isDeleting}
+                    >
+                      <Trash2 size={14} /> {isDeleting ? 'Excluindo...' : 'Excluir'}
+                    </button>
+                  </>}
                 </div>
               )}
             </div>
@@ -1670,6 +1674,10 @@ function TestView() {
     }).catch(err => { if (active) setError(err.message); });
     return () => { active = false; };
   }, [id, mod]);
+  const resolveTestMediaUrl = (media: any): string => {
+    const raw = media.url || media.data || `/api/media/testes/${item?.date}-${item?.id}/${media.path || media.name}`;
+    return String(raw).startsWith('/api/') ? API + raw : String(raw);
+  };
   return <Shell><main className="content test-detail page-transition">
     <div className="page-title"><h1>Teste e simulação</h1><Link className="button" to="/calendario?view=list">Pesquisa geral</Link></div>
     {error ? <p className="empty-public" role="alert">{error}</p> : !item ? <p className="empty-public" role="status">Carregando teste...</p> : <>
@@ -1678,15 +1686,17 @@ function TestView() {
         <h2>{item.title}</h2><p>{item.objective}</p>
         {item.mission && <p><strong>Missão:</strong> {item.mission}</p>}
         {item.comments && <p className="test-comments">{item.comments}</p>}
-        {canMutateTeamContent(user, item) && <Link className="btn-action-edit" to={`/${mod}/testes/editar/${id}`}><Edit3 size={16} /> Editar teste</Link>}
+        <div className="item-actions-row test-detail-actions">
+          <PdfDownloadButton item={item} kind="test" team={getTeamKey(item)} resolveMediaUrl={resolveTestMediaUrl} />
+          {canMutateTeamContent(user, item) && <Link className="btn-action-edit" to={`/${mod}/testes/editar/${id}`}><Edit3 size={16} /> Editar teste</Link>}
+        </div>
       </article>
       <section className="test-detail-analysis" aria-label="Resultados das tentativas">
         <h2>Resultados</h2><DataAnalysis attempts={Array.isArray(item.attempts) ? item.attempts : []} />
         <div className="attempt-results">{(item.attempts || []).map((attempt: Attempt, i: number) => <article key={i}><strong>Tentativa {i + 1}</strong><span>Tempo: {attempt.time} s</span><span>Pontuação: {attempt.score}</span><span>Falhas: {attempt.failures}</span>{mod === 'obr' && <span>Valor observado: {attempt.observed}</span>}</article>)}</div>
       </section>
       {item.media?.length > 0 && <section className="test-detail-media" aria-label="Mídias do teste">{item.media.map((media: any, i: number) => {
-        const raw = media.url || media.data || `/api/media/testes/${item.date}-${item.id}/${media.path || media.name}`;
-        const url = raw.startsWith('/api/') ? API + raw : raw;
+        const url = resolveTestMediaUrl(media);
         const video = String(media.type || '').startsWith('video') || /\.(mp4|webm|mov|ogg|m4v)(\?|$)/i.test(url) || /\.(mp4|webm|mov|ogg|m4v)$/i.test(media.name || '');
         return <button key={i} aria-label={`Abrir ${media.name}`} onClick={() => setFocus({ url, name: media.name, video })}>{video ? <video src={url} muted playsInline preload="metadata" /> : <img src={url} alt={media.name} loading="lazy" />}<span>{media.name}</span></button>;
       })}</section>}

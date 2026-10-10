@@ -75,6 +75,12 @@ hortobots-planning/
   - Metricas de tempo, pontuacao observada e taxa de falhas.
   - Visualizacao grafica de desempenho em linha, barras ou circular.
 
+- **Exportacao para PDF:**
+  - Registros e testes abertos podem ser baixados por qualquer perfil, inclusive visitante.
+  - O arquivo usa folhas A4 em retrato, paginação automática, cabeçalho com as marcas da equipe e da competição e identidade visual específica de cada caderno.
+  - Textos, tags, métricas, tentativas, gráficos, imagens e capas de vídeos são organizados em quantas páginas forem necessárias.
+  - A geração acontece localmente no navegador com `@react-pdf/renderer`, sem serviço pago, cota externa ou envio do conteúdo a uma API de terceiros.
+
 - **Design System e Fluidez:**
   - Transicoes suaves entre rotas e paineis (`.page-transition`).
   - Estetica baseada em cadernos tecnicos de engenharia.
@@ -237,6 +243,16 @@ npm run build -w @hortobots/api
 # Frontend React SPA
 npm run build -w @hortobots/web
 ```
+
+### Verificação da exportação PDF
+
+Gera duas amostras reais — um registro OBR e um teste FLL com 15 tentativas — para validar paginação, cabeçalhos, gráficos e mídias:
+
+```bash
+npm run verify:pdf
+```
+
+Os arquivos são gravados em `output/pdf/` e servem como artefatos de inspeção visual e regressão.
 
 ### Testes de Conformidade e Tipagem
 ```bash

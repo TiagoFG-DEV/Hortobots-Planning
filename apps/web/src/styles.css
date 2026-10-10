@@ -67,7 +67,7 @@ textarea:focus-visible {
 .cover {
   min-height: 100svh;
   height: 100svh;
-  background: #101311 url('./assets/originals/neutro.png') center/cover fixed;
+  background: #101311 url('./assets/originals/fundo_neutro.png') center/cover fixed;
   color: white;
   position: relative;
   overflow: hidden
@@ -688,7 +688,7 @@ textarea:focus-visible {
 .maker-paper,
 .diary,
 .gallery {
-  padding: 2.3rem 2.7rem;
+  padding: 2.3rem 2.7rem 2.3rem 4.75rem;
   height: calc(100svh - 116px);
   overflow: auto
 }
@@ -1224,7 +1224,7 @@ textarea:focus-visible {
   .gallery {
     height: auto;
     min-height: calc(100svh - 120px);
-    padding: 2.4rem 1.4rem
+    padding: 2.4rem 1.4rem 2.4rem 4.25rem
   }
 
   .maker-paper {
@@ -2154,7 +2154,7 @@ body {
 
 /* A Home dos três cadernos usa a identidade neutra em todos os perfis. */
 .cover:before {
-  background: #160d18 url('./assets/originals/neutro.png') center/cover no-repeat
+  background: #160d18 url('./assets/originals/fundo_neutro.png') center/cover no-repeat
 }
 
 .shell>main,
@@ -2582,6 +2582,46 @@ body {
 
 .visitor-calendar-link strong { font-size: .84rem; }
 .visitor-calendar-link small { margin-top: .2rem; color: #657563; font-size: .7rem; }
+
+.pdf-download-button {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .48rem;
+  padding: .58rem .9rem;
+  border: 1px solid color-mix(in srgb, var(--primary, #2d8e38) 72%, #172018);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--primary, #2d8e38) 12%, #fff);
+  color: #172018;
+  font: 700 .78rem 'Open Sans', sans-serif;
+  cursor: pointer;
+  transition: transform .2s ease, box-shadow .2s ease, background-color .2s ease;
+}
+
+.pdf-download-button:hover:not(:disabled),
+.pdf-download-button:focus-visible {
+  transform: translateY(-2px);
+  background: color-mix(in srgb, var(--primary, #2d8e38) 20%, #fff);
+  box-shadow: 0 7px 18px #0002;
+}
+
+.pdf-download-button:disabled {
+  cursor: progress;
+  opacity: .72;
+}
+
+.pdf-download-spinner {
+  animation: pdf-spin .85s linear infinite;
+}
+
+.test-detail-actions {
+  margin-top: 1rem;
+}
+
+@keyframes pdf-spin {
+  to { transform: rotate(360deg); }
+}
 
 @media(max-height:760px) and (min-width:761px) {
   .profile-picker {
@@ -3561,7 +3601,7 @@ body {
     linear-gradient(90deg, transparent 55px, #e0949430 56px, transparent 57px),
     repeating-linear-gradient(transparent 0, transparent 31px, #90b7d122 32px),
     linear-gradient(180deg, #fffdf6, #f7f4ea);
-  padding: 2.2rem 2rem 2rem;
+  padding: 2.2rem 2rem 2rem 4.75rem;
   color: var(--ink);
   display: flex;
   flex-direction: column;
@@ -3933,6 +3973,10 @@ body {
   .notebook-form-page,
   .media-notebook-page {
     padding: 1.4rem 1.1rem 1.4rem;
+  }
+
+  .notebook-form-page {
+    padding-left: 4.25rem;
   }
 
   .media-slot-grid {
