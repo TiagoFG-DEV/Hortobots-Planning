@@ -59,9 +59,14 @@ body {
 .backdrop-calendar {
   background-image: linear-gradient(#080c088c, #060a06a6), url('./assets/originals/fundo_underconstruction.png');
 }
+.backdrop-home {
+  background-color: #160d18;
+  background-image: url('./assets/originals/fundo_neutro.png');
+}
 #root:has(.shell[data-modality='obr']) .backdrop-obr,
 #root:has(.shell[data-team='under']) .backdrop-under,
-#root:has(.calendar-page-pro) .backdrop-calendar { opacity: 1; }
+#root:has(.calendar-page-pro) .backdrop-calendar,
+#root:has(.cover) .backdrop-home { opacity: 1; }
 .shell::before, .cover::before, .calendar-page::before, .login::before { content: none; }
 .calendar-page-pro, .tests-page { background: none !important; }
 .shell, .cover, .content, .home-screen, .hub, .calendar-page-pro, .tests-page {
