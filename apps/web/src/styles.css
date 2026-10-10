@@ -2152,6 +2152,11 @@ body {
   background-image: url('./assets/generated/fundo-obr-1280.webp')
 }
 
+/* A Home dos três cadernos usa a identidade neutra em todos os perfis. */
+.cover:before {
+  background: #160d18 url('./assets/originals/neutro.png') center/cover no-repeat
+}
+
 .shell>main,
 .shell>section,
 .calendar-page>*,
