@@ -155,6 +155,7 @@ a.activity-main:hover { color: var(--team-accent); }
 .calendar-view-switch button { display: flex; align-items: center; justify-content: center; gap: .5rem; min-height: 44px; padding: .65rem 1.1rem; margin: 0; border: 0; border-radius: 10px; color: #e5e9e2; background: transparent; font-weight: 700; font-size: .85rem; }
 .calendar-view-switch button[aria-pressed='true'] { background: #e9f2e3; color: #243c2a; }
 .calendar-view-switch button:hover:not([aria-pressed='true']) { background: #ffffff12; }
+.guest-return-login { position: fixed; top: 1rem; left: 1rem; z-index: 35; }
 .activity-search-panel { color: #f5f4f1; background: #121715f2; border: 1px solid #ffffff30; border-radius: 20px; padding: clamp(1rem, 2.5vw, 2rem); scroll-margin-top: 1rem; }
 .activity-search-heading { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: .5rem 1.5rem; margin-bottom: 1.5rem; }
 .activity-search-heading .paper-label { color: #b8d7ab; text-shadow: none; }

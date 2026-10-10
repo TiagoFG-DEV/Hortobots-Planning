@@ -5,6 +5,14 @@ import { ActivityCard, type ActivityKind, type ActivitySource } from './Activity
 import { TEAMS, notebookRoute, type TeamKey } from './teams';
 import { findActivities } from './activities';
 import {
+  canConfirmEvent,
+  canCreateEvent,
+  canDeleteEvent,
+  canEditEvent,
+  canMutateTeamContent,
+  type AccountUser
+} from '@hortobots/shared/permissions';
+import {
   Home as HomeIcon,
   ChevronLeft,
   ChevronRight,
@@ -51,7 +59,7 @@ interface StoredTestSummary extends ActivitySource {
 
 interface CalendarViewProps {
   api: (path: string, init?: RequestInit) => Promise<any>;
-  user: { username: string; role: 'management' | 'mentor' | 'obr' | 'fll' } | null;
+  user: AccountUser | null;
 }
 
 const MONTH_NAMES = [
@@ -66,7 +74,10 @@ export function CalendarView({ api, user }: CalendarViewProps) {
   const [urlParams, setUrlParams] = useSearchParams();
   const view = urlParams.get('view') === 'list' ? 'list' : 'calendar';
   const [query, setQuery] = useState('');
-  const [teamFilter, setTeamFilter] = useState<TeamKey | ''>('');
+  const requestedTeam = urlParams.get('team');
+  const [teamFilter, setTeamFilter] = useState<TeamKey | ''>(() =>
+    requestedTeam && requestedTeam in TEAMS ? requestedTeam as TeamKey : ''
+  );
   const [kindFilter, setKindFilter] = useState<ActivityKind | ''>('');
   const [page, setPage] = useState(1);
   const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
@@ -127,6 +138,9 @@ export function CalendarView({ api, user }: CalendarViewProps) {
       setCurrentMonth(m);
     }
   }, [urlDate]);
+  useEffect(() => {
+    setTeamFilter(requestedTeam && requestedTeam in TEAMS ? requestedTeam as TeamKey : '');
+  }, [requestedTeam]);
 
   // Carregar dados de eventos, registros e testes
   const loadAll = async () => {
@@ -239,6 +253,7 @@ export function CalendarView({ api, user }: CalendarViewProps) {
 
   // Abrir modal para criar evento
   const openCreateModal = () => {
+    if (!canCreateEvent(user)) return;
     setEditingEventId(null);
     setNewEvent({
       date: selectedDate,
@@ -254,6 +269,7 @@ export function CalendarView({ api, user }: CalendarViewProps) {
 
   // Abrir modal para editar evento
   const openEditModal = (ev: CalendarEvent) => {
+    if (!canEditEvent(user)) return;
     setEditingEventId(ev.id);
     // Parse the lesson string back into start/end or use defaults
     const lessonParts = (ev.lesson || '07:00–07:50').split('–');
@@ -273,6 +289,10 @@ export function CalendarView({ api, user }: CalendarViewProps) {
   const handleSaveEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newEvent.title.trim()) return;
+    if (editingEventId ? !canEditEvent(user) : !canCreateEvent(user)) {
+      showError('Este perfil não possui permissão para alterar eventos.');
+      return;
+    }
 
     // Business rule: COMUM events are auto-published, URGENTE need management approval
     const lesson = `${newEvent.lessonStart}–${newEvent.lessonEnd}`;
@@ -312,6 +332,7 @@ export function CalendarView({ api, user }: CalendarViewProps) {
 
   // Excluir evento
   const handleDeleteEvent = async (id: string) => {
+    if (!canDeleteEvent(user)) return;
     const ok = await confirm('Tem certeza que deseja excluir este evento?');
     if (!ok) return;
     try {
@@ -326,6 +347,8 @@ export function CalendarView({ api, user }: CalendarViewProps) {
 
   // Excluir registro
   const handleDeleteRecord = async (id: string) => {
+    const item = records.find(record => record.id === id);
+    if (!item || !canMutateTeamContent(user, item)) return;
     const ok = await confirm('Deseja excluir este registro do diário de bordo?');
     if (!ok) return;
     try {
@@ -340,6 +363,8 @@ export function CalendarView({ api, user }: CalendarViewProps) {
 
   // Excluir teste
   const handleDeleteTest = async (id: string) => {
+    const item = tests.find(test => test.id === id);
+    if (!item || !canMutateTeamContent(user, item)) return;
     const ok = await confirm('Deseja excluir este teste técnico?');
     if (!ok) return;
     try {
@@ -354,6 +379,7 @@ export function CalendarView({ api, user }: CalendarViewProps) {
 
   // Gestão autoriza evento
   const handleConfirmEvent = async (id: string) => {
+    if (!canConfirmEvent(user)) return;
     try {
       await api(`/api/eventos/${id}/confirmar`, { method: 'PATCH' });
       setEvents(prev => prev.map(ev => ev.id === id ? { ...ev, status: 'CONFIRMADO' } : ev));
@@ -365,16 +391,18 @@ export function CalendarView({ api, user }: CalendarViewProps) {
   };
 
   const renderActivity = (kind: ActivityKind, item: ActivitySource) => {
-    const canManageEvent = user && (user.role === 'mentor' || user.role === 'management');
+    const canMutateContent = canMutateTeamContent(user, item);
     return <ActivityCard key={`${kind}-${item.id}`} kind={kind} item={item}>
       {kind === 'event' ? <>
-        {canManageEvent && <>
+        {canEditEvent(user) &&
           <button type="button" className="btn-action-edit" onClick={() => openEditModal(item as CalendarEvent)}><Edit3 size={15} /> Editar</button>
+        }
+        {canDeleteEvent(user) &&
           <button type="button" className="btn-action-delete" onClick={() => handleDeleteEvent(item.id)}><Trash2 size={15} /> Excluir</button>
-        </>}
-        {user?.role === 'management' && item.priority === 'URGENTE' && item.status === 'PENDENTE' && <button type="button" className="cal-auth-btn" onClick={() => handleConfirmEvent(item.id)}>Autorizar evento</button>}
-      </> : user && <>
-        {kind === 'test' && <Link className="btn-action-edit" to={`/${notebookRoute(item)}/testes/editar/${item.id}`}><Edit3 size={15} /> Editar</Link>}
+        }
+        {canConfirmEvent(user) && item.priority === 'URGENTE' && item.status === 'PENDENTE' && <button type="button" className="cal-auth-btn" onClick={() => handleConfirmEvent(item.id)}>Autorizar evento</button>}
+      </> : canMutateContent && <>
+        <Link className="btn-action-edit" to={kind === 'record' ? `/${notebookRoute(item)}/editar/${item.id}` : `/${notebookRoute(item)}/testes/editar/${item.id}`}><Edit3 size={15} /> Editar</Link>
         <button type="button" className="btn-action-delete" onClick={() => kind === 'record' ? handleDeleteRecord(item.id) : handleDeleteTest(item.id)}><Trash2 size={15} /> Excluir</button>
       </>}
     </ActivityCard>;
@@ -385,8 +413,8 @@ export function CalendarView({ api, user }: CalendarViewProps) {
       className="calendar-page-pro page-transition"
     >
       <div className="cal-header-bar">
-        <Link to="/" className="back-home-button">
-          <HomeIcon size={18} /> Início
+        <Link to="/" className={`back-home-button ${user ? '' : 'guest-return-login'}`}>
+          <HomeIcon size={18} /> {user ? 'Início' : 'Voltar ao login'}
         </Link>
         <div className="cal-title-section">
           <span className="cal-badge-pill">DIÁRIO & CRONOGRAMA OFICIAL</span>
@@ -395,7 +423,7 @@ export function CalendarView({ api, user }: CalendarViewProps) {
             Outubro, Novembro e Dezembro de {currentYear} &bull; Hoje é <strong>{todayStr}</strong>
           </p>
         </div>
-        {user && (user.role === 'mentor' || user.role === 'management') && (
+        {canCreateEvent(user) && (
           <button className="cal-primary-btn" onClick={openCreateModal}>
             Lançar Evento
           </button>
@@ -544,8 +572,8 @@ export function CalendarView({ api, user }: CalendarViewProps) {
 
       {view === 'list' && <section id="activity-search-panel" className="activity-search-panel" aria-label="Pesquisa geral de atividades">
         <header className="activity-search-heading">
-          <div><span className="paper-label">ACERVO DAS EQUIPES</span><h2>Registros, testes e eventos</h2></div>
-          <p>Registros, testes e eventos reunidos, do mais recente para o mais antigo.</p>
+          <div><span className="paper-label">ACERVO DAS EQUIPES</span><h2>{teamFilter ? `Registros e testes — ${TEAMS[teamFilter].short}` : 'Registros, testes e eventos'}</h2></div>
+          <p>{teamFilter ? 'Conteúdo técnico do caderno selecionado, do mais recente para o mais antigo.' : 'Registros, testes e eventos reunidos, do mais recente para o mais antigo.'}</p>
         </header>
         <div className="activity-filters">
           <label className="activity-query">Palavras-chave

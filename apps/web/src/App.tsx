@@ -5,6 +5,7 @@ import {
   ChartNoAxesCombined,
   CheckCircle2,
   Edit3,
+  Eye,
   FileText,
   Home as HomeIcon,
   Image as ImageIcon,
@@ -32,9 +33,15 @@ import fundo1280 from './assets/generated/fundo-1280.webp';
 import fundo1920 from './assets/generated/fundo-1920.webp';
 import fundoObr1920 from './assets/generated/fundo-obr-1920.webp';
 import fundoUnder from './assets/originals/fundo_underconstruction.png';
+import fundoNeutro from './assets/originals/neutro.png';
 import { CalendarView } from './CalendarView';
 import { useOverlayAccessibility } from './useOverlayAccessibility';
 import { TEAMS, getTeamKey, withTeamTag, isTeamTag, displayDate, teamFromRoute, notebookRoute } from './teams';
+import {
+  canCreateTeamContent,
+  canMutateTeamContent,
+  type AccountUser
+} from '@hortobots/shared/permissions';
 
 const teamLogos = { fll, under: underLogo, obr };
 const teamBooks = { fll: fllBook, under: underBook, obr: obrBook };
@@ -69,8 +76,12 @@ const MISSIONS = [
   'M15 Biocentric Architecture'
 ];
 
-type User = { username: string; role: 'management' | 'mentor' | 'obr' | 'fll' };
+type User = AccountUser;
 type Attempt = { time: number; score: number; failures: number; observed: number };
+
+const UserContext = createContext<User | null>(null);
+const useCurrentUser = () => useContext(UserContext);
+const teamArchiveUrl = (key: keyof typeof TEAMS) => `/calendario?view=list&team=${key}`;
 
 const auth = () => sessionStorage.getItem('hortobots-token') || '';
 
@@ -304,6 +315,10 @@ function Login({ onLogin }: { onLogin: (u: User) => void }) {
           <button className="button" disabled={!v.username}>
             ENTRAR NA PLATAFORMA
           </button>
+          <Link className="visitor-calendar-link" to="/calendario">
+            <Eye size={19} />
+            <span><strong>Somente visualizar</strong><small>Calendário e pesquisa geral</small></span>
+          </Link>
           <small>Acesso exclusivo das equipes SESI 437</small>
         </form>
       </section>
@@ -312,6 +327,7 @@ function Login({ onLogin }: { onLogin: (u: User) => void }) {
 }
 
 function Home() {
+  const user = useCurrentUser();
   return (
     <main className="cover page-transition">
       <section className="home-screen">
@@ -320,10 +336,14 @@ function Home() {
         </Link>
         <p className="eyebrow home-eyebrow">ESCOLHA O DIÁRIO</p>
         <div className="notebook-select three-notebooks">
-          {(['fll', 'under', 'obr'] as const).map(key => <Link className="notebook-logo" data-team={key} to={`/${TEAMS[key].route}`} key={key}>
-            <img src={teamBooks[key]} alt={`Caderno ${TEAMS[key].short}`} />
-            <strong>{TEAMS[key].short}</strong><small>{TEAMS[key].modality}</small>
-          </Link>)}
+          {(['fll', 'under', 'obr'] as const).map(key => {
+            const team = TEAMS[key];
+            const canWrite = canCreateTeamContent(user, team.modality);
+            return <Link className="notebook-logo" data-team={key} to={canWrite ? `/${team.route}` : teamArchiveUrl(key)} key={key}>
+              <img src={teamBooks[key]} alt={`Caderno ${team.short}`} />
+              <strong>{team.short}</strong><small>{canWrite ? team.modality : 'CONSULTAR ACERVO'}</small>
+            </Link>;
+          })}
         </div>
         <nav className="public-links">
           <Link to="/calendario"><CalendarDays />Calendário</Link>
@@ -343,6 +363,8 @@ function Home() {
 function SideMenu({ mod }: { mod: string }) {
   const [open, setOpen] = useState(false);
   const notebook = useNotebook();
+  const user = useCurrentUser();
+  const canWrite = canCreateTeamContent(user, notebook.modality);
   return (
     <>
       <button className={`menu-trigger ${mod}-trigger`} onClick={() => setOpen(true)} aria-label="Abrir menu" aria-expanded={open} aria-controls="team-menu">
@@ -364,7 +386,7 @@ function SideMenu({ mod }: { mod: string }) {
             <Link to="/"><HomeIcon />HOME</Link>
             <Link to="/calendario"><CalendarDays />CALENDÁRIO GERAL</Link>
             <Link to={`/${mod}/registros`}><List />REGISTROS</Link>
-            <Link to={`/${mod}/testes`}><ChartNoAxesCombined />SIMULAÇÕES E TESTES</Link>
+            {canWrite && <Link to={`/${mod}/testes`}><ChartNoAxesCombined />SIMULAÇÕES E TESTES</Link>}
             <Link to={`/${mod}/testes-salvos`}><List />TESTES SALVOS</Link>
             <Link to={`/${mod}/creditos`}><FileText />CRÉDITOS</Link>
           </nav>
@@ -396,6 +418,8 @@ function Shell({ children }: { children: React.ReactNode }) {
 function Hub() {
   const { mod = 'fll' } = useParams();
   const notebook = useNotebook();
+  const user = useCurrentUser();
+  if (!canCreateTeamContent(user, notebook.modality)) return <Navigate to={teamArchiveUrl(notebook.key)} replace />;
   return (
     <Shell>
       <section className="hub page-transition">
@@ -421,6 +445,7 @@ function Hub() {
 function Records() {
   const { mod = 'fll' } = useParams();
   const notebook = useNotebook();
+  const user = useCurrentUser();
   const [q, setQ] = useState('');
   const [date, setDate] = useState('');
   const [items, setItems] = useState<any[]>([]);
@@ -504,7 +529,7 @@ function Records() {
                     <p>{r.summary}</p>
                   </div>
                 </Link>
-                {auth() && (
+                {canMutateTeamContent(user, r) && (
                   <div className="record-card-actions">
                     <Link
                       to={`/${mod}/editar/${r.id}`}
@@ -552,7 +577,8 @@ type MediaSlot = {
 // Sem sobrecarregar a memória do servidor nem salvar em disco local
 async function uploadMediaList(
   items: MediaSlot[],
-  kind: 'registros' | 'testes' = 'registros'
+  kind: 'registros' | 'testes',
+  modality: 'FLL' | 'OBR'
 ): Promise<Array<{ name: string; type: string; url: string; path?: string }>> {
   return Promise.all(
     items.map(async (m) => {
@@ -566,7 +592,7 @@ async function uploadMediaList(
         try {
           const authData = await api('/api/storage/upload-url', {
             method: 'POST',
-            body: JSON.stringify({ filename: m.name, type: m.type, kind })
+            body: JSON.stringify({ filename: m.name, type: m.type, kind, modality })
           });
 
           if (authData && authData.direct && authData.signedUrl) {
@@ -705,6 +731,7 @@ function MediaPagePanel({
 function Editor({ isEdit }: { isEdit?: boolean }) {
   const { mod = 'fll', id } = useParams();
   const notebook = useNotebook();
+  const user = useCurrentUser();
   const [loaded, setLoaded] = useState(!isEdit);
   const navigate = useNavigate();
   const [form, setForm] = useState({ date: today, title: '', summary: '', tags: ['treino'] });
@@ -729,6 +756,10 @@ function Editor({ isEdit }: { isEdit?: boolean }) {
               navigate(`/${notebookRoute(rec)}/editar/${id}`, { replace: true });
               return;
             }
+            if (!canMutateTeamContent(user, rec)) {
+              navigate(`/${mod}/registro/${id}`, { replace: true });
+              return;
+            }
             setForm({
               date: rec.date || today,
               title: rec.title || '',
@@ -750,7 +781,7 @@ function Editor({ isEdit }: { isEdit?: boolean }) {
         .catch(err => { if (active) setErrorMsg(err.message || 'Não foi possível carregar o registro.'); });
     }
     return () => { active = false; };
-  }, [isEdit, id, mod]);
+  }, [isEdit, id, mod, user?.username, user?.role]);
 
   const addFiles = (fileList: FileList) => {
     const remaining = 4 - media.length;
@@ -769,6 +800,10 @@ function Editor({ isEdit }: { isEdit?: boolean }) {
 
   const save = async () => {
     if (!loaded) return;
+    if (!canCreateTeamContent(user, notebook.modality)) {
+      setErrorMsg('Esta conta possui acesso somente para visualização neste caderno.');
+      return;
+    }
     if (!form.title.trim()) {
       setErrorMsg('Informe o título do registro.');
       return;
@@ -777,7 +812,7 @@ function Editor({ isEdit }: { isEdit?: boolean }) {
     setIsSaving(true);
     try {
       // 1. Upload seguro e direto de todas as mídias para a nuvem Supabase Storage
-      const processedMedia = await uploadMediaList(media, 'registros');
+      const processedMedia = await uploadMediaList(media, 'registros', notebook.modality);
 
       if (isEdit && id) {
         await api(`/api/registros/${id}`, {
@@ -808,6 +843,7 @@ function Editor({ isEdit }: { isEdit?: boolean }) {
     setTag('');
   };
 
+  if (!canCreateTeamContent(user, notebook.modality)) return <Navigate to={teamArchiveUrl(notebook.key)} replace />;
   if (isEdit && !loaded) return <Shell><main className="content"><p className="empty-public" role={errorMsg ? 'alert' : 'status'}>{errorMsg || 'Carregando registro…'}</p></main></Shell>;
 
   return (
@@ -1072,6 +1108,7 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
   const { mod = 'fll', id } = useParams();
   const navigate = useNavigate();
   const notebook = useNotebook();
+  const user = useCurrentUser();
   const [loaded, setLoaded] = useState(!isEdit);
   const [count, setCount] = useState(3);
   const [attempts, setAttempts] = useState<Attempt[]>(
@@ -1096,6 +1133,10 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
           if (t) {
             if (notebookRoute(t) !== mod) {
               navigate(`/${notebookRoute(t)}/testes/editar/${id}`, { replace: true });
+              return;
+            }
+            if (!canMutateTeamContent(user, t)) {
+              navigate(`/${mod}/teste/${id}`, { replace: true });
               return;
             }
             setBase({
@@ -1130,7 +1171,7 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
         .catch(err => { if (active) setErrorMsg(err.message || 'Não foi possível carregar o teste.'); });
     }
     return () => { active = false; };
-  }, [isEdit, id, mod]);
+  }, [isEdit, id, mod, user?.username, user?.role]);
 
   const addFiles = (fileList: FileList) => {
     const remaining = 4 - media.length;
@@ -1149,6 +1190,10 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
 
   const save = async () => {
     if (!loaded) return;
+    if (!canCreateTeamContent(user, notebook.modality)) {
+      setErrorMsg('Esta conta possui acesso somente para visualização neste caderno.');
+      return;
+    }
     if (!base.title.trim()) {
       setErrorMsg('Informe o nome do teste.');
       return;
@@ -1157,7 +1202,7 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
     setIsSaving(true);
     try {
       // 1. Upload seguro e direto de todas as mídias para a nuvem Supabase Storage
-      const processedMedia = await uploadMediaList(media, 'testes');
+      const processedMedia = await uploadMediaList(media, 'testes', notebook.modality);
 
       const payload = {
         ...base,
@@ -1185,6 +1230,7 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
   };
 
   const activeAttempts = attempts.slice(0, count);
+  if (!canCreateTeamContent(user, notebook.modality)) return <Navigate to={teamArchiveUrl(notebook.key)} replace />;
   if (isEdit && !loaded) return <Shell><main className="content"><p className="empty-public" role={errorMsg ? 'alert' : 'status'}>{errorMsg || 'Carregando teste…'}</p></main></Shell>;
 
   return (
@@ -1212,10 +1258,10 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
                 Nº de tentativas
                 <input
                   type="number"
-                  min="1"
+                  min="3"
                   max="15"
                   value={count}
-                  onChange={e => setCount(Math.max(1, Math.min(15, +e.target.value)))}
+                  onChange={e => setCount(Math.max(3, Math.min(15, +e.target.value)))}
                 />
               </label>
             </div>
@@ -1339,6 +1385,7 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
 function SavedTests() {
   const { mod = 'fll' } = useParams();
   const notebook = useNotebook();
+  const user = useCurrentUser();
   const [items, setItems] = useState<any[]>([]);
   const [q, setQ] = useState('');
   const [actionMsg, setActionMsg] = useState('');
@@ -1378,7 +1425,7 @@ function SavedTests() {
             <span className="kicker">{notebook.short}</span>
             <h1>Testes salvos</h1>
           </div>
-          {auth() && <Link className="button" to={'/' + mod + '/testes'}>LANÇAR NOVO TESTE</Link>}
+          {canCreateTeamContent(user, notebook.modality) && <Link className="button" to={'/' + mod + '/testes'}>LANÇAR NOVO TESTE</Link>}
         </div>
 
         {actionMsg && (
@@ -1413,9 +1460,9 @@ function SavedTests() {
                     <p>{x.objective}</p>
                   </div>
                 </div>
-                {auth() && (
-                  <div className="item-actions-row">
+                <div className="item-actions-row">
                     <Link to={`/${mod}/teste/${x.id}`} className="btn-action-edit">Visualizar</Link>
+                  {canMutateTeamContent(user, x) && <>
                     <Link to={`/${mod}/testes/editar/${x.id}`} className="btn-action-edit">
                       <Edit3 size={13} /> Editar
                     </Link>
@@ -1426,8 +1473,8 @@ function SavedTests() {
                     >
                       <Trash2 size={13} /> Excluir
                     </button>
-                  </div>
-                )}
+                  </>}
+                </div>
               </article>
             ))
           ) : (
@@ -1446,6 +1493,7 @@ function SavedTests() {
 function RecordView() {
   const { mod = 'fll', id } = useParams();
   const notebook = useNotebook();
+  const user = useCurrentUser();
   const navigate = useNavigate();
   const [rec, setRec] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -1518,7 +1566,7 @@ function RecordView() {
           <article className="paper diary">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <span className="stamp small">{notebook.modality}</span>
-              {auth() && rec && (
+              {rec && canMutateTeamContent(user, rec) && (
                 <div className="item-actions-row" style={{ marginTop: 0 }}>
                   <Link to={`/${mod}/editar/${id}`} className="btn-action-edit">
                     <Edit3 size={14} /> Editar
@@ -1605,6 +1653,7 @@ function RecordView() {
 function TestView() {
   const { mod = 'fll', id } = useParams();
   const navigate = useNavigate();
+  const user = useCurrentUser();
   const [item, setItem] = useState<any>(null);
   const [error, setError] = useState('');
   const [focus, setFocus] = useState<{ url: string; name: string; video: boolean } | null>(null);
@@ -1629,7 +1678,7 @@ function TestView() {
         <h2>{item.title}</h2><p>{item.objective}</p>
         {item.mission && <p><strong>Missão:</strong> {item.mission}</p>}
         {item.comments && <p className="test-comments">{item.comments}</p>}
-        {auth() && <Link className="btn-action-edit" to={`/${mod}/testes/editar/${id}`}><Edit3 size={16} /> Editar teste</Link>}
+        {canMutateTeamContent(user, item) && <Link className="btn-action-edit" to={`/${mod}/testes/editar/${id}`}><Edit3 size={16} /> Editar teste</Link>}
       </article>
       <section className="test-detail-analysis" aria-label="Resultados das tentativas">
         <h2>Resultados</h2><DataAnalysis attempts={Array.isArray(item.attempts) ? item.attempts : []} />
@@ -1806,6 +1855,7 @@ export function App() {
       fundo1920,
       fundoObr1920,
       fundoUnder,
+      fundoNeutro,
       novo,
       salvos,
       testsButton
@@ -1896,48 +1946,52 @@ export function App() {
   // Se o usuário NÃO estiver logado: a tela inicial (index) É SEMPRE o Login
   if (!user) {
     return (
-      <>
-        <TransitionScreen active={isOverlayActive} />
-        <Routes>
-          <Route path="/" element={<Login onLogin={handleLoginSuccess} />} />
-          <Route path="/login" element={<Login onLogin={handleLoginSuccess} />} />
-          {/* Qualquer rota acessada sem autenticação redireciona para a tela de login inicial */}
-          <Route path="*" element={<Login onLogin={handleLoginSuccess} />} />
-        </Routes>
-      </>
+      <UserContext.Provider value={null}>
+        <DialogProvider>
+          <TransitionScreen active={isOverlayActive} />
+          <Routes>
+            <Route path="/" element={<Login onLogin={handleLoginSuccess} />} />
+            <Route path="/login" element={<Login onLogin={handleLoginSuccess} />} />
+            <Route path="/calendario" element={<CalendarView api={api} user={null} />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </DialogProvider>
+      </UserContext.Provider>
     );
   }
 
   // Usuário autenticado: acesso às áreas da plataforma
   return (
-    <DialogProvider>
-      <TransitionScreen active={isOverlayActive} />
-      <button
-        className="logout"
-        onClick={handleLogout}
-        title={'Sair (' + user.username + ')'}
-        aria-label="Sair da conta"
-      >
-        <LogOut />
-      </button>
+    <UserContext.Provider value={user}>
+      <DialogProvider>
+        <TransitionScreen active={isOverlayActive} />
+        <button
+          className="logout"
+          onClick={handleLogout}
+          title={'Sair (' + user.username + ')'}
+          aria-label="Sair da conta"
+        >
+          <LogOut />
+        </button>
 
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/home" element={<Home />} />
-        <Route path="/login" element={<Home />} />
-        <Route path="/calendario" element={<CalendarView api={api} user={user} />} />
-        <Route path="/:mod" element={<Hub />} />
-        <Route path="/:mod/registros" element={<Records key={location.pathname} />} />
-        <Route path="/:mod/novo" element={<Editor key={location.pathname} />} />
-        <Route path="/:mod/editar/:id" element={<Editor key={location.pathname} isEdit />} />
-        <Route path="/:mod/testes" element={<Tests key={location.pathname} />} />
-        <Route path="/:mod/testes/editar/:id" element={<Tests key={location.pathname} isEdit />} />
-        <Route path="/:mod/testes-salvos" element={<SavedTests key={location.pathname} />} />
-        <Route path="/:mod/teste/:id" element={<TestView key={location.pathname} />} />
-        <Route path="/:mod/registro/:id" element={<RecordView key={location.pathname} />} />
-        <Route path="/:mod/creditos" element={<Credits />} />
-        <Route path="*" element={<Home />} />
-      </Routes>
-    </DialogProvider>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/home" element={<Home />} />
+          <Route path="/login" element={<Home />} />
+          <Route path="/calendario" element={<CalendarView api={api} user={user} />} />
+          <Route path="/:mod" element={<Hub />} />
+          <Route path="/:mod/registros" element={<Records key={location.pathname} />} />
+          <Route path="/:mod/novo" element={<Editor key={location.pathname} />} />
+          <Route path="/:mod/editar/:id" element={<Editor key={location.pathname} isEdit />} />
+          <Route path="/:mod/testes" element={<Tests key={location.pathname} />} />
+          <Route path="/:mod/testes/editar/:id" element={<Tests key={location.pathname} isEdit />} />
+          <Route path="/:mod/testes-salvos" element={<SavedTests key={location.pathname} />} />
+          <Route path="/:mod/teste/:id" element={<TestView key={location.pathname} />} />
+          <Route path="/:mod/registro/:id" element={<RecordView key={location.pathname} />} />
+          <Route path="/:mod/creditos" element={<Credits />} />
+          <Route path="*" element={<Home />} />
+        </Routes>
+      </DialogProvider>
+    </UserContext.Provider>
   );
 }

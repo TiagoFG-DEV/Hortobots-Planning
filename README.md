@@ -60,6 +60,16 @@ hortobots-planning/
   - Mentores podem planejar e cadastrar novos eventos na agenda.
   - Eventos urgentes entram no estado `PENDENTE` e exigem aprovacao expressa da conta `Gestao` (`PATCH /api/eventos/:id/confirmar`).
 
+- **Matriz de Permissões:**
+
+  | Perfil | Registros e testes | Eventos | Aprovação |
+  | --- | --- | --- | --- |
+  | Gestão | Somente visualização | Criar | Confirmar pendentes |
+  | Mentor | Somente visualização | Criar, editar e excluir | Não |
+  | Aluno FLL | Criar e alterar somente conteúdo próprio nos dois cadernos FLL | Somente visualização | Não |
+  | Aluno OBR | Criar e alterar somente conteúdo próprio no caderno OBR | Somente visualização | Não |
+  | Visitante | Consulta pelo calendário e pesquisa geral | Somente visualização | Não |
+
 - **Simulacoes e Testes de Robos:**
   - Registro de ciclos de testes com quantidade variavel de tentativas (3 a 15).
   - Metricas de tempo, pontuacao observada e taxa de falhas.
@@ -86,7 +96,7 @@ A cortina de carregamento impede que fontes, fundos e sprites apareçam progress
 
 ![Tela de login](docs/telas/Login-page.png)
 
-O usuário escolhe diretamente um dos quatro perfis fixos e informa a senha correspondente. Gestão acompanha e aprova; Mentor administra eventos e a mentoria; Aluno OBR registra apenas no caderno OBR; Aluno FLL registra nos cadernos FLL. A sessão autenticada controla as ações de criação, edição, exclusão e aprovação disponibilizadas pela interface.
+O usuário escolhe diretamente um dos quatro perfis fixos e informa a senha correspondente. Gestão acompanha e aprova; Mentor administra eventos e a mentoria; Aluno OBR registra apenas no caderno OBR; Aluno FLL registra nos cadernos FLL. A opção **Somente visualizar** abre o calendário e a pesquisa geral sem autenticação. A sessão controla tanto os elementos exibidos quanto a autorização efetiva de cada requisição no servidor.
 
 ### 4.3 Escolha do diário e atalhos de consulta
 
@@ -166,7 +176,7 @@ O caderno aberto divide o trabalho em duas páginas do mesmo tamanho. A primeira
 
 ![Calendário geral de atividades](docs/telas/Calendario.png)
 
-O calendário unifica eventos, registros e testes de todas as equipes. Marcadores por cor indicam o tipo de atividade e o painel do dia apresenta os itens selecionados. A visualização está disponível aos perfis autenticados; criação, edição e aprovação de eventos permanecem condicionadas às permissões da conta.
+O calendário unifica eventos, registros e testes de todas as equipes. Marcadores por cor indicam o tipo de atividade e o painel do dia apresenta os itens selecionados. Calendário e pesquisa geral também podem ser consultados em modo visitante; criação, edição, exclusão e aprovação permanecem condicionadas às permissões da conta.
 
 #### Lançamento de evento
 

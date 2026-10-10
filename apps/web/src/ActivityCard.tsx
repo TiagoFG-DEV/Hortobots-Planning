@@ -7,7 +7,7 @@ export type ActivityKind = 'record' | 'test' | 'event';
 export interface ActivitySource {
   id: string; title: string; date: string; modality?: string; team?: string; tags?: string[];
   summary?: string; body?: string; objective?: string; comments?: string; mission?: string;
-  priority?: string; status?: string; period?: string; lesson?: string; createdAt?: string;
+  priority?: string; status?: string; period?: string; lesson?: string; createdBy?: string; createdAt?: string;
   media?: Array<{ name?: string; originalName?: string }>;
 }
 export const KIND_LABELS = { record: 'Registro', test: 'Teste', event: 'Evento' };

@@ -67,7 +67,7 @@ textarea:focus-visible {
 .cover {
   min-height: 100svh;
   height: 100svh;
-  background: #101311 url('./assets/generated/fundo-1920.webp') center/cover fixed;
+  background: #101311 url('./assets/originals/neutro.png') center/cover fixed;
   color: white;
   position: relative;
   overflow: hidden
@@ -2544,6 +2544,39 @@ body {
   cursor: not-allowed;
   box-shadow: none
 }
+
+.visitor-calendar-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .7rem;
+  width: 100%;
+  min-height: 52px;
+  margin-top: .65rem;
+  padding: .55rem .85rem;
+  color: #315b28;
+  background: #f5faef;
+  border: 1px solid #98b78c;
+  border-radius: 12px;
+  text-align: left;
+}
+
+.visitor-calendar-link:hover {
+  color: #163f16;
+  background: #e8f4dd;
+  border-color: #5f9d49;
+  box-shadow: 0 8px 22px #315b2824;
+  transform: translateY(-1px);
+}
+
+.visitor-calendar-link span {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.visitor-calendar-link strong { font-size: .84rem; }
+.visitor-calendar-link small { margin-top: .2rem; color: #657563; font-size: .7rem; }
 
 @media(max-height:760px) and (min-width:761px) {
   .profile-picker {

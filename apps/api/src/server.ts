@@ -9,12 +9,19 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import accounts from './accounts.json' with { type: 'json' };
 import { storageService, logsRoot, isSupabaseEnabled } from './storageService.js';
+import {
+  canConfirmEvent,
+  canCreateEvent,
+  canCreateTeamContent,
+  canDeleteEvent,
+  canEditEvent,
+  canMutateTeamContent,
+  type AccountRole,
+  type AccountUser
+} from '@hortobots/shared/permissions';
 
-type Role = 'management' | 'mentor' | 'obr' | 'fll';
-interface UserSession {
-  username: string;
-  role: Role;
-}
+type Role = AccountRole;
+type UserSession = AccountUser;
 
 const sessions = new Map<string, UserSession>();
 const apiRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -53,11 +60,6 @@ const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction): vo
   req.user = user;
   next();
 };
-
-const canWrite = (user: UserSession, modality: string) =>
-  user.role === 'mentor' ||
-  (user.role === 'fll' && modality === 'FLL') ||
-  (user.role === 'obr' && modality === 'OBR');
 
 const sanitizeFilename = (v: string) =>
   v.normalize('NFD')
@@ -146,13 +148,13 @@ app.post('/api/:kind', authMiddleware, async (req: AuthRequest, res: Response) =
   }
 
   // Regra de Permissão
-  if (kind === 'eventos' && user.role !== 'mentor' && user.role !== 'management') {
+  if (kind === 'eventos' && !canCreateEvent(user)) {
     res.status(403).json({ error: { message: 'Somente Mentor ou Gestão pode cadastrar eventos.' } });
     return;
   }
 
-  if (kind !== 'eventos' && !canWrite(user, modality)) {
-    res.status(403).json({ error: { message: 'Este perfil possui acesso apenas para visualização.' } });
+  if (kind !== 'eventos' && !canCreateTeamContent(user, modality)) {
+    res.status(403).json({ error: { message: 'Somente a conta de aluno responsável por este caderno pode criar registros ou testes.' } });
     return;
   }
 
@@ -203,14 +205,26 @@ app.put('/api/:kind/:id', authMiddleware, async (req: AuthRequest, res: Response
     return;
   }
 
-  if (kind === 'eventos' && user.role !== 'mentor' && user.role !== 'management') {
-    res.status(403).json({ error: { message: 'Somente Mentor ou Gestão pode editar eventos.' } });
+  const existing = await storageService.getItem(kind, id);
+  if (!existing) {
+    res.status(404).json({ error: { message: 'Item não encontrado.' } });
     return;
   }
 
-  if (kind !== 'eventos' && !canWrite(user, modality)) {
-    res.status(403).json({ error: { message: 'Sem permissão para editar.' } });
-    return;
+  if (kind === 'eventos') {
+    if (!canEditEvent(user)) {
+      res.status(403).json({ error: { message: 'Somente o Mentor pode editar eventos.' } });
+      return;
+    }
+  } else {
+    if (!canMutateTeamContent(user, existing)) {
+      res.status(403).json({ error: { message: 'Você só pode editar conteúdo criado pela sua conta no caderno correspondente.' } });
+      return;
+    }
+    if (modality !== String(existing.modality || '').toUpperCase()) {
+      res.status(403).json({ error: { message: 'Não é permitido transferir conteúdo entre modalidades.' } });
+      return;
+    }
   }
 
   const dateStr = body.date || new Date().toISOString().split('T')[0];
@@ -246,26 +260,39 @@ app.delete('/api/:kind/:id', authMiddleware, async (req: AuthRequest, res: Respo
     return;
   }
 
-  // Mentor e Gestão podem excluir; equipes podem excluir registros de suas modalidades
-  if (user.role === 'mentor' || user.role === 'management' || user.role === 'fll' || user.role === 'obr') {
-    try {
-      const result = await storageService.deleteItem(kind, id);
-      res.json(result);
-    } catch (err: any) {
-      res.status(500).json({ error: { message: 'Erro ao excluir item.' } });
-    }
+  const existing = await storageService.getItem(kind, id);
+  if (!existing) {
+    res.status(404).json({ error: { message: 'Item não encontrado.' } });
     return;
   }
 
-  res.status(403).json({ error: { message: 'Sem permissão para exclusão.' } });
+  const allowed = kind === 'eventos'
+    ? canDeleteEvent(user)
+    : canMutateTeamContent(user, existing);
+  if (!allowed) {
+    res.status(403).json({ error: { message: kind === 'eventos' ? 'Somente o Mentor pode excluir eventos.' : 'Você só pode excluir conteúdo criado pela sua conta no caderno correspondente.' } });
+    return;
+  }
+
+  try {
+    const result = await storageService.deleteItem(kind, id);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: { message: 'Erro ao excluir item.' } });
+  }
 });
 
 // Endpoint para obter URL de upload direto para nuvem (Supabase Storage)
 // Permite que navegadores enviem vídeos e fotos diretamente para a nuvem sem sobrecarregar a API
 app.post('/api/storage/upload-url', authMiddleware, async (req: AuthRequest, res: Response) => {
-  const { filename, kind = 'registros', folderName } = req.body || {};
+  const { filename, kind = 'registros', folderName, modality = '' } = req.body || {};
+  const user = req.user!;
   if (!filename) {
     res.status(400).json({ error: { message: 'Nome do arquivo obrigatório.' } });
+    return;
+  }
+  if (!['registros', 'testes'].includes(String(kind)) || !canCreateTeamContent(user, String(modality))) {
+    res.status(403).json({ error: { message: 'Sem permissão para enviar mídias para este caderno.' } });
     return;
   }
 
@@ -294,7 +321,7 @@ app.post('/api/storage/upload-url', authMiddleware, async (req: AuthRequest, res
 // Endpoint de Confirmação de Evento (Gestão autoriza)
 app.patch('/api/eventos/:id/confirmar', authMiddleware, async (req: AuthRequest, res: Response) => {
   const user = req.user!;
-  if (user.role !== 'management') {
+  if (!canConfirmEvent(user)) {
     res.status(403).json({ error: { message: 'Apenas a Gestão pode autorizar eventos.' } });
     return;
   }
