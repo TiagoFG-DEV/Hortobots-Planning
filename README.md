@@ -81,6 +81,15 @@ hortobots-planning/
   - Textos, tags, métricas, tentativas, gráficos, imagens e capas de vídeos são organizados em quantas páginas forem necessárias.
   - A geração acontece localmente no navegador com `@react-pdf/renderer`, sem serviço pago, cota externa ou envio do conteúdo a uma API de terceiros.
 
+### Exemplos da exportação PDF
+
+Cada documento abaixo foi gerado pelo mesmo componente usado pelo botão **Baixar PDF** da plataforma. Clique na prévia para abrir o arquivo A4 completo.
+
+| SESI Hortobots FLL | Under Construction FLL | Hortobots OBR |
+| --- | --- | --- |
+| [![Exemplo PDF SESI Hortobots](docs/pdf-previews/exemplo-registro-sesi-hortobots.png)](output/pdf/exemplo-registro-sesi-hortobots.pdf) | [![Exemplo PDF Under Construction](docs/pdf-previews/exemplo-registro-under-construction.png)](output/pdf/exemplo-registro-under-construction.pdf) | [![Exemplo PDF Hortobots OBR](docs/pdf-previews/exemplo-registro-hortobots-obr.png)](output/pdf/exemplo-registro-hortobots-obr.pdf) |
+| Identidade verde e branca, com marca FIRST LEGO League Challenge. | Identidade rosa e roxa, com marca FIRST LEGO League Challenge. | Identidade vermelha e dourada, com marca da Olimpíada Brasileira de Robótica. |
+
 - **Design System e Fluidez:**
   - Transicoes suaves entre rotas e paineis (`.page-transition`).
   - Estetica baseada em cadernos tecnicos de engenharia.
@@ -246,7 +255,7 @@ npm run build -w @hortobots/web
 
 ### Verificação da exportação PDF
 
-Gera duas amostras reais — um registro OBR e um teste FLL com 15 tentativas — para validar paginação, cabeçalhos, gráficos e mídias:
+Gera três amostras reais, uma para cada equipe, para validar paginação, cabeçalhos, identidades visuais e mídias:
 
 ```bash
 npm run verify:pdf

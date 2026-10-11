@@ -9,8 +9,9 @@ describe('Home background', () => {
     expect(mainSource).toContain('backdrop-layer backdrop-home');
   });
 
-  it('activates fundo_neutro only while the diary selection screen is visible', () => {
+  it('activates fundo_neutro on the diary selection and credits screens', () => {
     expect(responsiveStyles).toContain("background-image: url('./assets/originals/fundo_neutro.png')");
-    expect(responsiveStyles).toContain("#root:has(.cover) .backdrop-home { opacity: 1; }");
+    expect(responsiveStyles).toContain('#root:has(.cover) .backdrop-home');
+    expect(responsiveStyles).toContain('#root:has(.credits) .backdrop-home { opacity: 1; }');
   });
 });

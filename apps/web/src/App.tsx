@@ -1709,13 +1709,18 @@ function Credits() {
   return (
     <Shell>
       <main className="content credits page-transition">
-        <section className="paper">
+        <section className="paper credits-card">
           <Link to="/" aria-label="Hortobots Planning — escolher diário">
-            <img src={logo} alt="Hortobots Planning" />
+            <img className="credits-brand" src={logo} alt="Hortobots Planning" />
           </Link>
           <h1>Hortobots Planning</h1>
           <p className="credits-attribution">Desenvolvido por <strong>Tiago F. Gregório</strong> para a organização das atividades de robótica extraclasse.</p>
           <p className="credits-school">Sesi 437 Hortolândia.</p>
+          <div className="credits-team-logos" aria-label="Equipes participantes">
+            <figure><img src={fll} alt="SESI Hortobots FLL" /><figcaption>SESI Hortobots</figcaption></figure>
+            <figure><img src={underLogo} alt="Under Construction FLL" /><figcaption>Under Construction</figcaption></figure>
+            <figure><img src={obr} alt="Hortobots OBR" /><figcaption>Hortobots OBR</figcaption></figure>
+          </div>
         </section>
       </main>
     </Shell>

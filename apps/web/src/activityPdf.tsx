@@ -15,8 +15,8 @@ import {
 import fllTeamLogo from './assets/originals/fll_team_logo.png';
 import obrTeamLogo from './assets/originals/obr_team_logo.png';
 import underTeamLogo from './assets/originals/underconstruction_logo.png';
-import fllCompetitionLogo from './assets/originals/fll_competition_logo.png';
-import obrCompetitionLogo from './assets/originals/obr_competition_logo.png';
+import fllCompetitionLogo from './assets/originals/fll_logo.png';
+import obrCompetitionLogo from './assets/originals/obr_logo.png';
 
 type TeamKey = 'fll' | 'under' | 'obr';
 type ActivityKind = 'record' | 'test';

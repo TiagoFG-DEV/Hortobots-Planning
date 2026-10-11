@@ -1082,20 +1082,51 @@ textarea:focus-visible {
 }
 
 .credits section {
-  max-width: 680px;
+  max-width: 860px;
   padding: 3rem;
   text-align: center
 }
 
-.credits img {
-  width: 160px;
-  height: 130px;
-  object-fit: contain
+.credits-brand {
+  width: min(480px, 76vw);
+  height: min(390px, 38vh);
+  object-fit: contain;
+  filter: drop-shadow(0 5px 3px rgba(20, 18, 14, .48)) drop-shadow(0 0 10px rgba(20, 18, 14, .22))
 }
 
 .credits h1 {
   font: 800 3rem 'Barlow Condensed';
   text-transform: uppercase
+}
+
+.credits-team-logos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(.75rem, 2vw, 1.5rem);
+  margin-top: 2rem
+}
+
+.credits-team-logos figure {
+  display: grid;
+  place-items: center;
+  gap: .65rem;
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid #d7d3c8;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .72)
+}
+
+.credits-team-logos img {
+  width: 112px;
+  height: 88px;
+  object-fit: contain;
+  filter: drop-shadow(0 5px 8px #0003)
+}
+
+.credits-team-logos figcaption {
+  font: 700 .78rem 'Open Sans';
+  color: #344036
 }
 
 .not-found {
