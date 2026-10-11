@@ -11,7 +11,7 @@ Primeira versão estável do Hortobots Planning, reunindo o fluxo completo de pl
 - Aplicação responsiva em React, TypeScript e Node.js, preparada para desktop, notebook, tablet e celular.
 - Três cadernos independentes: SESI Hortobots FLL, Under Construction FLL e Hortobots OBR.
 - Identidade visual própria por equipe, com fundos, cores, logos e transições dedicadas.
-- Home centralizada para escolha do diário e acesso rápido ao calendário, acervos, pesquisa geral e créditos.
+- Home centralizada para escolha do diário e acesso rápido ao calendário, acervos e pesquisa geral.
 - Backgrounds fixos, rolagem exclusivamente vertical e barras de rolagem visualmente ocultas.
 - Navegação por teclado, foco visível, alvos de toque e comportamento adaptado a telas sensíveis ao toque.
 - Tela de carregamento que aguarda fontes, imagens críticas e estabilização visual antes de revelar a interface.
@@ -62,7 +62,6 @@ Primeira versão estável do Hortobots Planning, reunindo o fluxo completo de pl
 
 - Layout sem overflow horizontal nos principais fluxos entre 320 px e 1920 px de largura.
 - Formulários reorganizados por breakpoint para reduzir rolagem sem remover campos.
-- Créditos enquadrados em um único viewport, inclusive em celulares no modo paisagem.
 - Suporte a preferências de movimento reduzido sem perder feedback visual de seleção.
 - Testes automatizados de permissões, busca, atividades e recursos visuais críticos.
 

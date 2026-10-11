@@ -111,11 +111,6 @@
 .shell[data-modality='fll'] .tests-page .form-error { color: var(--test-error); }
 .shell[data-modality='fll'] .tests-page .da-toggle-btn { background-color: var(--test-media); border-color: var(--test-border); color: var(--test-ink); }
 .shell[data-modality='fll'] .tests-page :is(.test-form, .test-results, input, select, textarea, fieldset, .media-notebook-page, .media-slot, .media-slot-add, .media-count-badge, .button, .da-toggle-btn, .paper-label, .kicker, label) { transition: background-color 650ms ease, border-color 650ms ease, color 450ms ease, box-shadow 250ms ease; }
-.credits img { filter: drop-shadow(0 2px 3px #26312688); }
-.credits-attribution { max-width: 48ch; margin: 1rem auto; line-height: 1.8; }
-.credits-school { color: #465646; font-weight: 600; }
-.shell[data-team='under'] .credits-school { color: #dac7e4; }
-
 /* Compact previews: team colors + a separate visual treatment for each type. */
 .activity-card { position: relative; min-width: 0; padding: 1rem; border: 1px solid #ffffff20; border-left: 3px solid var(--team-accent); border-radius: 12px; background: #141b17; color: #f6f8f5; overflow: hidden; }
 .activity-card[data-team='fll'] { background: #f4f8f0; color: #1d3022; border-color: #bfd6b8; border-left-color: var(--team-accent); }

@@ -130,7 +130,7 @@ A home autenticada é o ponto fixo de retorno da plataforma. Nela o usuário abr
 
 ![Menu do SESI Hortobots FLL](docs/telas/Hortobots_FLL_Book.png)
 
-O menu lateral reúne home do caderno, calendário geral, registros, simulações, testes salvos e créditos. A abertura usa foco visual e desfoque do conteúdo ao fundo; a identidade verde e branca acompanha toda a sessão do SESI Hortobots FLL.
+O menu lateral reúne home do caderno, calendário geral, registros, simulações e testes salvos. A abertura usa foco visual e desfoque do conteúdo ao fundo; a identidade verde e branca acompanha toda a sessão do SESI Hortobots FLL.
 
 #### Página inicial do diário
 
@@ -209,12 +209,6 @@ O modal de cronograma registra data, título, classificação comum ou urgente, 
 ![Pesquisa geral de registros, testes e eventos](docs/telas/Pesquisa-Geral.png)
 
 A guia reúne todo o acervo em ordem cronológica decrescente. A busca encontra título, conteúdo, tags, datas e nomes de mídia; os filtros por equipe e por tipo refinam os resultados. Os cartões preservam as cores de cada time e apresentam as ações permitidas ao perfil autenticado.
-
-#### Créditos e identidade das equipes
-
-![Tela de créditos](docs/telas/Creditos.png)
-
-A tela de créditos apresenta a autoria do Hortobots Planning, a unidade SESI 437 Hortolândia e as identidades das três equipes atendidas pela plataforma. Ela pode ser aberta diretamente pela Home e adapta toda a composição ao espaço disponível, sem exigir rolagem.
 
 ---
 

@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   Edit3,
   Eye,
-  FileText,
   Home as HomeIcon,
   Image as ImageIcon,
   List,
@@ -352,7 +351,6 @@ function Home() {
           <Link to="/underconstruction/registros"><List />Under Construction</Link>
           <Link to="/obr/registros"><List />Registros OBR</Link>
           <Link to="/calendario?view=list"><ChartNoAxesCombined />Pesquisa geral</Link>
-          <Link to="/creditos"><FileText />Créditos</Link>
         </nav>
         <Link className="global-calendar" to="/calendario">
           <CalendarDays /> VER CALENDÁRIO <b>URGENTES</b>
@@ -390,7 +388,6 @@ function SideMenu({ mod }: { mod: string }) {
             {user && <Link to={`/${mod}/registros`}><List />REGISTROS</Link>}
             {user && canWrite && <Link to={`/${mod}/testes`}><ChartNoAxesCombined />SIMULAÇÕES E TESTES</Link>}
             {user && <Link to={`/${mod}/testes-salvos`}><List />TESTES SALVOS</Link>}
-            {user && <Link to={`/${mod}/creditos`}><FileText />CRÉDITOS</Link>}
           </nav>
           <footer>
             <Link to={user ? '/' : '/calendario?view=list'}>{user ? 'Trocar de caderno' : 'Voltar à pesquisa geral'}</Link>
@@ -1706,28 +1703,6 @@ function TestView() {
   </main></Shell>;
 }
 
-function Credits() {
-  return (
-    <Shell>
-      <main className="content credits page-transition">
-        <section className="paper credits-card">
-          <Link to="/" aria-label="Hortobots Planning — escolher diário">
-            <img className="credits-brand" src={logo} alt="Hortobots Planning" />
-          </Link>
-          <h1>Hortobots Planning</h1>
-          <p className="credits-attribution">Desenvolvido por <strong>Tiago F. Gregório</strong> para a organização das atividades de robótica extraclasse.</p>
-          <p className="credits-school">Sesi 437 Hortolândia.</p>
-          <div className="credits-team-logos" aria-label="Equipes participantes">
-            <figure><img src={fll} alt="SESI Hortobots FLL" /><figcaption>SESI Hortobots</figcaption></figure>
-            <figure><img src={underLogo} alt="Under Construction FLL" /><figcaption>Under Construction</figcaption></figure>
-            <figure><img src={obr} alt="Hortobots OBR" /><figcaption>Hortobots OBR</figcaption></figure>
-          </div>
-        </section>
-      </main>
-    </Shell>
-  );
-}
-
 const delay = (durationMs: number): Promise<void> =>
   new Promise(resolve => window.setTimeout(resolve, durationMs));
 
@@ -1969,7 +1944,6 @@ export function App() {
             <Route path="/" element={<Login onLogin={handleLoginSuccess} />} />
             <Route path="/login" element={<Login onLogin={handleLoginSuccess} />} />
             <Route path="/calendario" element={<CalendarView api={api} user={null} />} />
-            <Route path="/creditos" element={<Credits />} />
             <Route path="/:mod/teste/:id" element={<TestView key={location.pathname} />} />
             <Route path="/:mod/registro/:id" element={<RecordView key={location.pathname} />} />
             <Route path="*" element={<Navigate to="/" replace />} />
@@ -1998,7 +1972,6 @@ export function App() {
           <Route path="/home" element={<Home />} />
           <Route path="/login" element={<Home />} />
           <Route path="/calendario" element={<CalendarView api={api} user={user} />} />
-          <Route path="/creditos" element={<Credits />} />
           <Route path="/:mod" element={<Hub />} />
           <Route path="/:mod/registros" element={<Records key={location.pathname} />} />
           <Route path="/:mod/novo" element={<Editor key={location.pathname} />} />
@@ -2008,7 +1981,6 @@ export function App() {
           <Route path="/:mod/testes-salvos" element={<SavedTests key={location.pathname} />} />
           <Route path="/:mod/teste/:id" element={<TestView key={location.pathname} />} />
           <Route path="/:mod/registro/:id" element={<RecordView key={location.pathname} />} />
-          <Route path="/:mod/creditos" element={<Credits />} />
           <Route path="*" element={<Home />} />
         </Routes>
       </DialogProvider>
