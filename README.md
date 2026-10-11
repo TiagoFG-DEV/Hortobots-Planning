@@ -4,6 +4,11 @@ Plataforma de Diário de Bordo Digital e Gestão Técnica para as equipes SESI H
 
 O projeto opera como um monorepo modular em TypeScript. O backend em Node.js com Express e arquitetura hibrida gerencia as requisicoes da API e serve a Single Page Application (SPA) compilada em React + Vite.
 
+## Versões
+
+- **[1.0.0 — Lançamento estável](CHANGELOG.md#100--2026-10-10):** reúne autenticação e permissões, três cadernos de equipe, registros, testes, gráficos, calendário, pesquisa geral, mídias, PDFs, persistência local/nuvem e a primeira auditoria responsiva completa.
+- As próximas versões serão adicionadas acima da `1.0.0`, mantendo o histórico detalhado em [CHANGELOG.md](CHANGELOG.md).
+
 ---
 
 ## 1. Visao Geral e Arquitetura

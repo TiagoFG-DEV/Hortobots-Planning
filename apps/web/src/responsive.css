@@ -82,6 +82,7 @@ body {
 :where(h1, h2, h3, p, strong, small, label, a, button, .tags) { overflow-wrap: anywhere; }
 :where(input, select, textarea) { min-width: 0; max-width: 100%; font: inherit; }
 :where(img, video, svg) { max-width: 100%; }
+:where(input:not([type='checkbox']):not([type='radio']), select, textarea) { min-height: 44px; }
 :where(button, a, input, select, textarea):focus-visible {
   outline: 3px solid #f6b922;
   outline-offset: 3px;
@@ -174,6 +175,11 @@ button { cursor: pointer; }
 .page-title h1, .tests-head h1 { font-size: clamp(2rem, 4.5vw, 4.7rem); }
 .tests-head select { max-width: 100%; }
 .filters label:only-child { max-width: none; }
+.filters input { min-height: 44px; }
+.public-links a { min-height: 44px; }
+.cal-nav-btn { width: 44px; height: 44px; flex: 0 0 44px; }
+.tags span button { width: 32px; height: 32px; place-items: center; border-radius: 50%; }
+.da-toggle-btn { min-height: 44px; padding: .55rem .8rem; }
 .form-grid, .two, .two-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .notebook-editor { grid-template-columns: minmax(0, 1fr) 16px minmax(0, 1fr); min-height: 0; }
 .notebook-form-page { overflow: visible; }
@@ -330,6 +336,24 @@ html:has(.menu-layer.open, .dialog-layer, .focus-layer, .hb-dialog-overlay) .log
   .credits-team-logos img { width: min(100%, 92px); }
 }
 @media (max-width: 560px) {
+  .login { padding: 4px; }
+  .login-stage { border-radius: 18px; }
+  .login-art { min-height: 76px; padding: .3rem .75rem; }
+  .login .login-logo { width: min(230px, 76%); height: 64px; }
+  .login-art > p,
+  .login-art > div,
+  .login-team-icons { display: none; }
+  .login form { margin: 0 6px 6px; padding: .75rem; gap: 0; }
+  .login form > .paper-label { margin-top: 0; font-size: .7rem; }
+  .login h1 { margin: .25rem 0; font-size: 2rem; }
+  .login-copy { margin: .15rem auto .45rem; font-size: .8rem; }
+  .profile-picker { gap: .35rem; }
+  .profile-picker button { min-height: 52px; padding-block: .35rem; }
+  .profile-picker small { font-size: .64rem; }
+  .login label { margin: .35rem 0; }
+  .login .button { min-height: 44px; }
+  .visitor-calendar-link { min-height: 48px; margin-top: .45rem; }
+  .login form > small { display: none; }
   input:not([type='checkbox']):not([type='radio']), select, textarea { font-size: 16px; }
   .form-grid, .ne-two, .two, .two-cols { grid-template-columns: minmax(0, 1fr); }
   .test-form > .two { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
@@ -367,17 +391,44 @@ html:has(.menu-layer.open, .dialog-layer, .focus-layer, .hb-dialog-overlay) .log
   .hb-dialog-actions { flex-wrap: wrap; }
 }
 @media (max-width: 640px) {
-  .notebook-select.three-notebooks { grid-template-columns: repeat(2, minmax(0, 1fr)); width: min(420px, 100%); gap: 1.5rem 1rem; }
-  .three-notebooks .notebook-logo:last-child { grid-column: 1 / -1; width: calc((100% - 1rem) / 2); justify-self: center; }
-  .three-notebooks .notebook-logo img { height: auto; aspect-ratio: 4 / 5; max-height: 260px; }
-  .three-notebooks .notebook-logo strong { font-size: 1.12rem; min-height: 2.3em; display: flex; align-items: center; }
-  .three-notebooks .notebook-logo small { font-size: .65rem; }
-  .home-screen:has(.three-notebooks) { padding-top: 1.25rem; }
-  .home-screen:has(.three-notebooks) .brand { width: min(320px, 90%); max-height: 130px; }
+  .notebook-select.three-notebooks { grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; gap: clamp(.35rem, 2vw, .75rem); }
+  .three-notebooks .notebook-logo:last-child { grid-column: auto; width: 100%; justify-self: stretch; }
+  .three-notebooks .notebook-logo img { height: auto; aspect-ratio: 4 / 5; max-height: 220px; }
+  .three-notebooks .notebook-logo strong { min-height: 2.5em; display: flex; align-items: center; justify-content: center; font-size: clamp(.72rem, 3.4vw, 1.05rem); }
+  .three-notebooks .notebook-logo small { font-size: clamp(.48rem, 1.8vw, .62rem); letter-spacing: .08em; }
+  .home-screen:has(.three-notebooks) { padding-top: .75rem; }
+  .home-screen:has(.three-notebooks) .brand { width: min(280px, 82%); max-height: 105px; }
 }
 @media (max-width: 360px) {
-  .attempts { grid-template-columns: minmax(0, 1fr); }
+  :root { --header-space: 72px; }
+  .home-screen { padding-bottom: calc(40px + env(safe-area-inset-bottom)); }
+  .home-screen:has(.three-notebooks) .brand { max-height: 100px; }
+  .hub { padding-bottom: calc(50px + env(safe-area-inset-bottom)); gap: .35rem; }
+  .hub .action-grid.three { gap: .55rem; }
+  .attempts { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .4rem; }
+  .attempts fieldset { padding: .45rem; }
+  .attempts label { font-size: .72rem; }
   .test-form > .two { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 760px) and (max-height: 520px) and (orientation: landscape) {
+  .login { padding: 2px; }
+  .login-stage { grid-template-columns: minmax(150px, .65fr) minmax(0, 1.35fr); min-height: calc(100svh - 12px); }
+  .login-art { min-height: 0; padding: .5rem; }
+  .login .login-logo { width: min(210px, 92%); height: 26svh; }
+  .login-art > p { display: none; }
+  .login-art > div,
+  .login-team-icons { display: none; }
+  .login form { margin: 2px; padding: .4rem .75rem; }
+  .login h1 { margin: .1rem 0; font-size: 1.65rem; }
+  .login-copy { display: none; }
+  .profile-picker { gap: .25rem; }
+  .profile-picker button { min-height: 44px; padding-block: .2rem; }
+  .profile-picker small { font-size: .6rem; }
+  .login label { margin: .2rem 0; font-size: .75rem; }
+  .login input,
+  .login .button { min-height: 44px; }
+  .visitor-calendar-link { min-height: 44px; margin-top: .25rem; padding-block: .25rem; }
+  .login form > small { display: none; }
 }
 @media (hover: none), (pointer: coarse) {
   .media-slot-remove, .remove-block { opacity: 1; width: 44px; height: 44px; }
