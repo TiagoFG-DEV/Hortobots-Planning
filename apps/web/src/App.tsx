@@ -352,6 +352,7 @@ function Home() {
           <Link to="/underconstruction/registros"><List />Under Construction</Link>
           <Link to="/obr/registros"><List />Registros OBR</Link>
           <Link to="/calendario?view=list"><ChartNoAxesCombined />Pesquisa geral</Link>
+          <Link to="/creditos"><FileText />Créditos</Link>
         </nav>
         <Link className="global-calendar" to="/calendario">
           <CalendarDays /> VER CALENDÁRIO <b>URGENTES</b>
@@ -1968,6 +1969,7 @@ export function App() {
             <Route path="/" element={<Login onLogin={handleLoginSuccess} />} />
             <Route path="/login" element={<Login onLogin={handleLoginSuccess} />} />
             <Route path="/calendario" element={<CalendarView api={api} user={null} />} />
+            <Route path="/creditos" element={<Credits />} />
             <Route path="/:mod/teste/:id" element={<TestView key={location.pathname} />} />
             <Route path="/:mod/registro/:id" element={<RecordView key={location.pathname} />} />
             <Route path="*" element={<Navigate to="/" replace />} />
@@ -1996,6 +1998,7 @@ export function App() {
           <Route path="/home" element={<Home />} />
           <Route path="/login" element={<Home />} />
           <Route path="/calendario" element={<CalendarView api={api} user={user} />} />
+          <Route path="/creditos" element={<Credits />} />
           <Route path="/:mod" element={<Hub />} />
           <Route path="/:mod/registros" element={<Records key={location.pathname} />} />
           <Route path="/:mod/novo" element={<Editor key={location.pathname} />} />

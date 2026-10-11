@@ -205,6 +205,12 @@ O modal de cronograma registra data, título, classificação comum ou urgente, 
 
 A guia reúne todo o acervo em ordem cronológica decrescente. A busca encontra título, conteúdo, tags, datas e nomes de mídia; os filtros por equipe e por tipo refinam os resultados. Os cartões preservam as cores de cada time e apresentam as ações permitidas ao perfil autenticado.
 
+#### Créditos e identidade das equipes
+
+![Tela de créditos](docs/telas/Creditos.png)
+
+A tela de créditos apresenta a autoria do Hortobots Planning, a unidade SESI 437 Hortolândia e as identidades das três equipes atendidas pela plataforma. Ela pode ser aberta diretamente pela Home e adapta toda a composição ao espaço disponível, sem exigir rolagem.
+
 ---
 
 ## 5. Guia de Instalacao e Execucao Local
