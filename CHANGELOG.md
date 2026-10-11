@@ -22,7 +22,7 @@ Primeira versão estável do Hortobots Planning, reunindo o fluxo completo de pl
 - Modo visitante para consultar calendário, pesquisa e conteúdos publicados sem alterar dados.
 - Gestão com visualização geral, criação de eventos e aprovação de eventos pendentes.
 - Mentor com gestão completa de eventos e consulta dos conteúdos técnicos.
-- Alunos com criação, edição e exclusão restritas aos registros e testes dos próprios cadernos.
+- Somente alunos podem criar, editar e excluir registros e testes: Aluno FLL nos dois cadernos FLL e Aluno OBR no caderno OBR, independentemente da autoria do item.
 - Validação de permissões tanto na interface quanto na API.
 
 ### Registros técnicos
@@ -31,7 +31,7 @@ Primeira versão estável do Hortobots Planning, reunindo o fluxo completo de pl
 - Separação automática por equipe e modalidade.
 - Upload, visualização ampliada e persistência de imagens e vídeos.
 - Acervo pesquisável por texto, tag e data.
-- Cartões responsivos com ações condicionadas à autoria e ao perfil autenticado.
+- Cartões responsivos com ações condicionadas ao perfil do aluno e à modalidade do caderno.
 
 ### Simulações e testes
 

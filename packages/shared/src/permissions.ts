@@ -12,11 +12,7 @@ export const canCreateTeamContent = (user: AccountUser | null, modality: string)
   ));
 
 export const canMutateTeamContent = (user: AccountUser | null, subject: PermissionSubject) =>
-  Boolean(
-    user &&
-    canCreateTeamContent(user, normalizedModality(subject)) &&
-    subject.createdBy === user.username
-  );
+  Boolean(user && canCreateTeamContent(user, normalizedModality(subject)));
 
 export const canCreateEvent = (user: AccountUser | null) =>
   user?.role === 'management' || user?.role === 'mentor';

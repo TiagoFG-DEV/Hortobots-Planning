@@ -34,13 +34,17 @@ describe('account permission matrix', () => {
     expect(canCreateTeamContent(users.visitor, 'FLL')).toBe(false);
   });
 
-  it('requires both the matching notebook and authorship to edit or delete content', () => {
+  it('allows only students to edit or delete content from their matching notebook, regardless of authorship', () => {
     expect(canMutateTeamContent(users.fll, { modality: 'FLL', createdBy: 'fll' })).toBe(true);
-    expect(canMutateTeamContent(users.fll, { modality: 'FLL', createdBy: 'mentor' })).toBe(false);
+    expect(canMutateTeamContent(users.fll, { modality: 'FLL', createdBy: 'mentor' })).toBe(true);
+    expect(canMutateTeamContent(users.fll, { modality: 'FLL', createdBy: 'another-student' })).toBe(true);
     expect(canMutateTeamContent(users.obr, { modality: 'OBR', createdBy: 'obr' })).toBe(true);
+    expect(canMutateTeamContent(users.obr, { modality: 'OBR', createdBy: 'another-student' })).toBe(true);
     expect(canMutateTeamContent(users.obr, { modality: 'FLL', createdBy: 'obr' })).toBe(false);
+    expect(canMutateTeamContent(users.fll, { modality: 'OBR', createdBy: 'fll' })).toBe(false);
     expect(canMutateTeamContent(users.management, { modality: 'FLL', createdBy: 'gestao' })).toBe(false);
     expect(canMutateTeamContent(users.mentor, { modality: 'OBR', createdBy: 'mentor' })).toBe(false);
+    expect(canMutateTeamContent(users.visitor, { modality: 'FLL', createdBy: 'fll' })).toBe(false);
   });
 
   it('separates event planning from management approval', () => {

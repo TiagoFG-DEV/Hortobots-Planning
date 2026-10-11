@@ -218,7 +218,7 @@ app.put('/api/:kind/:id', authMiddleware, async (req: AuthRequest, res: Response
     }
   } else {
     if (!canMutateTeamContent(user, existing)) {
-      res.status(403).json({ error: { message: 'Você só pode editar conteúdo criado pela sua conta no caderno correspondente.' } });
+      res.status(403).json({ error: { message: 'Somente o aluno responsável por este caderno pode editar registros ou testes.' } });
       return;
     }
     if (modality !== String(existing.modality || '').toUpperCase()) {
@@ -270,7 +270,7 @@ app.delete('/api/:kind/:id', authMiddleware, async (req: AuthRequest, res: Respo
     ? canDeleteEvent(user)
     : canMutateTeamContent(user, existing);
   if (!allowed) {
-    res.status(403).json({ error: { message: kind === 'eventos' ? 'Somente o Mentor pode excluir eventos.' : 'Você só pode excluir conteúdo criado pela sua conta no caderno correspondente.' } });
+    res.status(403).json({ error: { message: kind === 'eventos' ? 'Somente o Mentor pode excluir eventos.' : 'Somente o aluno responsável por este caderno pode excluir registros ou testes.' } });
     return;
   }
 
