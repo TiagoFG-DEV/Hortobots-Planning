@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, ExternalLink, Leaf, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Leaf, RefreshCw } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { SESI_BIOGLOW_PORTAL } from './teamPortals';
 
 const apiBase = import.meta.env.VITE_API_BASE_URL || window.location.origin;
 
 function connectedPortalUrl() {
-  const url = new URL(SESI_BIOGLOW_PORTAL.externalUrl, window.location.href);
+  const url = new URL(SESI_BIOGLOW_PORTAL.bundledPath, window.location.origin);
   url.searchParams.set('plannerUrl', window.location.origin);
   url.searchParams.set('plannerApi', apiBase);
   url.searchParams.set('integration', 'planner');
@@ -44,7 +44,6 @@ export function TeamPortalFrame() {
     <header className="team-portal-toolbar">
       <Link to="/" className="team-portal-return"><ArrowLeft /> <span>Voltar ao Planner</span></Link>
       <div><Leaf /><span><strong>Hortobots BIOGLOW</strong><small>Site independente do SESI Hortobots FLL</small></span></div>
-      <a href={portalUrl} target="_blank" rel="noopener noreferrer" className="team-portal-external">Abrir separadamente <ExternalLink /></a>
     </header>
     <iframe
       key={reloadKey}

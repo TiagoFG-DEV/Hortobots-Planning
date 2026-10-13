@@ -9,6 +9,7 @@
     "start:local": "npm run start:local -w @hortobots/api",
     "dev": "concurrently \"npm run dev -w @hortobots/api\" \"npm run dev -w @hortobots/web\"",
     "dev:local": "concurrently \"npm run dev:local -w @hortobots/api\" \"npm run dev -w @hortobots/web\"",
+    "sync:bioglow": "node scripts/sync-bioglow.mjs",
     "backup": "node scripts/backup-database.mjs",
     "verify:pdf": "node scripts/verify-activity-pdf.mjs"
   },

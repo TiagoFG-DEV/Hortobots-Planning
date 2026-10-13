@@ -119,6 +119,51 @@ app.get('/api/public/teams/sesi-hortobots-fll', async (_req, res) => {
   }
 });
 
+const biologyFeeds = {
+  nature: 'https://www.sciencedaily.com/rss/plants_animals.xml',
+  biology: 'https://www.sciencedaily.com/rss/plants_animals/biology.xml',
+  research: 'https://phys.org/rss-feed/biology-news/'
+} as const;
+const biologyFeedCache = new Map<string, { body: string; contentType: string; expiresAt: number }>();
+
+// Same-origin relay for the team's public RSS sources. This is intentionally
+// restricted to the allowlist above, so it cannot become an open proxy.
+app.get('/api/public/biology-feed/:feed', async (req, res) => {
+  const feed = req.params.feed as keyof typeof biologyFeeds;
+  const source = biologyFeeds[feed];
+  if (!source) {
+    res.status(404).json({ error: { message: 'Feed de biologia não encontrado.' } });
+    return;
+  }
+
+  const cached = biologyFeedCache.get(feed);
+  if (cached && cached.expiresAt > Date.now()) {
+    res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
+    res.type(cached.contentType).send(cached.body);
+    return;
+  }
+
+  try {
+    const response = await fetch(source, {
+      signal: AbortSignal.timeout(12_000),
+      headers: { 'User-Agent': 'HortobotsPlanning/1.0 (+https://github.com/TiagoFG-DEV/Hortobots-Planning)' }
+    });
+    if (!response.ok) throw new Error(`Feed respondeu ${response.status}`);
+    const body = await response.text();
+    const contentType = response.headers.get('content-type') || 'application/xml; charset=utf-8';
+    biologyFeedCache.set(feed, { body, contentType, expiresAt: Date.now() + 10 * 60 * 1000 });
+    res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
+    res.type(contentType).send(body);
+  } catch {
+    if (cached) {
+      res.set('Warning', '110 - "Resposta de feed desatualizada"');
+      res.type(cached.contentType).send(cached.body);
+      return;
+    }
+    res.status(502).json({ error: { message: 'Não foi possível consultar este feed agora.' } });
+  }
+});
+
 // Endpoint de Listagem (registros, testes, eventos)
 app.get('/api/:kind', async (req, res) => {
   const kind = req.params.kind as 'registros' | 'testes' | 'eventos';

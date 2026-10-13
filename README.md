@@ -88,9 +88,11 @@ hortobots-planning/
 
 - **Portal independente Hortobots BIOGLOW:**
   - Acesso público pela tela de login e acesso direto pela Home ou pelo caderno SESI Hortobots.
-  - O site da equipe é executado em um `iframe` isolado, com uma única área de rolagem e barra própria de retorno ao Planner.
-  - O endereço do portal é configurável por `VITE_BIOGLOW_URL`; uma publicação nova da equipe substitui a anterior sem copiar código para este repositório.
+  - O site da equipe é compilado a partir de seu repositório próprio e executado pelo domínio do Planner em um `iframe` isolado, com uma única área de rolagem e barra própria de retorno.
+  - O bundle aprovado fica em `apps/web/public/bioglow`; portanto, a produção não depende de GitHub Pages nem de um segundo servidor.
+  - O comando `npm run sync:bioglow` recompila o repositório irmão e atualiza somente esse bundle, preservando a separação de autoria e histórico.
   - O Planner fornece somente o endpoint público `/api/public/teams/sesi-hortobots-fll`, que retorna registros e testes do SESI Hortobots FLL.
+  - As notícias usam feeds RSS públicos por um relay restrito no próprio Node (`/api/public/biology-feed/:feed`) e tradução pública MyMemory; nenhuma chave de IA é necessária ou exposta.
   - Carregamento e navegação usam um contrato mínimo por `postMessage`, sem compartilhar CSS, dependências ou ciclo de publicação.
   - A arquitetura possui um registro de portais extensível, mas somente o portal realmente existente do SESI Hortobots está cadastrado e exibido.
 
@@ -134,9 +136,9 @@ A home autenticada é o ponto fixo de retorno da plataforma. Nela o usuário abr
 
 ### 4.4 Portal independente Hortobots BIOGLOW
 
-O botão **Hortobots BIOGLOW** abre o site oficial da equipe SESI Hortobots FLL dentro de um host isolado e responsivo. Uma barra do Planner permanece disponível para voltar ou abrir o portal separadamente. A integração aguarda o sinal de carregamento do site e fornece apenas os endereços necessários para o retorno e para o acervo público da equipe.
+O botão **Hortobots BIOGLOW** abre o site oficial da equipe SESI Hortobots FLL dentro de um host isolado e responsivo, renderizado pelo próprio Planner. Uma barra permanece disponível para voltar à plataforma. A integração aguarda o sinal de carregamento do site e fornece apenas os endereços necessários para o retorno e para o acervo público da equipe.
 
-O portal continua pertencendo ao repositório oficial [Hortobots/BIOGLOW-site](https://github.com/Hortobots/BIOGLOW-site) e não importa componentes do Planner. A variável `VITE_BIOGLOW_URL` determina qual publicação será exibida, permitindo que a equipe lance novas versões sem alterar o código do Planner. Quando executado sozinho, o BIOGLOW mantém mesa, missões, rotas e notícias; o acervo conectado aparece apenas quando uma API do Planner é fornecida.
+O código-fonte continua pertencendo ao repositório oficial [Hortobots/BIOGLOW-site](https://github.com/Hortobots/BIOGLOW-site) e não importa componentes do Planner. Uma nova versão pode ser incorporada executando `npm run sync:bioglow` após atualizar o repositório irmão. O arquivo `source.json` incluído no bundle registra exatamente qual commit foi integrado.
 
 ### 4.5 SESI Hortobots FLL
 

@@ -1,6 +1,7 @@
 .team-portal-host { position: fixed; z-index: 30; inset: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; background: #f5f3e7; }
 #root:has(.team-portal-host) .logout { display: none; }
 .team-portal-toolbar { min-width: 0; min-height: 64px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 1rem; padding: 8px clamp(10px, 2vw, 24px); background: #112d22; color: white; box-shadow: 0 5px 20px #0004; }
+.team-portal-toolbar::after { content: ""; width: 190px; }
 .team-portal-toolbar a { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: .45rem; padding: .65rem .8rem; border: 1px solid #ffffff38; border-radius: 12px; }
 .team-portal-toolbar a:hover { background: #ffffff18; transform: translateY(-1px); }
 .team-portal-toolbar > div { min-width: 0; display: flex; align-items: center; justify-content: center; gap: .6rem; text-align: center; }
@@ -18,8 +19,9 @@
 
 @media (max-width: 680px) {
   .team-portal-toolbar { min-height: 58px; grid-template-columns: 46px minmax(0, 1fr) 46px; gap: .4rem; padding: 6px 8px; }
+  .team-portal-toolbar::after { width: 46px; }
   .team-portal-toolbar a { width: 46px; min-height: 46px; padding: 0; }
-  .team-portal-toolbar a span, .team-portal-external { font-size: 0; }
+  .team-portal-toolbar a span { font-size: 0; }
   .team-portal-toolbar small { display: none; }
   .team-portal-loading { inset-block-start: 58px; }
 }
