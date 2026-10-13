@@ -2544,6 +2544,31 @@ body {
   text-align: left;
 }
 
+.login-public-links {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .5rem;
+  width: 100%;
+}
+
+.login-public-links .visitor-calendar-link {
+  min-width: 0;
+  margin-top: .65rem;
+  padding-inline: .65rem;
+}
+
+.bioglow-access-link {
+  color: #7a2123;
+  background: #fff4ef;
+  border-color: #d7a498;
+}
+
+.bioglow-access-link:hover {
+  color: #5e1519;
+  background: #fce7dc;
+  border-color: #c96d5a;
+}
+
 .visitor-calendar-link:hover {
   color: #163f16;
   background: #e8f4dd;

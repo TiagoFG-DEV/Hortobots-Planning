@@ -347,6 +347,11 @@ html:has(.menu-layer.open, .dialog-layer, .focus-layer, .hb-dialog-overlay) .log
   .login label { margin: .35rem 0; }
   .login .button { min-height: 44px; }
   .visitor-calendar-link { min-height: 48px; margin-top: .45rem; }
+  .login-public-links { gap: .35rem; }
+  .login-public-links .visitor-calendar-link { padding-inline: .45rem; }
+  .login-public-links .visitor-calendar-link svg { width: 17px; flex: 0 0 auto; }
+  .login-public-links .visitor-calendar-link strong { font-size: .72rem; }
+  .login-public-links .visitor-calendar-link small { font-size: .6rem; }
   .login form > small { display: none; }
   input:not([type='checkbox']):not([type='radio']), select, textarea { font-size: 16px; }
   .form-grid, .ne-two, .two, .two-cols { grid-template-columns: minmax(0, 1fr); }
@@ -420,6 +425,7 @@ html:has(.menu-layer.open, .dialog-layer, .focus-layer, .hb-dialog-overlay) .log
   .login input,
   .login .button { min-height: 44px; }
   .visitor-calendar-link { min-height: 44px; margin-top: .25rem; padding-block: .25rem; }
+  .login-public-links .visitor-calendar-link small { display: none; }
   .login form > small { display: none; }
 }
 @media (hover: none), (pointer: coarse) {

@@ -15,6 +15,8 @@ Primeira versão estável do Hortobots Planning, reunindo o fluxo completo de pl
 - Backgrounds fixos, rolagem exclusivamente vertical e barras de rolagem visualmente ocultas.
 - Navegação por teclado, foco visível, alvos de toque e comportamento adaptado a telas sensíveis ao toque.
 - Tela de carregamento que aguarda fontes, imagens críticas e estabilização visual antes de revelar a interface.
+- Host público e responsivo para o portal independente Hortobots BIOGLOW, acessível pelo login, Home e caderno SESI Hortobots.
+- Integração desacoplada por URL e `postMessage`, permitindo atualizar e publicar o site da equipe sem incorporar seu código ao Planner.
 
 ### Contas e permissões
 
@@ -49,6 +51,7 @@ Primeira versão estável do Hortobots Planning, reunindo o fluxo completo de pl
 - Visualização mensal e painel detalhado do dia selecionado.
 - Pesquisa geral cronológica com palavras-chave e filtros por equipe e tipo de conteúdo.
 - Acesso ao conteúdo completo de registros, testes e eventos para todos os perfis, inclusive visitante.
+- Contrato público versionado que entrega ao BIOGLOW exclusivamente registros e testes do SESI Hortobots FLL.
 
 ### Exportação e armazenamento
 

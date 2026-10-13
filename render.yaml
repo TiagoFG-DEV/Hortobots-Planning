@@ -14,3 +14,4 @@ services:
       - { key: SUPABASE_URL, value: "https://zinsqfrstpqbnrrxwtnk.supabase.co" }
       - { key: SUPABASE_SERVICE_ROLE_KEY, sync: false }
       - { key: WEB_ORIGIN, value: "*" }
+      - { key: VITE_BIOGLOW_URL, value: "https://hortobots.github.io/BIOGLOW-site/" }

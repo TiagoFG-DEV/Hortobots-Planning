@@ -310,14 +310,14 @@ export function CalendarView({ api, user }: CalendarViewProps) {
           body: JSON.stringify(payload)
         });
         setEvents(prev => prev.map(ev => ev.id === editingEventId ? { ...ev, ...updated } : ev));
-        setActionMsg('SUCESSO: EVENTO ATUALIZADO COM EXITO NO BANCO DE DADOS!');
+        setActionMsg('Editado!');
       } else {
         const created = await api('/api/eventos', {
           method: 'POST',
           body: JSON.stringify(payload)
         });
         setEvents(prev => [created, ...prev]);
-        setActionMsg('SUCESSO: EVENTO AGENDADO COM EXITO NO BANCO DE DADOS!');
+        setActionMsg('Salvo!');
       }
 
       setShowAddModal(false);
@@ -338,7 +338,7 @@ export function CalendarView({ api, user }: CalendarViewProps) {
     try {
       await api(`/api/eventos/${id}`, { method: 'DELETE' });
       setEvents(prev => prev.filter(ev => ev.id !== id));
-      setActionMsg('SUCESSO: EVENTO REMOVIDO DO BANCO DE DADOS!');
+      setActionMsg('Excluído com sucesso!');
       setTimeout(() => setActionMsg(''), 4000);
     } catch (err: any) {
       showError(err.message || 'Erro ao excluir evento');
@@ -354,7 +354,7 @@ export function CalendarView({ api, user }: CalendarViewProps) {
     try {
       await api(`/api/registros/${id}`, { method: 'DELETE' });
       setRecords(prev => prev.filter(r => r.id !== id));
-      setActionMsg('SUCESSO: REGISTRO EXCLUIDO DO BANCO DE DADOS!');
+      setActionMsg('Excluído com sucesso!');
       setTimeout(() => setActionMsg(''), 4000);
     } catch (err: any) {
       showError(err.message || 'Erro ao excluir registro');
@@ -370,7 +370,7 @@ export function CalendarView({ api, user }: CalendarViewProps) {
     try {
       await api(`/api/testes/${id}`, { method: 'DELETE' });
       setTests(prev => prev.filter(t => t.id !== id));
-      setActionMsg('SUCESSO: TESTE EXCLUIDO DO BANCO DE DADOS!');
+      setActionMsg('Excluído com sucesso!');
       setTimeout(() => setActionMsg(''), 4000);
     } catch (err: any) {
       showError(err.message || 'Erro ao excluir teste');
@@ -383,7 +383,7 @@ export function CalendarView({ api, user }: CalendarViewProps) {
     try {
       await api(`/api/eventos/${id}/confirmar`, { method: 'PATCH' });
       setEvents(prev => prev.map(ev => ev.id === id ? { ...ev, status: 'CONFIRMADO' } : ev));
-      setActionMsg('SUCESSO: EVENTO AUTORIZADO PELA GESTAO!');
+      setActionMsg('Evento autorizado!');
       setTimeout(() => setActionMsg(''), 4000);
     } catch (err: any) {
       showError(err.message || 'Erro ao confirmar evento');

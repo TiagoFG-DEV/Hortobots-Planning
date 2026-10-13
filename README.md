@@ -86,6 +86,14 @@ hortobots-planning/
   - Textos, tags, métricas, tentativas, gráficos, imagens e capas de vídeos são organizados em quantas páginas forem necessárias.
   - A geração acontece localmente no navegador com `@react-pdf/renderer`, sem serviço pago, cota externa ou envio do conteúdo a uma API de terceiros.
 
+- **Portal independente Hortobots BIOGLOW:**
+  - Acesso público pela tela de login e acesso direto pela Home ou pelo caderno SESI Hortobots.
+  - O site da equipe é executado em um `iframe` isolado, com uma única área de rolagem e barra própria de retorno ao Planner.
+  - O endereço do portal é configurável por `VITE_BIOGLOW_URL`; uma publicação nova da equipe substitui a anterior sem copiar código para este repositório.
+  - O Planner fornece somente o endpoint público `/api/public/teams/sesi-hortobots-fll`, que retorna registros e testes do SESI Hortobots FLL.
+  - Carregamento e navegação usam um contrato mínimo por `postMessage`, sem compartilhar CSS, dependências ou ciclo de publicação.
+  - A arquitetura possui um registro de portais extensível, mas somente o portal realmente existente do SESI Hortobots está cadastrado e exibido.
+
 ### Exemplos da exportação PDF
 
 Cada documento abaixo foi gerado pelo mesmo componente usado pelo botão **Baixar PDF** da plataforma. Clique na prévia para abrir o arquivo A4 completo.
@@ -116,15 +124,21 @@ A cortina de carregamento impede que fontes, fundos e sprites apareçam progress
 
 ![Tela de login](docs/telas/Login-page.png)
 
-O usuário escolhe diretamente um dos quatro perfis fixos e informa a senha correspondente. Gestão acompanha e aprova; Mentor administra eventos e a mentoria; Aluno OBR cria, edita e exclui registros e testes do caderno OBR; Aluno FLL faz o mesmo nos cadernos SESI Hortobots e Under Construction. Essas permissões pertencem ao perfil e ao caderno, independentemente de quem criou o item. A opção **Somente visualizar** abre o calendário e a pesquisa geral sem autenticação. Visitantes e contas autenticadas podem abrir o conteúdo completo de registros, testes e eventos. A sessão controla tanto os elementos exibidos quanto a autorização efetiva de cada requisição no servidor.
+O usuário escolhe diretamente um dos quatro perfis fixos e informa a senha correspondente. Gestão acompanha e aprova; Mentor administra eventos e a mentoria; Aluno OBR cria, edita e exclui registros e testes do caderno OBR; Aluno FLL faz o mesmo nos cadernos SESI Hortobots e Under Construction. Essas permissões pertencem ao perfil e ao caderno, independentemente de quem criou o item. A opção **Somente visualizar** abre o calendário e a pesquisa geral sem autenticação, enquanto **Hortobots BIOGLOW** abre o portal público da equipe. Visitantes e contas autenticadas podem abrir o conteúdo completo de registros, testes e eventos. A sessão controla tanto os elementos exibidos quanto a autorização efetiva de cada requisição no servidor.
 
 ### 4.3 Escolha do diário e atalhos de consulta
 
 ![Tela inicial com os três diários](docs/telas/Home.png)
 
-A home autenticada é o ponto fixo de retorno da plataforma. Nela o usuário abre um dos três cadernos e acessa os atalhos de consulta para calendário, registros por equipe e pesquisa geral. Cada caderno mantém rotas, identidade visual e dados de equipe próprios, mesmo quando compartilha os mesmos componentes de formulário.
+A home autenticada é o ponto fixo de retorno da plataforma. Nela o usuário abre um dos três cadernos e acessa os atalhos de consulta para calendário, registros por equipe, pesquisa geral e portal BIOGLOW. Cada caderno mantém rotas, identidade visual e dados de equipe próprios, mesmo quando compartilha os mesmos componentes de formulário.
 
-### 4.4 SESI Hortobots FLL
+### 4.4 Portal independente Hortobots BIOGLOW
+
+O botão **Hortobots BIOGLOW** abre o site oficial da equipe SESI Hortobots FLL dentro de um host isolado e responsivo. Uma barra do Planner permanece disponível para voltar ou abrir o portal separadamente. A integração aguarda o sinal de carregamento do site e fornece apenas os endereços necessários para o retorno e para o acervo público da equipe.
+
+O portal continua pertencendo ao repositório oficial [Hortobots/BIOGLOW-site](https://github.com/Hortobots/BIOGLOW-site) e não importa componentes do Planner. A variável `VITE_BIOGLOW_URL` determina qual publicação será exibida, permitindo que a equipe lance novas versões sem alterar o código do Planner. Quando executado sozinho, o BIOGLOW mantém mesa, missões, rotas e notícias; o acervo conectado aparece apenas quando uma API do Planner é fornecida.
+
+### 4.5 SESI Hortobots FLL
 
 #### Navegação do caderno
 
@@ -144,7 +158,7 @@ O painel oferece três ações centrais: criar um registro, consultar registros 
 
 O formulário FLL registra de 3 a 15 tentativas, tempo, pontuação, falhas e missões oficiais realizadas. O painel complementar recebe até quatro imagens ou vídeos e gera análise gráfica em linha, barras ou formato circular antes do salvamento. Cada teste pode ser associado a registros do diário.
 
-### 4.5 Under Construction FLL
+### 4.6 Under Construction FLL
 
 #### Navegação do caderno
 
@@ -164,7 +178,7 @@ O hub da equipe disponibiliza novo registro, registros salvos e simulações e t
 
 A listagem oferece pesquisa por texto ou tag e filtro por data. Cada cartão resume data, título, conteúdo e identidade da equipe; usuários autorizados recebem também ações de edição e exclusão.
 
-### 4.6 Hortobots OBR
+### 4.7 Hortobots OBR
 
 #### Navegação do caderno
 
@@ -184,7 +198,7 @@ O painel centraliza novo registro, consulta do histórico e testes do robô. Log
 
 O teste OBR registra data, nome, objetivo e de 3 a 15 tentativas com tempo, valor observado e falhas. A análise mostra evolução, melhor tempo, média, falhas e tendência, além de aceitar fotos e vídeos. O gráfico pode ser ocultado para ampliar a área de preenchimento ou aberto em foco para inspeção.
 
-### 4.7 Recursos compartilhados
+### 4.8 Recursos compartilhados
 
 #### Editor de registro
 

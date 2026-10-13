@@ -1,0 +1,29 @@
+.team-portal-host { position: fixed; z-index: 30; inset: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; background: #f5f3e7; }
+#root:has(.team-portal-host) .logout { display: none; }
+.team-portal-toolbar { min-width: 0; min-height: 64px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 1rem; padding: 8px clamp(10px, 2vw, 24px); background: #112d22; color: white; box-shadow: 0 5px 20px #0004; }
+.team-portal-toolbar a { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: .45rem; padding: .65rem .8rem; border: 1px solid #ffffff38; border-radius: 12px; }
+.team-portal-toolbar a:hover { background: #ffffff18; transform: translateY(-1px); }
+.team-portal-toolbar > div { min-width: 0; display: flex; align-items: center; justify-content: center; gap: .6rem; text-align: center; }
+.team-portal-toolbar > div > svg { color: #d9ee70; }
+.team-portal-toolbar > div span { min-width: 0; display: flex; flex-direction: column; }
+.team-portal-toolbar strong, .team-portal-toolbar small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.team-portal-toolbar small { color: #cddbc7; }
+.team-portal-host iframe { width: 100%; height: 100%; border: 0; opacity: 0; background: #f5f3e7; transition: opacity .3s ease; }
+.team-portal-host iframe.ready { opacity: 1; }
+.team-portal-loading { position: absolute; inset: 64px 0 0; display: grid; place-content: center; justify-items: center; gap: .8rem; padding: 2rem; text-align: center; background: #f5f3e7; color: #173d2d; }
+.team-portal-loading > svg { width: 58px; height: 58px; color: #6e874b; animation: portal-pulse 1.4s ease-in-out infinite; }
+.team-portal-loading button { min-height: 44px; display: inline-flex; align-items: center; gap: .45rem; border: 0; border-radius: 12px; padding: .7rem 1rem; background: #173d2d; color: white; font-weight: 800; }
+.team-portal-loading button svg { width: 18px; }
+@keyframes portal-pulse { 50% { transform: scale(1.08); opacity: .55; } }
+
+@media (max-width: 680px) {
+  .team-portal-toolbar { min-height: 58px; grid-template-columns: 46px minmax(0, 1fr) 46px; gap: .4rem; padding: 6px 8px; }
+  .team-portal-toolbar a { width: 46px; min-height: 46px; padding: 0; }
+  .team-portal-toolbar a span, .team-portal-external { font-size: 0; }
+  .team-portal-toolbar small { display: none; }
+  .team-portal-loading { inset-block-start: 58px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .team-portal-loading > svg { animation: none; }
+}

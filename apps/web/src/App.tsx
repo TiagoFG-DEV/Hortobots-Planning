@@ -8,6 +8,7 @@ import {
   Eye,
   Home as HomeIcon,
   Image as ImageIcon,
+  Leaf,
   List,
   LogOut,
   Menu,
@@ -35,7 +36,9 @@ import fundoUnder from './assets/originals/fundo_underconstruction.png';
 import fundoNeutro from './assets/originals/fundo_neutro.png';
 import { CalendarView } from './CalendarView';
 import { PdfDownloadButton } from './PdfDownloadButton';
+import { TeamPortalFrame } from './TeamPortalFrame';
 import { useOverlayAccessibility } from './useOverlayAccessibility';
+import { SESI_BIOGLOW_PORTAL } from './teamPortals';
 import { TEAMS, getTeamKey, withTeamTag, isTeamTag, displayDate, teamFromRoute, notebookRoute } from './teams';
 import {
   canCreateTeamContent,
@@ -315,10 +318,16 @@ function Login({ onLogin }: { onLogin: (u: User) => void }) {
           <button className="button" disabled={!v.username}>
             ENTRAR NA PLATAFORMA
           </button>
-          <Link className="visitor-calendar-link" to="/calendario">
-            <Eye size={19} />
-            <span><strong>Somente visualizar</strong><small>Calendário e pesquisa geral</small></span>
-          </Link>
+          <div className="login-public-links">
+            <Link className="visitor-calendar-link" to="/calendario">
+              <Eye size={19} />
+              <span><strong>Somente visualizar</strong><small>Calendário e pesquisa geral</small></span>
+            </Link>
+            <Link className="visitor-calendar-link bioglow-access-link" to={SESI_BIOGLOW_PORTAL.route}>
+              <Leaf size={19} />
+              <span><strong>{SESI_BIOGLOW_PORTAL.label}</strong><small>Portal público do SESI Hortobots FLL</small></span>
+            </Link>
+          </div>
           <small>Acesso exclusivo das equipes SESI 437</small>
         </form>
       </section>
@@ -351,6 +360,7 @@ function Home() {
           <Link to="/underconstruction/registros"><List />Under Construction</Link>
           <Link to="/obr/registros"><List />Registros OBR</Link>
           <Link to="/calendario?view=list"><ChartNoAxesCombined />Pesquisa geral</Link>
+          <Link to={SESI_BIOGLOW_PORTAL.route}><Leaf />Portal BIOGLOW</Link>
         </nav>
         <Link className="global-calendar" to="/calendario">
           <CalendarDays /> VER CALENDÁRIO <b>URGENTES</b>
@@ -388,6 +398,7 @@ function SideMenu({ mod }: { mod: string }) {
             {user && <Link to={`/${mod}/registros`}><List />REGISTROS</Link>}
             {user && canWrite && <Link to={`/${mod}/testes`}><ChartNoAxesCombined />SIMULAÇÕES E TESTES</Link>}
             {user && <Link to={`/${mod}/testes-salvos`}><List />TESTES SALVOS</Link>}
+            {notebook.key === 'fll' && <Link to={SESI_BIOGLOW_PORTAL.route}><Leaf />PORTAL BIOGLOW</Link>}
           </nav>
           <footer>
             <Link to={user ? '/' : '/calendario?view=list'}>{user ? 'Trocar de caderno' : 'Voltar à pesquisa geral'}</Link>
@@ -476,7 +487,7 @@ function Records() {
     try {
       await api(`/api/registros/${id}`, { method: 'DELETE' });
       setItems(prev => prev.filter(r => r.id !== id));
-      setActionMsg('SUCESSO: REGISTRO REMOVIDO DO BANCO DE DADOS!');
+      setActionMsg('Excluído com sucesso!');
       setTimeout(() => setActionMsg(''), 4000);
     } catch (err: any) {
       showError(err.message || 'Erro ao excluir registro');
@@ -825,7 +836,7 @@ function Editor({ isEdit }: { isEdit?: boolean }) {
         });
       }
       setIsSaving(false);
-      setCelebration('SUCESSO: REGISTRO SALVO COM EXITO NO BANCO DE DADOS!');
+      setCelebration(isEdit ? 'Editado!' : 'Salvo!');
       // Redireciona para o calendário destacando o dia que foi gravado
       setTimeout(() => {
         navigate(`/calendario?date=${form.date}`, { state: { date: form.date } });
@@ -1218,7 +1229,7 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
       }
 
       setIsSaving(false);
-      setCelebration('SUCESSO: TESTE E SIMULACAO SALVOS COM EXITO NO BANCO DE DADOS!');
+      setCelebration(isEdit ? 'Editado!' : 'Salvo!');
       setTimeout(() => {
         navigate(`/calendario?date=${base.date}`, { state: { date: base.date } });
       }, 1300);
@@ -1406,7 +1417,7 @@ function SavedTests() {
     if (!ok) return;
     try {
       await api(`/api/testes/${id}`, { method: 'DELETE' });
-      setActionMsg('SUCESSO: TESTE EXCLUIDO DO BANCO DE DADOS!');
+      setActionMsg('Excluído com sucesso!');
       setItems(prev => prev.filter(x => x.id !== id));
       setTimeout(() => setActionMsg(''), 4000);
     } catch (err: any) {
@@ -1526,7 +1537,7 @@ function RecordView() {
     setIsDeleting(true);
     try {
       await api(`/api/registros/${id}`, { method: 'DELETE' });
-      setActionMsg('SUCESSO: REGISTRO EXCLUIDO DO BANCO DE DADOS!');
+      setActionMsg('Excluído com sucesso!');
       setTimeout(() => {
         navigate(`/calendario?date=${rec?.date || ''}`, { state: { date: rec?.date } });
       }, 1200);
@@ -1833,7 +1844,7 @@ export function App() {
     if (bootLoader) bootLoader.remove();
 
     let mounted = true;
-    const criticalAssets = [
+    const plannerAssets = [
       mascote,
       logo,
       fllBook,
@@ -1851,12 +1862,18 @@ export function App() {
       salvos,
       testsButton
     ];
+    const criticalAssets = location.pathname === SESI_BIOGLOW_PORTAL.route
+      ? [mascote, logo]
+      : plannerAssets;
 
     const safetyTimer = window.setTimeout(() => {
       if (mounted) setIsInitialLoading(false);
     }, 10000);
 
-    waitForRenderComplete(criticalAssets, { minimumMs: 1250, timeoutMs: 9000 }).then(() => {
+    waitForRenderComplete(criticalAssets, {
+      minimumMs: location.pathname === SESI_BIOGLOW_PORTAL.route ? 360 : 1250,
+      timeoutMs: location.pathname === SESI_BIOGLOW_PORTAL.route ? 2400 : 9000
+    }).then(() => {
       if (mounted) {
         clearTimeout(safetyTimer);
         setIsInitialLoading(false);
@@ -1944,6 +1961,7 @@ export function App() {
             <Route path="/" element={<Login onLogin={handleLoginSuccess} />} />
             <Route path="/login" element={<Login onLogin={handleLoginSuccess} />} />
             <Route path="/calendario" element={<CalendarView api={api} user={null} />} />
+            <Route path={SESI_BIOGLOW_PORTAL.route} element={<TeamPortalFrame />} />
             <Route path="/:mod/teste/:id" element={<TestView key={location.pathname} />} />
             <Route path="/:mod/registro/:id" element={<RecordView key={location.pathname} />} />
             <Route path="*" element={<Navigate to="/" replace />} />
@@ -1972,6 +1990,7 @@ export function App() {
           <Route path="/home" element={<Home />} />
           <Route path="/login" element={<Home />} />
           <Route path="/calendario" element={<CalendarView api={api} user={user} />} />
+          <Route path={SESI_BIOGLOW_PORTAL.route} element={<TeamPortalFrame />} />
           <Route path="/:mod" element={<Hub />} />
           <Route path="/:mod/registros" element={<Records key={location.pathname} />} />
           <Route path="/:mod/novo" element={<Editor key={location.pathname} />} />

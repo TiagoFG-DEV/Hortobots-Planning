@@ -9,6 +9,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import accounts from './accounts.json' with { type: 'json' };
 import { storageService, logsRoot, isSupabaseEnabled } from './storageService.js';
+import { belongsToSesiHortobotsFll } from './teamContent.js';
 import {
   canConfirmEvent,
   canCreateEvent,
@@ -97,6 +98,25 @@ app.post('/api/auth/login', (req, res) => {
   const token = randomBytes(32).toString('hex');
   sessions.set(token, { username: account.username, role: account.role as Role });
   res.json({ token, user: { username: account.username, role: account.role } });
+});
+
+// Stable public contract used by the independently deployed BIOGLOW portal.
+// It deliberately exposes only the SESI Hortobots FLL archive.
+app.get('/api/public/teams/sesi-hortobots-fll', async (_req, res) => {
+  try {
+    const [records, tests] = await Promise.all([
+      storageService.listItems('registros'),
+      storageService.listItems('testes')
+    ]);
+    res.json({
+      version: 1,
+      team: 'SESI Hortobots (FLL)',
+      records: records.filter(belongsToSesiHortobotsFll),
+      tests: tests.filter(belongsToSesiHortobotsFll)
+    });
+  } catch {
+    res.status(500).json({ error: { message: 'Não foi possível consultar o acervo público da equipe.' } });
+  }
 });
 
 // Endpoint de Listagem (registros, testes, eventos)
