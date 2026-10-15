@@ -10,12 +10,18 @@ import { fileURLToPath } from 'node:url';
 import accounts from './accounts.json' with { type: 'json' };
 import { storageService, logsRoot, isSupabaseEnabled } from './storageService.js';
 import { belongsToSesiHortobotsFll } from './teamContent.js';
+import { collaborationService, type BannerRecord } from './collaborationService.js';
+import { createBannerPptx, extractBannerFiles, synthesizeBanner, type BannerContent, type BannerFile } from './bannerService.js';
+import { sendImportantEventEmail } from './notificationService.js';
 import {
+  canCreateFeedback,
   canConfirmEvent,
   canCreateEvent,
   canCreateTeamContent,
   canDeleteEvent,
   canEditEvent,
+  canManageBanner,
+  canManageNotificationSettings,
   canMutateTeamContent,
   type AccountRole,
   type AccountUser
@@ -68,6 +74,20 @@ const sanitizeFilename = (v: string) =>
    .replace(/[^a-zA-Z0-9.-]/g, '-')
    .replace(/-+/g, '-')
    .slice(0, 60);
+
+const teamDefinitions = {
+  fll: { modality: 'FLL', storedName: 'Hortobots', label: 'SESI Hortobots FLL' },
+  under: { modality: 'FLL', storedName: 'UnderConstruction', label: 'Under Construction FLL' },
+  obr: { modality: 'OBR', storedName: 'Hortobots', label: 'Hortobots OBR' }
+} as const;
+const isTeamKey = (value: string): value is keyof typeof teamDefinitions => value in teamDefinitions;
+const belongsToTeam = (item: any, teamKey: keyof typeof teamDefinitions) => {
+  const definition = teamDefinitions[teamKey];
+  if (String(item.modality || '').toUpperCase() !== definition.modality) return false;
+  if (definition.modality === 'OBR') return true;
+  const marker = `${item.team || ''} ${(item.tags || []).join(' ')}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  return teamKey === 'under' ? marker.includes('underconstruction') : !marker.includes('underconstruction');
+};
 
 // Endpoint de Saúde
 app.get('/api/health', (req, res) => {
@@ -250,7 +270,19 @@ app.post('/api/:kind', authMiddleware, async (req: AuthRequest, res: Response) =
   };
 
   try {
-    const saved = await storageService.saveItem(kind, recordData, folderName);
+    let saved = await storageService.saveItem(kind, recordData, folderName);
+    if (kind === 'eventos' && (Boolean(body.important) || body.priority === 'URGENTE')) {
+      try {
+        const settings = await collaborationService.getNotificationSettings();
+        const notification = await sendImportantEventEmail(saved, settings);
+        const notificationStatus = notification.sent ? 'ENVIADO' : `PENDENTE: ${notification.reason}`;
+        saved = await storageService.updateItem('eventos', id, { ...saved, notificationStatus });
+      } catch (error) {
+        console.warn('[Gmail] Falha ao enviar evento importante:', error instanceof Error ? error.message : error);
+        const notificationStatus = 'FALHOU: não foi possível concluir o envio pela API Gmail.';
+        saved = await storageService.updateItem('eventos', id, { ...saved, notificationStatus });
+      }
+    }
     res.json(saved);
   } catch (err: any) {
     res.status(500).json({ error: { message: 'Erro ao salvar no armazenamento.' } });
@@ -402,6 +434,190 @@ app.patch('/api/eventos/:id/confirmar', authMiddleware, async (req: AuthRequest,
   } catch (err: any) {
     res.status(500).json({ error: { message: 'Erro ao atualizar evento.' } });
   }
+});
+
+app.patch('/api/eventos/:id/recusar', authMiddleware, async (req: AuthRequest, res: Response) => {
+  const user = req.user!;
+  if (!canConfirmEvent(user)) {
+    res.status(403).json({ error: { message: 'Apenas a Gestão pode recusar eventos.' } });
+    return;
+  }
+  const updated = await storageService.updateEventStatus(String(req.params.id || ''), 'RECUSADO');
+  res.json(updated);
+});
+
+app.get('/api/configuracoes/notificacoes', authMiddleware, async (req: AuthRequest, res: Response) => {
+  if (!canManageNotificationSettings(req.user!)) {
+    res.status(403).json({ error: { message: 'Somente o Mentor pode visualizar estes endereços.' } });
+    return;
+  }
+  res.json(await collaborationService.getNotificationSettings());
+});
+
+app.put('/api/configuracoes/notificacoes', authMiddleware, async (req: AuthRequest, res: Response) => {
+  if (!canManageNotificationSettings(req.user!)) {
+    res.status(403).json({ error: { message: 'Somente o Mentor pode alterar estes endereços.' } });
+    return;
+  }
+  const value = {
+    managementEmail: String(req.body?.managementEmail || '').trim(),
+    coordinationEmail: String(req.body?.coordinationEmail || '').trim(),
+    technicalEmail: String(req.body?.technicalEmail || '').trim()
+  };
+  if (Object.values(value).some(email => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) {
+    res.status(400).json({ error: { message: 'Informe os três e-mails em formato válido.' } });
+    return;
+  }
+  res.json(await collaborationService.saveNotificationSettings(value, req.user!.username));
+});
+
+app.get('/api/feedbacks', async (req, res) => {
+  const targetKind = String(req.query.targetKind || '') as 'registros' | 'testes' | 'eventos';
+  const targetId = String(req.query.targetId || '');
+  if (!['registros', 'testes', 'eventos'].includes(targetKind) || !/^[a-f0-9]{8}$/.test(targetId)) {
+    res.status(400).json({ error: { message: 'Destino do feedback inválido.' } });
+    return;
+  }
+  res.json(await collaborationService.listFeedback(targetKind, targetId));
+});
+
+app.post('/api/feedbacks', authMiddleware, async (req: AuthRequest, res: Response) => {
+  if (!canCreateFeedback(req.user!)) {
+    res.status(403).json({ error: { message: 'Somente a Gestão pode publicar feedbacks.' } });
+    return;
+  }
+  const targetKind = String(req.body?.targetKind || '') as 'registros' | 'testes' | 'eventos';
+  const targetId = String(req.body?.targetId || '');
+  const authorTag = String(req.body?.authorTag || '') as 'DIREÇÃO' | 'COORDENAÇÃO' | 'TÉCNICO';
+  const message = String(req.body?.message || '').trim();
+  if (!['registros', 'testes', 'eventos'].includes(targetKind) || !/^[a-f0-9]{8}$/.test(targetId) || !['DIREÇÃO', 'COORDENAÇÃO', 'TÉCNICO'].includes(authorTag) || !message || message.length > 2000) {
+    res.status(400).json({ error: { message: 'Preencha a tag e uma mensagem de até 2.000 caracteres.' } });
+    return;
+  }
+  const target = await storageService.getItem(targetKind, targetId);
+  if (!target) {
+    res.status(404).json({ error: { message: 'O item comentado não foi encontrado.' } });
+    return;
+  }
+  res.json(await collaborationService.createFeedback({
+    id: randomBytes(4).toString('hex'), targetKind, targetId, authorTag, message,
+    createdBy: req.user!.username, createdAt: new Date().toISOString()
+  }));
+});
+
+app.get('/api/banners/:teamKey', async (req, res) => {
+  const teamKey = String(req.params.teamKey);
+  if (!isTeamKey(teamKey)) {
+    res.status(404).json({ error: { message: 'Equipe não encontrada.' } });
+    return;
+  }
+  const banner = await collaborationService.getBanner(teamKey);
+  if (!banner) {
+    res.status(404).json({ error: { message: 'Banner ainda não criado.' } });
+    return;
+  }
+  res.json(banner);
+});
+
+const saveBanner = async (req: AuthRequest, res: Response, update: boolean) => {
+  const teamKey = String(req.params.teamKey);
+  if (!isTeamKey(teamKey)) {
+    res.status(404).json({ error: { message: 'Equipe não encontrada.' } });
+    return;
+  }
+  const definition = teamDefinitions[teamKey];
+  if (!canManageBanner(req.user!, definition.modality)) {
+    res.status(403).json({ error: { message: 'Este perfil não pode alterar o banner desta equipe.' } });
+    return;
+  }
+  const previous = await collaborationService.getBanner(teamKey);
+  if (!update && previous) {
+    res.status(409).json({ error: { message: 'O banner já existe. Use Atualizar Banner.' } });
+    return;
+  }
+  if (update && !previous) {
+    res.status(404).json({ error: { message: 'Crie o banner antes de atualizá-lo.' } });
+    return;
+  }
+  const problemQuestion = String(req.body?.problemQuestion || previous?.problemQuestion || '').trim();
+  const widthCm = Number(req.body?.widthCm || previous?.widthCm || 90);
+  const heightCm = Number(req.body?.heightCm || previous?.heightCm || 120);
+  if (problemQuestion.length < 10 || !Number.isFinite(widthCm) || !Number.isFinite(heightCm) || widthCm < 20 || heightCm < 20 || widthCm > 142 || heightCm > 142) {
+    res.status(400).json({ error: { message: 'Informe a pergunta-problema e dimensões entre 20 e 142 cm.' } });
+    return;
+  }
+  const [records, tests, researchDocs, designDocs] = await Promise.all([
+    storageService.listItems('registros'),
+    storageService.listItems('testes'),
+    extractBannerFiles((req.body?.researchFiles || []) as BannerFile[]),
+    extractBannerFiles((req.body?.designFiles || []) as BannerFile[])
+  ]);
+  const teamRecords = records.filter(item => belongsToTeam(item, teamKey)).slice(0, 20);
+  const teamTests = tests.filter(item => belongsToTeam(item, teamKey)).slice(0, 20);
+  const research = `${teamRecords.map(item => `${item.title}: ${item.summary || ''} ${(item.tags || []).join(', ')}`).join('\n')}\n${researchDocs}`;
+  const robot = `${teamTests.map(item => `${item.title}: ${item.objective || ''}; ${item.comments || ''}; ${item.mission || ''}`).join('\n')}\n${designDocs}`;
+  const generated = await synthesizeBanner({
+    teamName: definition.label,
+    problem: problemQuestion,
+    research,
+    robot,
+    previous: previous?.content as BannerContent | undefined
+  });
+  const now = new Date().toISOString();
+  const record: BannerRecord = {
+    teamKey,
+    modality: definition.modality,
+    widthCm,
+    heightCm,
+    problemQuestion,
+    content: generated.content,
+    sources: {
+      records: teamRecords.map(item => item.id),
+      tests: teamTests.map(item => item.id),
+      researchFiles: (req.body?.researchFiles || []).map((file: BannerFile) => file.name),
+      designFiles: (req.body?.designFiles || []).map((file: BannerFile) => file.name),
+      generatedBy: generated.generatedBy
+    },
+    version: previous ? previous.version + 1 : 1,
+    createdBy: previous?.createdBy || req.user!.username,
+    createdAt: previous?.createdAt || now,
+    updatedAt: now
+  };
+  res.json(await collaborationService.saveBanner(record));
+};
+
+app.post('/api/banners/:teamKey', authMiddleware, async (req: AuthRequest, res: Response) => {
+  await saveBanner(req, res, false);
+});
+app.put('/api/banners/:teamKey', authMiddleware, async (req: AuthRequest, res: Response) => {
+  await saveBanner(req, res, true);
+});
+
+app.delete('/api/banners/:teamKey', authMiddleware, async (req: AuthRequest, res: Response) => {
+  const teamKey = String(req.params.teamKey);
+  if (!isTeamKey(teamKey) || !canManageBanner(req.user!, teamDefinitions[teamKey].modality)) {
+    res.status(403).json({ error: { message: 'Sem permissão para excluir este banner.' } });
+    return;
+  }
+  await collaborationService.deleteBanner(teamKey);
+  res.json({ success: true });
+});
+
+app.get('/api/banners/:teamKey/canva', async (req, res) => {
+  const teamKey = String(req.params.teamKey);
+  if (!isTeamKey(teamKey)) {
+    res.status(404).end();
+    return;
+  }
+  const banner = await collaborationService.getBanner(teamKey);
+  if (!banner) {
+    res.status(404).json({ error: { message: 'Banner ainda não criado.' } });
+    return;
+  }
+  const file = await createBannerPptx({ ...banner, content: banner.content as BannerContent });
+  res.setHeader('content-type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+  res.setHeader('content-disposition', `attachment; filename="banner-${teamKey}-v${banner.version}.pptx"`);
+  res.send(file);
 });
 
 // Servir arquivos de mídia dos registros/testes salvos em Logs/

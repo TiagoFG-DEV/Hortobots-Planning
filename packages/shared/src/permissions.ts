@@ -19,4 +19,8 @@ export const canCreateEvent = (user: AccountUser | null) =>
 export const canEditEvent = (user: AccountUser | null) => user?.role === 'mentor';
 export const canDeleteEvent = (user: AccountUser | null) => user?.role === 'mentor';
 export const canConfirmEvent = (user: AccountUser | null) => user?.role === 'management';
+export const canManageNotificationSettings = (user: AccountUser | null) => user?.role === 'mentor';
+export const canCreateFeedback = (user: AccountUser | null) => user?.role === 'management';
+export const canManageBanner = (user: AccountUser | null, modality: string) =>
+  Boolean(user && (user.role === 'mentor' || canCreateTeamContent(user, modality)));
 

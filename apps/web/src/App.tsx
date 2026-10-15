@@ -9,8 +9,10 @@ import {
   Home as HomeIcon,
   Image as ImageIcon,
   Leaf,
+  LayoutTemplate,
   List,
   LogOut,
+  Mail,
   Menu,
   Plus,
   Search,
@@ -39,6 +41,12 @@ import { PdfDownloadButton } from './PdfDownloadButton';
 import { TeamPortalFrame } from './TeamPortalFrame';
 import { useOverlayAccessibility } from './useOverlayAccessibility';
 import { SESI_BIOGLOW_PORTAL } from './teamPortals';
+import { API, api } from './client';
+import { BannerStudio } from './BannerStudio';
+import { MentorSettings } from './MentorSettings';
+import { FeedbackThread } from './FeedbackThread';
+import { PerformancePanel } from './PerformancePanel';
+import { BIOGLOW_SEASON } from '@hortobots/shared';
 import { TEAMS, getTeamKey, withTeamTag, isTeamTag, displayDate, teamFromRoute, notebookRoute } from './teams';
 import {
   canCreateTeamContent,
@@ -58,7 +66,6 @@ function NotebookIdentity({ hub = false }: { hub?: boolean }) {
   return <div className={hub ? 'hub-identity' : 'notebook-identity'}><img src={notebook.logo} alt="" /><span>{notebook.short}</span></div>;
 }
 
-const API = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? 'http://localhost:3000' : '');
 const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
 
 const MISSIONS = [
@@ -85,22 +92,6 @@ type Attempt = { time: number; score: number; failures: number; observed: number
 const UserContext = createContext<User | null>(null);
 const useCurrentUser = () => useContext(UserContext);
 const teamArchiveUrl = (key: keyof typeof TEAMS) => `/calendario?view=list&team=${key}`;
-
-const auth = () => sessionStorage.getItem('hortobots-token') || '';
-
-const api = async (path: string, init: RequestInit = {}) => {
-  const r = await fetch(`${API}${path}`, {
-    ...init,
-    headers: {
-      'content-type': 'application/json',
-      authorization: `Bearer ${auth()}`,
-      ...init.headers
-    }
-  });
-  const b = await r.json();
-  if (!r.ok) throw Error(b.error?.message || 'Falha na requisição');
-  return b;
-};
 
 export function AutoArea(p: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
   const ref = useRef<HTMLTextAreaElement>(null);
@@ -225,7 +216,9 @@ function DialogProvider({ children }: { children: React.ReactNode }) {
 }
 
 function Login({ onLogin }: { onLogin: (u: User) => void }) {
-  const [v, setV] = useState({ username: '', password: '' });
+  const location = useLocation();
+  const requestedProfile = new URLSearchParams(location.search).get('profile') || '';
+  const [v, setV] = useState({ username: ['gestao', 'mentor', 'obr', 'fll'].includes(requestedProfile) ? requestedProfile : '', password: '' });
   const [error, setError] = useState('');
   const profiles = [
     { id: 'gestao', label: 'Acesso Gestão', detail: 'Gestão e Aprovações' },
@@ -361,6 +354,10 @@ function Home() {
           <Link to="/obr/registros"><List />Registros OBR</Link>
           <Link to="/calendario?view=list"><ChartNoAxesCombined />Pesquisa geral</Link>
           <Link to={SESI_BIOGLOW_PORTAL.route}><Leaf />Portal BIOGLOW</Link>
+          {user?.role === 'mentor' && <Link to="/mentor/configuracoes"><Mail />Alertas por e-mail</Link>}
+          {user && <Link to="/fll/banner"><LayoutTemplate />Banner SESI</Link>}
+          {user && <Link to="/underconstruction/banner"><LayoutTemplate />Banner Under</Link>}
+          {user && <Link to="/obr/banner"><LayoutTemplate />Banner OBR</Link>}
         </nav>
         <Link className="global-calendar" to="/calendario">
           <CalendarDays /> VER CALENDÁRIO <b>URGENTES</b>
@@ -398,6 +395,7 @@ function SideMenu({ mod }: { mod: string }) {
             {user && <Link to={`/${mod}/registros`}><List />REGISTROS</Link>}
             {user && canWrite && <Link to={`/${mod}/testes`}><ChartNoAxesCombined />SIMULAÇÕES E TESTES</Link>}
             {user && <Link to={`/${mod}/testes-salvos`}><List />TESTES SALVOS</Link>}
+            {user && <Link to={`/${mod}/banner`}><LayoutTemplate />BANNER A × B</Link>}
             {notebook.key === 'fll' && <Link to={SESI_BIOGLOW_PORTAL.route}><Leaf />PORTAL BIOGLOW</Link>}
           </nav>
           <footer>
@@ -447,6 +445,7 @@ function Hub() {
             <img src={testsButton} alt="Simulações e Testes" />
           </Link>
         </div>
+        <Link className="hub-banner-link" to={`/${mod}/banner`}><LayoutTemplate /> Criar ou consultar Banner A × B</Link>
       </section>
     </Shell>
   );
@@ -939,7 +938,7 @@ function Editor({ isEdit }: { isEdit?: boolean }) {
 // ── DATA ANALYSIS COMPONENT ─────────────────────────────────────────────────
 // Render a multi-line/bar analytical chart similar to matplotlib with 3 axes:
 // Score, Time, Failures — each with their own scale
-function DataAnalysis({ attempts }: { attempts: Attempt[] }) {
+function DataAnalysis({ attempts, maximumScore = 0 }: { attempts: Attempt[]; maximumScore?: number }) {
   const n = attempts.length;
   if (n === 0) return <p style={{ color: '#64748b', textAlign: 'center', padding: '2rem 0' }}>Nenhuma tentativa para análise.</p>;
 
@@ -951,11 +950,11 @@ function DataAnalysis({ attempts }: { attempts: Attempt[] }) {
 
   const xOf = (i: number) => PAD.l + (n > 1 ? (i / (n - 1)) * plotW : plotW / 2);
 
-  const maxScore   = Math.max(1, ...attempts.map(a => a.score));
+  const chartMaxScore = Math.max(1, maximumScore, ...attempts.map(a => a.score));
   const maxTime    = Math.max(1, ...attempts.map(a => a.time));
   const maxFail    = Math.max(1, ...attempts.map(a => a.failures));
 
-  const yScore  = (v: number) => PAD.t + plotH - (v / maxScore) * plotH;
+  const yScore  = (v: number) => PAD.t + plotH - (v / chartMaxScore) * plotH;
   const yTime   = (v: number) => PAD.t + plotH - (v / maxTime)  * plotH;
   const yFail   = (v: number) => PAD.t + plotH - (v / maxFail)  * plotH;
 
@@ -1013,7 +1012,7 @@ function DataAnalysis({ attempts }: { attempts: Attempt[] }) {
               <g key={t}>
                 <line x1={PAD.l} y1={y} x2={W - PAD.r} y2={y} stroke="#334155" strokeWidth="0.8" strokeDasharray="4 3" />
                 <text x={PAD.l - 6} y={y + 4} textAnchor="end" fontSize="9" fill="#64748b">
-                  {Math.round(t * maxScore)}
+                  {Math.round(t * chartMaxScore)}
                 </text>
               </g>
             );
@@ -1090,7 +1089,7 @@ function DataAnalysis({ attempts }: { attempts: Attempt[] }) {
       {/* ── Stats Cards ───────────────────────────────────────── */}
       <div className="da-stats">
         <div className="da-stat-card score">
-          <span className="da-stat-label">Pontuação Máxima</span>
+          <span className="da-stat-label">Melhor Pontuação</span>
           <span className="da-stat-value">{maxScoreVal}</span>
           <span className="da-stat-sub">média {avgScore.toFixed(1)}</span>
         </div>
@@ -1129,7 +1128,7 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
   const [isSaving, setIsSaving] = useState(false);
   const [celebration, setCelebration] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
-  const [base, setBase] = useState({ date: today, title: '', objective: '', comments: '', mission: '' });
+  const [base, setBase] = useState({ date: today, title: '', objective: '', comments: '', mission: '', maxScore: notebook.modality === 'FLL' ? BIOGLOW_SEASON.maximumScore : 0 });
   const [showAnalysis, setShowAnalysis] = useState(false);
 
   useEffect(() => {
@@ -1154,7 +1153,8 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
               title: t.title || '',
               objective: t.objective || '',
               comments: t.comments || '',
-              mission: t.mission || ''
+              mission: t.mission || '',
+              maxScore: Number(t.maxScore || (notebook.modality === 'FLL' ? BIOGLOW_SEASON.maximumScore : 0))
             });
             setLoaded(true);
             setMedia([]);
@@ -1294,6 +1294,11 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
                 </select>
               </label>
             )}
+            {notebook.modality === 'OBR' && <label>
+              Pontuação máxima da arena
+              <input type="number" min="1" value={base.maxScore || ''} onChange={e => setBase({ ...base, maxScore: Number(e.target.value) })} placeholder="Varia conforme a arena da rodada" />
+              <small>Na OBR 2026, a referência máxima é definida pela composição da arena.</small>
+            </label>}
             <div className="attempts">
               {activeAttempts.map((a, i) => (
                 <fieldset key={i}>
@@ -1314,6 +1319,8 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
                     {notebook.modality === 'FLL' ? 'Pontuação' : 'Valor observado'}
                     <input
                       type="number"
+                      min="0"
+                      max={base.maxScore || undefined}
                       value={notebook.modality === 'FLL' ? a.score : a.observed}
                       onChange={e => {
                         const n = [...attempts];
@@ -1373,7 +1380,8 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
               </button>
             </div>
 
-            {showAnalysis && <DataAnalysis attempts={activeAttempts} />}
+            <PerformancePanel attempts={activeAttempts} modality={notebook.modality} maximum={base.maxScore} />
+            {showAnalysis && <DataAnalysis attempts={activeAttempts} maximumScore={base.maxScore} />}
 
             <div style={{ marginTop: '1.2rem' }}>
               <span className="paper-label test-media-label">MÍDIAS DO TESTE</span>
@@ -1647,6 +1655,8 @@ function RecordView() {
           )}
         </div>
 
+        {rec && id && <FeedbackThread targetKind="registros" targetId={id} user={user} />}
+
         {/* Lightbox de foco */}
         {focusMedia && (
           <div className="focus-layer" onClick={() => setFocusMedia(null)}>
@@ -1701,7 +1711,9 @@ function TestView() {
         </div>
       </article>
       <section className="test-detail-analysis" aria-label="Resultados das tentativas">
-        <h2>Resultados</h2><DataAnalysis attempts={Array.isArray(item.attempts) ? item.attempts : []} />
+        <h2>Resultados</h2>
+        <PerformancePanel attempts={Array.isArray(item.attempts) ? item.attempts : []} modality={item.modality} maximum={item.maxScore} />
+        <DataAnalysis attempts={Array.isArray(item.attempts) ? item.attempts : []} maximumScore={Number(item.maxScore || (item.modality === 'FLL' ? BIOGLOW_SEASON.maximumScore : 0))} />
         <div className="attempt-results">{(item.attempts || []).map((attempt: Attempt, i: number) => <article key={i}><strong>Tentativa {i + 1}</strong><span>Tempo: {attempt.time} s</span><span>Pontuação: {attempt.score}</span><span>Falhas: {attempt.failures}</span>{mod === 'obr' && <span>Valor observado: {attempt.observed}</span>}</article>)}</div>
       </section>
       {item.media?.length > 0 && <section className="test-detail-media" aria-label="Mídias do teste">{item.media.map((media: any, i: number) => {
@@ -1709,9 +1721,17 @@ function TestView() {
         const video = String(media.type || '').startsWith('video') || /\.(mp4|webm|mov|ogg|m4v)(\?|$)/i.test(url) || /\.(mp4|webm|mov|ogg|m4v)$/i.test(media.name || '');
         return <button key={i} aria-label={`Abrir ${media.name}`} onClick={() => setFocus({ url, name: media.name, video })}>{video ? <video src={url} muted playsInline preload="metadata" /> : <img src={url} alt={media.name} loading="lazy" />}<span>{media.name}</span></button>;
       })}</section>}
+      {id && <FeedbackThread targetKind="testes" targetId={id} user={user} />}
     </>}
     {focus && <div className="focus-layer" onClick={() => setFocus(null)}><button aria-label="Fechar mídia" onClick={() => setFocus(null)}><X /></button>{focus.video ? <video src={focus.url} controls autoPlay playsInline onClick={e => e.stopPropagation()} /> : <img src={focus.url} alt={focus.name} />}</div>}
   </main></Shell>;
+}
+
+function BannerPage() {
+  const notebook = useNotebook();
+  const user = useCurrentUser();
+  if (!user) return <Navigate to="/login" replace />;
+  return <Shell><BannerStudio teamKey={notebook.key} user={user} /></Shell>;
 }
 
 const delay = (durationMs: number): Promise<void> =>
@@ -1922,7 +1942,8 @@ export function App() {
   const handleLoginSuccess = (loggedUser: User) => {
     setUser(loggedUser);
     setIsTransitioning(true);
-    navigate('/');
+    const requested = new URLSearchParams(location.search).get('returnTo');
+    navigate(requested?.startsWith('/') && !requested.startsWith('//') ? requested : '/');
 
     // Desativa a transicao garantidamente mesmo se a rota atual ja for /
     setTimeout(async () => {
@@ -1950,6 +1971,8 @@ export function App() {
   };
 
   const isOverlayActive = isInitialLoading || isTransitioning;
+  const requestedAfterLogin = new URLSearchParams(location.search).get('returnTo');
+  const safeReturnTo = requestedAfterLogin?.startsWith('/') && !requestedAfterLogin.startsWith('//') ? requestedAfterLogin : '/';
 
   // Sem autenticação, somente login e rotas públicas de consulta ficam disponíveis.
   if (!user) {
@@ -1988,8 +2011,9 @@ export function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/home" element={<Home />} />
-          <Route path="/login" element={<Home />} />
+          <Route path="/login" element={<Navigate to={safeReturnTo} replace />} />
           <Route path="/calendario" element={<CalendarView api={api} user={user} />} />
+          <Route path="/mentor/configuracoes" element={user.role === 'mentor' ? <MentorSettings /> : <Navigate to="/" replace />} />
           <Route path={SESI_BIOGLOW_PORTAL.route} element={<TeamPortalFrame />} />
           <Route path="/:mod" element={<Hub />} />
           <Route path="/:mod/registros" element={<Records key={location.pathname} />} />
@@ -1998,6 +2022,7 @@ export function App() {
           <Route path="/:mod/testes" element={<Tests key={location.pathname} />} />
           <Route path="/:mod/testes/editar/:id" element={<Tests key={location.pathname} isEdit />} />
           <Route path="/:mod/testes-salvos" element={<SavedTests key={location.pathname} />} />
+          <Route path="/:mod/banner" element={<BannerPage key={location.pathname} />} />
           <Route path="/:mod/teste/:id" element={<TestView key={location.pathname} />} />
           <Route path="/:mod/registro/:id" element={<RecordView key={location.pathname} />} />
           <Route path="*" element={<Home />} />

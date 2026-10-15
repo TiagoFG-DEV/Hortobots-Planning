@@ -14,3 +14,11 @@ services:
       - { key: SUPABASE_URL, value: "https://zinsqfrstpqbnrrxwtnk.supabase.co" }
       - { key: SUPABASE_SERVICE_ROLE_KEY, sync: false }
       - { key: WEB_ORIGIN, value: "*" }
+      - { key: PUBLIC_APP_URL, sync: false }
+      - { key: OPENAI_API_KEY, sync: false }
+      - { key: OPENAI_BANNER_MODEL, value: "gpt-5-nano" }
+      - { key: GOOGLE_CLIENT_ID, sync: false }
+      - { key: GOOGLE_CLIENT_SECRET, sync: false }
+      - { key: GOOGLE_REFRESH_TOKEN, sync: false }
+      - { key: GMAIL_SENDER, value: "me" }
+      - { key: GMAIL_FROM_EMAIL, sync: false }

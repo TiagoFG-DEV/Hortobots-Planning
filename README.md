@@ -6,6 +6,9 @@ O projeto opera como um monorepo modular em TypeScript. O backend em Node.js com
 
 ## Versões
 
+O estado de implementação, os bloqueios conhecidos e os testes ainda necessários da versão 1.1.0 estão no [relatório de entrega](docs/RELATORIO-ENTREGA-1.1.0.md). A versão ainda depende das correções e da homologação descritas nesse documento.
+
+- **1.1.0 — Colaboração e desempenho:** pontuação oficial BIOGLOW, aproveitamento por teste, banners editáveis no Canva, avisos de eventos importantes e feedbacks da Gestão.
 - **[1.0.0 — Lançamento estável](CHANGELOG.md#100--2026-10-10):** reúne autenticação e permissões, três cadernos de equipe, registros, testes, gráficos, calendário, pesquisa geral, mídias, PDFs, persistência local/nuvem e a primeira auditoria responsiva completa.
 - As próximas versões serão adicionadas acima da `1.0.0`, mantendo o histórico detalhado em [CHANGELOG.md](CHANGELOG.md).
 
@@ -79,6 +82,19 @@ hortobots-planning/
   - Registro de ciclos de testes com quantidade variavel de tentativas (3 a 15).
   - Metricas de tempo, pontuacao observada e taxa de falhas.
   - Visualizacao grafica de desempenho em linha, barras ou circular.
+  - Pontuação FLL vinculada ao teto oficial de 530 pontos da temporada BIOGLOW 2026/2027, com aproveitamento percentual, faixa de desempenho, pontos restantes e tabela detalhada de missões/discos de precisão.
+  - Pontuação máxima OBR configurável por teste, pois o teto depende da composição da arena, do nível e da fase.
+
+- **Banner científico A×B:**
+  - Um banner persistente por equipe, criado pela pergunta-problema, registros do caderno, testes do robô e anexos DOCX, XLSX, PDF, TXT, MD ou CSV.
+  - Síntese curta por `gpt-5-nano` quando a chave está configurada e modo local determinístico quando não está.
+  - Exportação PPTX em dimensões personalizadas: textos, formas e blocos permanecem independentes para importação e edição elemento por elemento no Canva.
+  - Após a criação, a interface exibe somente **Atualizar Banner**, **Baixar para Canva** e **Excluir Banner**.
+
+- **Colaboração da Gestão:**
+  - Feedbacks em formato de comentários para registros, testes e eventos, publicados exclusivamente pela Gestão com as tags Direção, Coordenação ou Técnico.
+  - Eventos importantes disparam um e-mail responsivo pela API Gmail para os três destinatários cadastrados exclusivamente pelo Mentor.
+  - O botão do e-mail abre o login já selecionado como Gestão e, após autenticar, conduz ao calendário com o evento aberto para confirmação ou recusa opcional.
 
 - **Exportacao para PDF:**
   - Registros e testes abertos podem ser baixados por qualquer perfil, inclusive visitante.
@@ -322,7 +338,17 @@ SUPABASE_URL=https://<seu-projeto>.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=<sua-service-role-key>
 SUPABASE_BUCKET=hortobots-planning
 PORT=3000
+PUBLIC_APP_URL=https://seu-dominio.example
+OPENAI_API_KEY=<opcional; ativa a síntese por IA>
+OPENAI_BANNER_MODEL=gpt-5-nano
+GOOGLE_CLIENT_ID=<cliente OAuth do Google>
+GOOGLE_CLIENT_SECRET=<segredo OAuth do Google>
+GOOGLE_REFRESH_TOKEN=<refresh token com escopo gmail.send>
+GMAIL_SENDER=me
+GMAIL_FROM_EMAIL=<conta Gmail autorizada>
 ```
+
+Antes do primeiro deploy da versão 1.1.0 no Supabase, aplique `supabase/migrations/0003_collaboration_banner_notifications.sql`. O passo a passo das integrações está em [docs/INTEGRACOES.md](docs/INTEGRACOES.md).
 
 ---
 

@@ -2,6 +2,30 @@
 
 As versões futuras devem ser acrescentadas no topo deste arquivo, preservando o histórico já publicado.
 
+## [1.1.0] — 2026-10-14
+
+### Temporadas e desempenho
+
+- Teto oficial BIOGLOW 2026/2027 de 530 pontos, calculado a partir das 15 missões, inspeção de equipamento e discos de precisão.
+- Tabela de pontuação parcial, máxima, compartilhada e perdível, com links para o manual e as atualizações oficiais.
+- Indicadores de aproveitamento, pontos conquistados e restantes nos formulários, gráficos e detalhes de testes.
+- Teto OBR por arena configurável, refletindo as regras de Resgate 2026.
+
+### Banner, notificações e colaboração
+
+- Criação e atualização incremental de banner A×B por equipe, com síntese por IA econômica e fallback local.
+- Leitura de conteúdo de cadernos e anexos DOCX, XLSX, PDF e texto, com limites de tamanho e de contexto.
+- Download em PPTX editável elemento por elemento no Canva e exclusão explícita do banner persistido.
+- Configuração de três destinatários exclusiva do Mentor e disparo de e-mail responsivo via Gmail para eventos importantes.
+- Deep link para login da Gestão e abertura direta do evento no calendário, com confirmação ou recusa opcional.
+- Comentários de feedback da Gestão em registros, testes e eventos com tags Direção, Coordenação ou Técnico.
+- Migração Supabase `0003_collaboration_banner_notifications.sql` e persistência equivalente no modo local.
+
+### Qualidade
+
+- Testes de regressão para o fechamento dos 530 pontos, metadados das missões, leitura segura de Office e integridade do PPTX.
+- Auditoria de dependências sem vulnerabilidades conhecidas no momento da entrega.
+
 ## [1.0.0] — 2026-10-10
 
 Primeira versão estável do Hortobots Planning, reunindo o fluxo completo de planejamento, documentação e consulta das equipes de robótica do SESI 437 Hortolândia.

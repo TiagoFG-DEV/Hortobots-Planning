@@ -1,5 +1,6 @@
 import { z } from 'zod';
 export * from './permissions.js';
+export * from './season.js';
 
 export const MODALITIES = ['FLL', 'OBR'] as const;
 export const TAGS = ['programacao','eletronica','mecanica','estrategia','pesquisa','treino','competicao','reuniao','documentacao','problema','solucao'] as const;

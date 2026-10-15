@@ -8,6 +8,7 @@ export interface ActivitySource {
   id: string; title: string; date: string; modality?: string; team?: string; tags?: string[];
   summary?: string; body?: string; objective?: string; comments?: string; mission?: string;
   priority?: string; status?: string; period?: string; lesson?: string; createdBy?: string; createdAt?: string;
+  important?: boolean; notificationStatus?: string;
   media?: Array<{ name?: string; originalName?: string }>;
 }
 export const KIND_LABELS = { record: 'Registro', test: 'Teste', event: 'Evento' };
@@ -22,7 +23,7 @@ export function ActivityCard({ item, kind, children }: { item: ActivitySource; k
   return <article className={`activity-card activity-${kind}`} data-team={team}>
     <div className="activity-meta"><span className="team-badge">{label}</span><time dateTime={item.date}>{displayDate(item.date)}</time></div>
     {kind === 'event' ? <div className="activity-main">{heading}</div> : <Link className="activity-main" to={url}>{heading}</Link>}
-    {kind === 'event' && <div className="activity-event-info"><span>{item.period} · {item.lesson}</span><span className={item.priority === 'URGENTE' ? 'activity-urgent' : ''}>{item.priority}{item.priority === 'URGENTE' ? ` · ${item.status}` : ''}</span></div>}
+    {kind === 'event' && <div className="activity-event-info"><span>{item.period} · {item.lesson}</span><span className={item.priority === 'URGENTE' || item.important ? 'activity-urgent' : ''}>{item.important ? 'IMPORTANTE · ' : ''}{item.priority}{item.status ? ` · ${item.status}` : ''}</span></div>}
     {description && kind !== 'event' && <p className="activity-excerpt">{description}</p>}
     {kind === 'event' && item.comments && <details className="activity-description"><summary>Detalhes do evento</summary><p>{item.comments}</p></details>}
     {children && <div className="activity-actions">{children}</div>}

@@ -90,6 +90,7 @@ export interface StoredTest {
   mission?: string;
   chart?: string;
   attempts?: Array<{ time: number; score: number; failures: number; observed: number }>;
+  maxScore?: number;
   media?: StoredMedia[];
   createdBy?: string;
   createdAt?: string;
@@ -104,9 +105,11 @@ export interface StoredEvent {
   period: string;
   lesson: string;
   comments?: string;
-  status: 'PENDENTE' | 'CONFIRMADO' | 'PUBLICADO';
+  status: 'PENDENTE' | 'CONFIRMADO' | 'PUBLICADO' | 'RECUSADO';
   createdBy: string;
   createdAt: string;
+  important?: boolean;
+  notificationStatus?: string;
   [key: string]: unknown;
 }
 
@@ -281,6 +284,8 @@ export const storageService = {
               status: ev.status,
               createdBy: ev.created_by,
               comments: ev.comments || '',
+              important: Boolean(ev.important),
+              notificationStatus: ev.notification_status || '',
               createdAt: ev.created_at
             }));
           }
@@ -313,6 +318,7 @@ export const storageService = {
                 mission: t.mission || '',
                 chart: t.chart || 'line',
                 attempts,
+                maxScore: t.max_score == null ? undefined : Number(t.max_score),
                 media: mediaList,
                 createdBy: t.created_by,
                 createdAt: t.created_at
@@ -383,7 +389,9 @@ export const storageService = {
             lesson: data.lesson,
             status: data.status,
             created_by: data.createdBy || '',
-            comments: data.comments || ''
+            comments: data.comments || '',
+            important: Boolean(data.important),
+            notification_status: data.notificationStatus || null
           });
         } else if (kind === 'testes') {
           const attemptsPayload = {
@@ -402,6 +410,7 @@ export const storageService = {
             mission: data.mission || '',
             chart: data.chart || 'line',
             attempts: attemptsPayload,
+            max_score: data.maxScore == null ? null : Number(data.maxScore),
             created_by: data.createdBy || ''
           });
         }
@@ -450,7 +459,9 @@ export const storageService = {
             period: data.period,
             lesson: data.lesson,
             status: data.status,
-            comments: data.comments || ''
+            comments: data.comments || '',
+            important: Boolean(data.important),
+            notification_status: data.notificationStatus || null
           }).eq('id', id);
         } else if (kind === 'testes') {
           const attemptsPayload = {
@@ -466,7 +477,8 @@ export const storageService = {
             comments: data.comments || '',
             mission: data.mission || '',
             chart: data.chart || 'line',
-            attempts: attemptsPayload
+            attempts: attemptsPayload,
+            max_score: data.maxScore == null ? null : Number(data.maxScore)
           }).eq('id', id);
         }
       } catch (err) {

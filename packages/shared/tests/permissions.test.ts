@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   canConfirmEvent,
+  canCreateFeedback,
   canCreateEvent,
   canCreateTeamContent,
   canDeleteEvent,
   canEditEvent,
+  canManageBanner,
+  canManageNotificationSettings,
   canMutateTeamContent,
   type AccountUser
 } from '../src/permissions';
@@ -58,6 +61,23 @@ describe('account permission matrix', () => {
     expect(canConfirmEvent(users.mentor)).toBe(false);
     expect(canCreateEvent(users.fll)).toBe(false);
     expect(canCreateEvent(users.visitor)).toBe(false);
+  });
+
+  it('keeps notification settings mentor-only and feedback publishing management-only', () => {
+    expect(canManageNotificationSettings(users.mentor)).toBe(true);
+    expect(canManageNotificationSettings(users.management)).toBe(false);
+    expect(canCreateFeedback(users.management)).toBe(true);
+    expect(canCreateFeedback(users.mentor)).toBe(false);
+    expect(canCreateFeedback(users.fll)).toBe(false);
+  });
+
+  it('lets mentors manage every banner and students only their modality', () => {
+    expect(canManageBanner(users.mentor, 'FLL')).toBe(true);
+    expect(canManageBanner(users.mentor, 'OBR')).toBe(true);
+    expect(canManageBanner(users.fll, 'FLL')).toBe(true);
+    expect(canManageBanner(users.fll, 'OBR')).toBe(false);
+    expect(canManageBanner(users.obr, 'OBR')).toBe(true);
+    expect(canManageBanner(users.management, 'FLL')).toBe(false);
   });
 });
 

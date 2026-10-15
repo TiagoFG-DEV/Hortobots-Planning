@@ -4,6 +4,7 @@ import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { ActivityCard, type ActivityKind, type ActivitySource } from './ActivityCard';
 import { TEAMS, notebookRoute, type TeamKey } from './teams';
 import { findActivities } from './activities';
+import { FeedbackThread } from './FeedbackThread';
 import {
   canConfirmEvent,
   canCreateEvent,
@@ -34,7 +35,9 @@ interface CalendarEvent extends ActivitySource {
   period: string;
   lesson: string;
   comments?: string;
-  status: 'PENDENTE' | 'CONFIRMADO' | 'PUBLICADO';
+  status: 'PENDENTE' | 'CONFIRMADO' | 'PUBLICADO' | 'RECUSADO';
+  important?: boolean;
+  notificationStatus?: string;
   createdBy?: string;
   createdAt?: string;
 }
@@ -73,6 +76,7 @@ export function CalendarView({ api, user }: CalendarViewProps) {
   const location = useLocation();
   const [urlParams, setUrlParams] = useSearchParams();
   const view = urlParams.get('view') === 'list' ? 'list' : 'calendar';
+  const selectedEventId = urlParams.get('event');
   const [query, setQuery] = useState('');
   const requestedTeam = urlParams.get('team');
   const [teamFilter, setTeamFilter] = useState<TeamKey | ''>(() =>
@@ -124,7 +128,8 @@ export function CalendarView({ api, user }: CalendarViewProps) {
     period: 'MANHÃ',
     lessonStart: '07:00',
     lessonEnd: '07:50',
-    comments: ''
+    comments: '',
+    important: false
   });
 
   // Atualiza data selecionada e mes/ano visivel se vier por parametro de URL
@@ -262,7 +267,8 @@ export function CalendarView({ api, user }: CalendarViewProps) {
       period: 'MANHÃ',
       lessonStart: '07:00',
       lessonEnd: '07:50',
-      comments: ''
+      comments: '',
+      important: false
     });
     setShowAddModal(true);
   };
@@ -280,7 +286,8 @@ export function CalendarView({ api, user }: CalendarViewProps) {
       period: ev.period || 'MANHÃ',
       lessonStart: lessonParts[0] || '07:00',
       lessonEnd: lessonParts[1] || '07:50',
-      comments: ev.comments || ''
+      comments: ev.comments || '',
+      important: Boolean(ev.important)
     });
     setShowAddModal(true);
   };
@@ -390,10 +397,36 @@ export function CalendarView({ api, user }: CalendarViewProps) {
     }
   };
 
+  const handleRejectEvent = async (id: string) => {
+    if (!canConfirmEvent(user)) return;
+    try {
+      await api(`/api/eventos/${id}/recusar`, { method: 'PATCH' });
+      setEvents(prev => prev.map(ev => ev.id === id ? { ...ev, status: 'RECUSADO' } : ev));
+      setActionMsg('Evento recusado.');
+      setTimeout(() => setActionMsg(''), 4000);
+    } catch (err: any) {
+      showError(err.message || 'Erro ao recusar evento');
+    }
+  };
+
+  const openEvent = (item: CalendarEvent) => {
+    const params = new URLSearchParams(urlParams);
+    params.set('event', item.id);
+    params.set('date', item.date);
+    setUrlParams(params, { replace: true });
+  };
+  const closeEvent = () => {
+    const params = new URLSearchParams(urlParams);
+    params.delete('event');
+    setUrlParams(params, { replace: true });
+  };
+  const selectedEvent = selectedEventId ? events.find(event => event.id === selectedEventId) : undefined;
+
   const renderActivity = (kind: ActivityKind, item: ActivitySource) => {
     const canMutateContent = canMutateTeamContent(user, item);
     return <ActivityCard key={`${kind}-${item.id}`} kind={kind} item={item}>
       {kind === 'event' ? <>
+        <button type="button" className="btn-action-view" onClick={() => openEvent(item as CalendarEvent)}>Ver evento</button>
         {canEditEvent(user) &&
           <button type="button" className="btn-action-edit" onClick={() => openEditModal(item as CalendarEvent)}><Edit3 size={15} /> Editar</button>
         }
@@ -709,6 +742,11 @@ export function CalendarView({ api, user }: CalendarViewProps) {
                 />
               </label>
 
+              <label className="important-event-toggle">
+                <input type="checkbox" checked={newEvent.important} onChange={e => setNewEvent({ ...newEvent, important: e.target.checked })} />
+                <span><strong>Evento importante</strong><small>Envia e-mail para Gestão, Coordenação e Técnico após salvar.</small></span>
+              </label>
+
               <div className="cal-modal-actions">
                 <button
                   type="button"
@@ -732,6 +770,21 @@ export function CalendarView({ api, user }: CalendarViewProps) {
           </div>
         </div>
       )}
+      {selectedEventId && selectedEvent && <div className="dialog-layer" onClick={closeEvent}>
+        <section className="event-detail-modal" onClick={event => event.stopPropagation()} aria-modal="true" role="dialog" aria-labelledby="event-detail-title">
+          <button className="event-detail-close" onClick={closeEvent} aria-label="Fechar evento"><X /></button>
+          <span className="paper-label">{selectedEvent.important ? 'EVENTO IMPORTANTE' : 'EVENTO DA AGENDA'}</span>
+          <h2 id="event-detail-title">{selectedEvent.title}</h2>
+          <div className="event-detail-meta"><span>{selectedEvent.date.split('-').reverse().join('/')}</span><span>{selectedEvent.period}</span><span>{selectedEvent.lesson}</span><strong>{selectedEvent.status}</strong></div>
+          <p>{selectedEvent.comments || 'Sem descrição adicional.'}</p>
+          {selectedEvent.notificationStatus && <p className="event-notification-status">E-mail: {selectedEvent.notificationStatus}</p>}
+          {canConfirmEvent(user) && selectedEvent.status === 'PENDENTE' && <div className="event-decision-actions">
+            <button className="cal-auth-btn" onClick={() => handleConfirmEvent(selectedEvent.id)}>Confirmar evento</button>
+            <button className="event-reject-btn" onClick={() => handleRejectEvent(selectedEvent.id)}>Recusar evento</button>
+          </div>}
+          <FeedbackThread targetKind="eventos" targetId={selectedEvent.id} user={user} />
+        </section>
+      </div>}
     </main>
   );
 }
