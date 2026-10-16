@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { API } from './client';
 import { useNavigate } from 'react-router-dom';
 import {
   Shield,
@@ -34,7 +35,7 @@ function clearAdminToken() {
 
 async function adminFetch(path: string, init: RequestInit = {}) {
   const token = getAdminToken();
-  const res = await fetch(path, {
+  const res = await fetch(`${API}${path}`, {
     ...init,
     headers: {
       'content-type': 'application/json',
@@ -59,7 +60,7 @@ function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
     setLoading(true);
     setError('');
     try {
-      const data = await fetch('/api/admin/login', {
+      const data = await fetch(`${API}/api/admin/login`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ password })
