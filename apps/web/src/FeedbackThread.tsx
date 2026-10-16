@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { MessageSquare, Send, ShieldCheck, UserCheck, Award, AlertCircle, CheckCircle2 } from 'lucide-react';
 import type { AccountUser } from '@hortobots/shared/permissions';
 import { api } from './client';
+import { useDialog } from './App';
 
 export type FeedbackItem = {
   id: string;
@@ -48,6 +49,7 @@ export function FeedbackThread({
   user: AccountUser | null;
   onFeedbackAdded?: () => void;
 }) {
+  const { confirm, showError } = useDialog();
   const [items, setItems] = useState<FeedbackItem[]>([]);
   const [authorTag, setAuthorTag] = useState<FeedbackItem['authorTag']>('DIREÇÃO');
   const [message, setMessage] = useState('');
@@ -97,13 +99,14 @@ export function FeedbackThread({
   };
 
   const handleDelete = async (feedbackId: string) => {
-    if (!window.confirm('Deseja excluir este comentário?')) return;
+    const ok = await confirm('Deseja excluir este comentário? Esta ação não pode ser desfeita.');
+    if (!ok) return;
     try {
       await api(`/api/feedbacks/${feedbackId}`, { method: 'DELETE' });
       setItems(previous => previous.filter(f => f.id !== feedbackId));
       if (onFeedbackAdded) onFeedbackAdded();
     } catch (err: any) {
-      alert(err.message || 'Erro ao excluir feedback.');
+      showError(err.message || 'Erro ao excluir feedback.');
     }
   };
 

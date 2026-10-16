@@ -17,6 +17,7 @@ import {
 import type { AccountUser } from '@hortobots/shared/permissions';
 import { api } from './client';
 import { getAuthorTagBadge, FeedbackItem } from './FeedbackThread';
+import { useDialog } from './App';
 
 interface TargetGroup {
   key: string;
@@ -165,19 +166,22 @@ export function CalendarFeedbacks({
       setInlineSuccess(`Feedback adicionado com sucesso a ${group.title}!`);
       setTimeout(() => setInlineSuccess(null), 4000);
     } catch (err: any) {
-      alert(`Erro ao enviar feedback: ${err.message}`);
+      showError(`Erro ao enviar feedback: ${err.message}`);
     } finally {
       setInlineSubmitting(false);
     }
   };
 
+  const { confirm, showError } = useDialog();
+
   const handleDeleteFeedback = async (id: string) => {
-    if (!window.confirm('Deseja excluir este comentário?')) return;
+    const ok = await confirm('Deseja excluir este comentário? Esta ação não pode ser desfeita.');
+    if (!ok) return;
     try {
       await api(`/api/feedbacks/${id}`, { method: 'DELETE' });
       setFeedbacks(prev => prev.filter(f => f.id !== id));
     } catch (err: any) {
-      alert(`Erro ao excluir comentário: ${err.message}`);
+      showError(`Erro ao excluir comentário: ${err.message}`);
     }
   };
 

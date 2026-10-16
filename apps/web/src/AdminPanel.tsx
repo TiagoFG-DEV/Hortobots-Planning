@@ -14,6 +14,7 @@ import {
   RefreshCw,
   ChevronLeft
 } from 'lucide-react';
+import { useDialog } from './App';
 
 // Armazenamento em memória volátil: ao recarregar a página (F5),
 // a memória do JavaScript é reinicializada do zero, forçando nova autenticação.
@@ -121,6 +122,8 @@ function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
 // ─── Painel Principal ─────────────────────────────────────────────────────────
 function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const navigate = useNavigate();
+
+  const { showError } = useDialog();
 
   // DB Status
   const [dbStatus, setDbStatus] = useState<any>(null);
@@ -274,7 +277,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (err: any) {
-      alert(err.message || 'Falha ao gerar backup.');
+      showError(err.message || 'Falha ao gerar backup.');
     } finally {
       setBackupLoading(false);
     }
