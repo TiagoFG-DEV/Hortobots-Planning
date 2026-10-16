@@ -13,7 +13,7 @@ export type Feedback = {
   id: string;
   targetKind: 'registros' | 'testes' | 'eventos';
   targetId: string;
-  authorTag: 'DIREÇÃO' | 'COORDENAÇÃO' | 'TÉCNICO';
+  authorTag: 'DIREÇÃO' | 'COORDENAÇÃO' | 'TÉCNICO DE EQUIPE';
   message: string;
   createdBy: string;
   createdAt: string;

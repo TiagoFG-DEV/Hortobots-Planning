@@ -1,13 +1,14 @@
 {
   "name": "hortobots-planning",
   "private": true,
-  "version": "1.1.0",
+  "version": "2.0.0",
   "workspaces": [
     "apps/*",
     "packages/*"
   ],
   "scripts": {
     "build": "npm run build -w @hortobots/shared && npm run build -w @hortobots/api && npm run build -w @hortobots/web",
+    "test": "npm run test -w @hortobots/shared && npm run test -w @hortobots/api && npm run test -w @hortobots/web",
     "start:render": "npm run start:render -w @hortobots/api",
     "start:local": "npm run start:local -w @hortobots/api",
     "dev": "concurrently \"npm run dev -w @hortobots/api\" \"npm run dev -w @hortobots/web\"",

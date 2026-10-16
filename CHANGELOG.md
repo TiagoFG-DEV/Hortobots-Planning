@@ -2,6 +2,35 @@
 
 As versões futuras devem ser acrescentadas no topo deste arquivo, preservando o histórico já publicado.
 
+## [2.0.0] — 2026-10-15
+
+### Visualização Irrestrita e Pesquisa de Registros
+
+- Troca do texto e conceito do botão de consulta geral para **Pesquisar registros**, tornando o objetivo da busca mais intuitivo para alunos, mentores e visitantes.
+- Visualização irrestrita de todos os diários de bordo: alunos de uma equipe podem abrir e consultar diretamente o caderno de qualquer outra equipe (ex.: Aluno FLL navegando no diário OBR e vice-versa), sem serem ejetados ou confinados por filtros compulsórios na URL.
+- Preservação estrita das regras de autoria e integridade: apenas as contas de alunos responsáveis da respectiva equipe têm permissão para criar, editar ou excluir registros e testes; perfis visitantes ou de outras equipes contam com acesso de visualização completo, incluindo visualização de mídias, gráficos e download ilimitado de relatórios em PDF.
+- Aprimoramento da limpeza de filtros na listagem: ao alternar de visualização ou clicar em "Limpar filtros", parâmetros de equipe são purgados da URL e do estado, garantindo que nenhum registro de outra equipe seja omitido inadvertidamente.
+
+### Elementos de Competição nos Cadernos Específicos
+
+- **Cadernos FLL (SESI Hortobots e Under Construction):**
+  - Inclusão de atalhos rápidos (*chips*) no formulário de criação de registros para os pilares e termos oficiais da temporada BIOGLOW: `projeto-de-inovacao`, `design-do-robo`, `core-values`, `treino-de-mesa`, `missao-bioglow`, `programacao`, `mecanica` e `calibracao`.
+  - No formulário de Simulações e Testes FLL, inclusão de card orientativo dinâmico que exibe a pontuação mínima e máxima da missão BIOGLOW selecionada, critérios de pontuação, alertas de missão compartilhada ou pontos perdíveis e lembrete do teto oficial de 530 pontos.
+- **Caderno OBR (Hortobots OBR):**
+  - Inclusão de atalhos rápidos no formulário de criação de registros para as regras de Resgate 2026: `resgate-2026`, `seguidor-de-linha`, `area-de-resgate`, `vitimas`, `obstaculos`, `gangorra-redutor`, `sensores` e `programacao`.
+  - Configuração de pontuação máxima por arena com cálculo automático de aproveitamento.
+
+### Estúdio de Banner A × B Editável no Canva
+
+- Ferramenta completa de síntese técnica do diário e projeto para Banner científico nas proporções configuráveis de largura e altura A × B (em centímetros).
+- Extração automática de dados dos cadernos, registros técnicos e testes com suporte a anexos em DOCX, XLSX, PDF e texto.
+- Exportação em `.pptx` (PowerPoint) nativo estruturado elemento por elemento (caixas textuais individuais, blocos e formas geométricas coloridas), permitindo upload e edição completa de cada elemento dentro do website [Canva.com](https://www.canva.com).
+
+### Notificações e Administração
+
+- Notificações por e-mail estilizadas com identidade visual do sistema e disparadas automaticamente via API Gmail para eventos comuns e urgentes.
+- Painel Administrativo `/admin` exclusivo para manutenção de credenciais, monitoramento de armazenamento e verificação de saúde do sistema.
+
 ## [1.1.0] — 2026-10-14
 
 ### Temporadas e desempenho

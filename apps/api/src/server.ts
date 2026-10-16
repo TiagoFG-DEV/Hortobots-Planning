@@ -3,16 +3,16 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile, readFile, readdir, rm } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import accounts from './accounts.json' with { type: 'json' };
-import { storageService, logsRoot, isSupabaseEnabled } from './storageService.js';
+import { storageService, logsRoot, isSupabaseEnabled, supabase } from './storageService.js';
 import { belongsToSesiHortobotsFll } from './teamContent.js';
 import { collaborationService, type BannerRecord } from './collaborationService.js';
 import { createBannerPptx, extractBannerFiles, synthesizeBanner, type BannerContent, type BannerFile } from './bannerService.js';
-import { sendImportantEventEmail } from './notificationService.js';
+import { sendImportantEventEmail, sendComumEventEmail } from './notificationService.js';
 import {
   canCreateFeedback,
   canConfirmEvent,
@@ -31,15 +31,18 @@ type Role = AccountRole;
 type UserSession = AccountUser;
 
 const sessions = new Map<string, UserSession>();
+const adminSessions = new Set<string>();
 const apiRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const webRoot = path.resolve(apiRoot, '../web/dist');
+const accountsPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), 'accounts.json');
+const adminPasswordPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), 'admin-password.json');
 
 const app = express();
 
 // Middlewares essenciais
 app.use(cors({ origin: true, credentials: true }));
 app.use(helmet({
-  contentSecurityPolicy: false // Permite servir o front e recursos integrados sem bloqueio estrito em dev/prod
+  contentSecurityPolicy: false
 }));
 app.use(express.json({ limit: '80mb' }));
 app.use(express.urlencoded({ extended: true, limit: '80mb' }));
@@ -68,6 +71,15 @@ const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction): vo
   next();
 };
 
+const adminAuthMiddleware = (req: AuthRequest, res: Response, next: NextFunction): void => {
+  const token = String(req.headers.authorization || '').replace('Bearer ', '');
+  if (!adminSessions.has(token)) {
+    res.status(401).json({ error: { message: 'Acesso administrativo negado.' } });
+    return;
+  }
+  next();
+};
+
 const sanitizeFilename = (v: string) =>
   v.normalize('NFD')
    .replace(/[\u0300-\u036f]/g, '')
@@ -89,7 +101,34 @@ const belongsToTeam = (item: any, teamKey: keyof typeof teamDefinitions) => {
   return teamKey === 'under' ? marker.includes('underconstruction') : !marker.includes('underconstruction');
 };
 
-// Endpoint de Saúde
+// ─── Helper: disparo de email de evento ──────────────────────────────────────
+async function tryFireEventEmail(saved: any, isUrgent: boolean): Promise<string> {
+  try {
+    const settings = await collaborationService.getNotificationSettings();
+    const notification = isUrgent
+      ? await sendImportantEventEmail(saved, settings)
+      : await sendComumEventEmail(saved, settings);
+    return notification.sent ? 'ENVIADO' : `PENDENTE: ${notification.reason}`;
+  } catch (error) {
+    console.warn('[Gmail] Falha ao enviar e-mail de evento:', error instanceof Error ? error.message : error);
+    return 'FALHOU: não foi possível concluir o envio pela API Gmail.';
+  }
+}
+
+// ─── Helper: carregar/salvar senha admin ──────────────────────────────────────
+async function getAdminPasswordHash(): Promise<{ hash: string; salt: string }> {
+  try {
+    const raw = await readFile(adminPasswordPath, 'utf8');
+    return JSON.parse(raw);
+  } catch {
+    // Senha padrão: Horto#Mentor26
+    const salt = 'a7f3c2d1e8b9f4a6c0d5e2b1f8a9c3d7';
+    const hash = scryptSync('Horto#Mentor26', salt, 64).toString('hex');
+    return { hash, salt };
+  }
+}
+
+// ─── Endpoint de Saúde ────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
   res.json({
     ok: true,
@@ -99,7 +138,7 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Endpoint de Login
+// ─── Endpoint de Login ────────────────────────────────────────────────────────
 app.post('/api/auth/login', (req, res) => {
   const { username, password } = req.body || {};
   const account = (accounts as any[]).find(x => x.username === String(username).toLowerCase());
@@ -120,332 +159,183 @@ app.post('/api/auth/login', (req, res) => {
   res.json({ token, user: { username: account.username, role: account.role } });
 });
 
-// Stable public contract used by the independently deployed BIOGLOW portal.
-// It deliberately exposes only the SESI Hortobots FLL archive.
-app.get('/api/public/teams/sesi-hortobots-fll', async (_req, res) => {
+// ─── Admin: Login ──────────────────────────────────────────────────────────────
+app.post('/api/admin/login', async (req, res) => {
+  const { password } = req.body || {};
+  const { hash, salt } = await getAdminPasswordHash();
+  let valid = false;
   try {
-    const [records, tests] = await Promise.all([
+    const got = scryptSync(String(password), salt, 64);
+    const expected = Buffer.from(hash, 'hex');
+    valid = timingSafeEqual(got, expected);
+  } catch {
+    valid = false;
+  }
+  if (!valid) {
+    res.status(401).json({ error: { message: 'Senha administrativa incorreta.' } });
+    return;
+  }
+  const token = randomBytes(32).toString('hex');
+  adminSessions.add(token);
+  res.json({ token });
+});
+
+// ─── Admin: Logout ─────────────────────────────────────────────────────────────
+app.post('/api/admin/logout', adminAuthMiddleware, (req: AuthRequest, res: Response) => {
+  const token = String(req.headers.authorization || '').replace('Bearer ', '');
+  adminSessions.delete(token);
+  res.json({ ok: true });
+});
+
+// ─── Admin: Status do Banco ────────────────────────────────────────────────────
+app.get('/api/admin/db-status', adminAuthMiddleware, async (_req: AuthRequest, res: Response) => {
+  try {
+    const [eventos, registros, testes] = await Promise.all([
+      storageService.listItems('eventos'),
       storageService.listItems('registros'),
       storageService.listItems('testes')
     ]);
+
+    let storageBytes = 0;
+    if (isSupabaseEnabled && supabase) {
+      // Aproximação do uso de armazenamento no Supabase Storage
+      const { data: files } = await supabase.storage.from('hortobots-planning').list('', { limit: 1000 });
+      storageBytes = (files || []).reduce((acc, f) => acc + (f.metadata?.size || 0), 0);
+    }
+
     res.json({
-      version: 1,
-      team: 'SESI Hortobots (FLL)',
-      records: records.filter(belongsToSesiHortobotsFll),
-      tests: tests.filter(belongsToSesiHortobotsFll)
+      storage: isSupabaseEnabled ? 'supabase' : 'local',
+      counts: {
+        eventos: eventos.length,
+        registros: registros.length,
+        testes: testes.length,
+        total: eventos.length + registros.length + testes.length
+      },
+      storageBytes,
+      storageMb: (storageBytes / 1024 / 1024).toFixed(2)
     });
-  } catch {
-    res.status(500).json({ error: { message: 'Não foi possível consultar o acervo público da equipe.' } });
-  }
-});
-
-const biologyFeeds = {
-  nature: 'https://www.sciencedaily.com/rss/plants_animals.xml',
-  biology: 'https://www.sciencedaily.com/rss/plants_animals/biology.xml',
-  research: 'https://phys.org/rss-feed/biology-news/'
-} as const;
-const biologyFeedCache = new Map<string, { body: string; contentType: string; expiresAt: number }>();
-
-// Same-origin relay for the team's public RSS sources. This is intentionally
-// restricted to the allowlist above, so it cannot become an open proxy.
-app.get('/api/public/biology-feed/:feed', async (req, res) => {
-  const feed = req.params.feed as keyof typeof biologyFeeds;
-  const source = biologyFeeds[feed];
-  if (!source) {
-    res.status(404).json({ error: { message: 'Feed de biologia não encontrado.' } });
-    return;
-  }
-
-  const cached = biologyFeedCache.get(feed);
-  if (cached && cached.expiresAt > Date.now()) {
-    res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
-    res.type(cached.contentType).send(cached.body);
-    return;
-  }
-
-  try {
-    const response = await fetch(source, {
-      signal: AbortSignal.timeout(12_000),
-      headers: { 'User-Agent': 'HortobotsPlanning/1.0 (+https://github.com/TiagoFG-DEV/Hortobots-Planning)' }
-    });
-    if (!response.ok) throw new Error(`Feed respondeu ${response.status}`);
-    const body = await response.text();
-    const contentType = response.headers.get('content-type') || 'application/xml; charset=utf-8';
-    biologyFeedCache.set(feed, { body, contentType, expiresAt: Date.now() + 10 * 60 * 1000 });
-    res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
-    res.type(contentType).send(body);
-  } catch {
-    if (cached) {
-      res.set('Warning', '110 - "Resposta de feed desatualizada"');
-      res.type(cached.contentType).send(cached.body);
-      return;
-    }
-    res.status(502).json({ error: { message: 'Não foi possível consultar este feed agora.' } });
-  }
-});
-
-// Endpoint de Listagem (registros, testes, eventos)
-app.get('/api/:kind', async (req, res) => {
-  const kind = req.params.kind as 'registros' | 'testes' | 'eventos';
-  if (!['registros', 'testes', 'eventos'].includes(kind)) {
-    res.status(404).json({ error: { message: 'Recurso não encontrado.' } });
-    return;
-  }
-
-  try {
-    const items = await storageService.listItems(kind);
-    res.json(items);
   } catch (err: any) {
-    res.status(500).json({ error: { message: 'Erro ao buscar itens.' } });
+    res.status(500).json({ error: { message: 'Erro ao consultar status do banco.' } });
   }
 });
 
-// Endpoint para buscar item individual por ID
-app.get('/api/:kind/:id', async (req: Request, res: Response) => {
-  const kind = String(req.params.kind) as 'registros' | 'testes' | 'eventos';
-  const id = String(req.params.id);
-  if (!['registros', 'testes', 'eventos'].includes(kind)) {
-    res.status(404).json({ error: { message: 'Recurso não encontrado.' } });
-    return;
-  }
+// ─── Admin: Backup do Banco ────────────────────────────────────────────────────
+app.get('/api/admin/backup', adminAuthMiddleware, async (_req: AuthRequest, res: Response) => {
   try {
-    const item = await storageService.getItem(kind, id);
-    if (!item) {
-      res.status(404).json({ error: { message: 'Item não encontrado.' } });
-      return;
-    }
-    res.json(item);
+    const JSZip = (await import('jszip')).default;
+    const zip = new JSZip();
+
+    const [eventos, registros, testes] = await Promise.all([
+      storageService.listItems('eventos'),
+      storageService.listItems('registros'),
+      storageService.listItems('testes')
+    ]);
+
+    const settings = await collaborationService.getNotificationSettings();
+
+    zip.file('backup/eventos.json', JSON.stringify(eventos, null, 2));
+    zip.file('backup/registros.json', JSON.stringify(registros, null, 2));
+    zip.file('backup/testes.json', JSON.stringify(testes, null, 2));
+    zip.file('backup/configuracoes.json', JSON.stringify(settings, null, 2));
+    zip.file('backup/meta.json', JSON.stringify({
+      exportedAt: new Date().toISOString(),
+      storage: isSupabaseEnabled ? 'supabase' : 'local',
+      counts: { eventos: eventos.length, registros: registros.length, testes: testes.length }
+    }, null, 2));
+
+    const buffer = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
+    const filename = `hortobots-backup-${new Date().toISOString().slice(0, 10)}.zip`;
+    res.setHeader('content-type', 'application/zip');
+    res.setHeader('content-disposition', `attachment; filename="${filename}"`);
+    res.send(buffer);
   } catch (err: any) {
-    res.status(500).json({ error: { message: 'Erro ao buscar item.' } });
+    res.status(500).json({ error: { message: 'Erro ao gerar backup.' } });
   }
 });
 
-// Endpoint de Criação (com upload de mídias para Supabase Storage)
-app.post('/api/:kind', authMiddleware, async (req: AuthRequest, res: Response) => {
-  const kind = String(req.params.kind) as 'registros' | 'testes' | 'eventos';
-  const body = req.body || {};
-  const user = req.user!;
-  const modality = String(body.modality || 'FLL').toUpperCase();
-
-  if (!['registros', 'testes', 'eventos'].includes(kind)) {
-    res.status(404).json({ error: { message: 'Recurso não encontrado.' } });
-    return;
-  }
-
-  // Regra de Permissão
-  if (kind === 'eventos' && !canCreateEvent(user)) {
-    res.status(403).json({ error: { message: 'Somente Mentor ou Gestão pode cadastrar eventos.' } });
-    return;
-  }
-
-  if (kind !== 'eventos' && !canCreateTeamContent(user, modality)) {
-    res.status(403).json({ error: { message: 'Somente a conta de aluno responsável por este caderno pode criar registros ou testes.' } });
-    return;
-  }
-
-  const id = randomBytes(4).toString('hex');
-  const dateStr = body.date || new Date().toISOString().split('T')[0];
-  const folderName = `${dateStr}-${id}`;
-
-  // Processa uploads de mídias (imagens / vídeos) para Supabase Storage ou local
-  const mediaList = [];
-  for (const file of body.media || []) {
-    const uploaded = await storageService.uploadMediaItem(kind, folderName, file);
-    mediaList.push(uploaded);
-  }
-
-  // Eventos começam como PENDENTE quando urgentes ou lançados por mentor, exigindo confirmação da Gestão
-  let status = 'PUBLICADO';
-  if (kind === 'eventos') {
-    status = body.priority === 'URGENTE' || user.role === 'mentor' ? 'PENDENTE' : 'CONFIRMADO';
-  }
-
-  const recordData = {
-    ...body,
-    id,
-    media: mediaList,
-    status,
-    createdBy: user.username,
-    createdAt: new Date().toISOString()
-  };
-
+// ─── Admin: Esvaziar Banco ────────────────────────────────────────────────────
+app.delete('/api/admin/db-clear', adminAuthMiddleware, async (_req: AuthRequest, res: Response) => {
   try {
-    let saved = await storageService.saveItem(kind, recordData, folderName);
-    if (kind === 'eventos' && (Boolean(body.important) || body.priority === 'URGENTE')) {
+    if (isSupabaseEnabled && supabase) {
+      // Apaga todas as linhas das tabelas principais
+      await supabase.from('events').delete().neq('id', '');
+      await supabase.from('records').delete().neq('id', '');
+      await supabase.from('tests').delete().neq('id', '');
+      await supabase.from('feedbacks').delete().neq('id', '');
+    }
+    // Limpa também arquivos locais
+    for (const kind of ['eventos', 'registros', 'testes'] as const) {
       try {
-        const settings = await collaborationService.getNotificationSettings();
-        const notification = await sendImportantEventEmail(saved, settings);
-        const notificationStatus = notification.sent ? 'ENVIADO' : `PENDENTE: ${notification.reason}`;
-        saved = await storageService.updateItem('eventos', id, { ...saved, notificationStatus });
-      } catch (error) {
-        console.warn('[Gmail] Falha ao enviar evento importante:', error instanceof Error ? error.message : error);
-        const notificationStatus = 'FALHOU: não foi possível concluir o envio pela API Gmail.';
-        saved = await storageService.updateItem('eventos', id, { ...saved, notificationStatus });
-      }
+        const kindPath = path.join(logsRoot, kind);
+        if (existsSync(kindPath)) {
+          const entries = await readdir(kindPath, { withFileTypes: true });
+          for (const entry of entries.filter(e => e.isDirectory())) {
+            await rm(path.join(kindPath, entry.name), { recursive: true, force: true });
+          }
+        }
+      } catch { /* ignora */ }
     }
-    res.json(saved);
+    res.json({ ok: true, message: 'Banco de dados esvaziado com sucesso.' });
   } catch (err: any) {
-    res.status(500).json({ error: { message: 'Erro ao salvar no armazenamento.' } });
+    res.status(500).json({ error: { message: 'Erro ao esvaziar banco de dados.' } });
   }
 });
 
-// Endpoint de Atualização / Edição
-app.put('/api/:kind/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
-  const kind = String(req.params.kind) as 'registros' | 'testes' | 'eventos';
-  const id = String(req.params.id);
-  const body = req.body || {};
-  const user = req.user!;
-  const modality = String(body.modality || 'FLL').toUpperCase();
-
-  if (!['registros', 'testes', 'eventos'].includes(kind)) {
-    res.status(404).json({ error: { message: 'Recurso não encontrado.' } });
+// ─── Admin: Alterar Senha de Perfil ──────────────────────────────────────────
+app.put('/api/admin/change-password', adminAuthMiddleware, async (req: AuthRequest, res: Response) => {
+  const { username, newPassword } = req.body || {};
+  if (!username || !newPassword || String(newPassword).length < 6) {
+    res.status(400).json({ error: { message: 'Informe o perfil e uma senha com ao menos 6 caracteres.' } });
     return;
   }
-
-  const existing = await storageService.getItem(kind, id);
-  if (!existing) {
-    res.status(404).json({ error: { message: 'Item não encontrado.' } });
-    return;
-  }
-
-  if (kind === 'eventos') {
-    if (!canEditEvent(user)) {
-      res.status(403).json({ error: { message: 'Somente o Mentor pode editar eventos.' } });
-      return;
-    }
-  } else {
-    if (!canMutateTeamContent(user, existing)) {
-      res.status(403).json({ error: { message: 'Somente o aluno responsável por este caderno pode editar registros ou testes.' } });
-      return;
-    }
-    if (modality !== String(existing.modality || '').toUpperCase()) {
-      res.status(403).json({ error: { message: 'Não é permitido transferir conteúdo entre modalidades.' } });
-      return;
-    }
-  }
-
-  const dateStr = body.date || new Date().toISOString().split('T')[0];
-  const folderName = `${dateStr}-${id}`;
-
-  const mediaList = [];
-  for (const file of body.media || []) {
-    const uploaded = await storageService.uploadMediaItem(kind, folderName, file);
-    mediaList.push(uploaded);
-  }
-
-  const updateData = {
-    ...body,
-    media: mediaList
-  };
-
   try {
-    const updated = await storageService.updateItem(kind, id, updateData);
-    res.json(updated);
-  } catch (err: any) {
-    res.status(500).json({ error: { message: 'Erro ao atualizar dados.' } });
-  }
-});
-
-// Endpoint de Exclusão / Remoção
-app.delete('/api/:kind/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
-  const kind = String(req.params.kind) as 'registros' | 'testes' | 'eventos';
-  const id = String(req.params.id);
-  const user = req.user!;
-
-  if (!['registros', 'testes', 'eventos'].includes(kind)) {
-    res.status(404).json({ error: { message: 'Recurso não encontrado.' } });
-    return;
-  }
-
-  const existing = await storageService.getItem(kind, id);
-  if (!existing) {
-    res.status(404).json({ error: { message: 'Item não encontrado.' } });
-    return;
-  }
-
-  const allowed = kind === 'eventos'
-    ? canDeleteEvent(user)
-    : canMutateTeamContent(user, existing);
-  if (!allowed) {
-    res.status(403).json({ error: { message: kind === 'eventos' ? 'Somente o Mentor pode excluir eventos.' : 'Somente o aluno responsável por este caderno pode excluir registros ou testes.' } });
-    return;
-  }
-
-  try {
-    const result = await storageService.deleteItem(kind, id);
-    res.json(result);
-  } catch (err: any) {
-    res.status(500).json({ error: { message: 'Erro ao excluir item.' } });
-  }
-});
-
-// Endpoint para obter URL de upload direto para nuvem (Supabase Storage)
-// Permite que navegadores enviem vídeos e fotos diretamente para a nuvem sem sobrecarregar a API
-app.post('/api/storage/upload-url', authMiddleware, async (req: AuthRequest, res: Response) => {
-  const { filename, kind = 'registros', folderName, modality = '' } = req.body || {};
-  const user = req.user!;
-  if (!filename) {
-    res.status(400).json({ error: { message: 'Nome do arquivo obrigatório.' } });
-    return;
-  }
-  if (!['registros', 'testes'].includes(String(kind)) || !canCreateTeamContent(user, String(modality))) {
-    res.status(403).json({ error: { message: 'Sem permissão para enviar mídias para este caderno.' } });
-    return;
-  }
-
-  try {
-    const uploadData = await storageService.createDirectUploadUrl(
-      kind as any,
-      String(filename),
-      folderName ? String(folderName) : undefined
-    );
-
-    if (!uploadData) {
-      res.json({ direct: false });
+    const currentAccounts = JSON.parse(await readFile(accountsPath, 'utf8')) as any[];
+    const idx = currentAccounts.findIndex(a => a.username === String(username).toLowerCase());
+    if (idx === -1) {
+      res.status(404).json({ error: { message: 'Perfil não encontrado.' } });
       return;
     }
-
-    res.json({
-      direct: true,
-      ...uploadData
-    });
+    const salt = randomBytes(16).toString('hex');
+    const hash = scryptSync(String(newPassword), salt, 64).toString('hex');
+    currentAccounts[idx] = { ...currentAccounts[idx], salt, hash };
+    await writeFile(accountsPath, JSON.stringify(currentAccounts, null, 2), 'utf8');
+    res.json({ ok: true, message: `Senha do perfil "${username}" atualizada com sucesso.` });
   } catch (err: any) {
-    console.error('Erro ao gerar URL de upload direto:', err);
-    res.status(500).json({ error: { message: 'Não foi possível gerar a autorização de upload na nuvem.' } });
+    res.status(500).json({ error: { message: 'Erro ao alterar senha.' } });
   }
 });
 
-// Endpoint de Confirmação de Evento (Gestão autoriza)
-app.patch('/api/eventos/:id/confirmar', authMiddleware, async (req: AuthRequest, res: Response) => {
-  const user = req.user!;
-  if (!canConfirmEvent(user)) {
-    res.status(403).json({ error: { message: 'Apenas a Gestão pode autorizar eventos.' } });
+// ─── Admin: Alterar Senha Administrativa ──────────────────────────────────────
+app.put('/api/admin/change-admin-password', adminAuthMiddleware, async (req: AuthRequest, res: Response) => {
+  const { newPassword } = req.body || {};
+  if (!newPassword || String(newPassword).length < 8) {
+    res.status(400).json({ error: { message: 'A senha administrativa precisa ter ao menos 8 caracteres.' } });
     return;
   }
-
-  const id = String(req.params.id || '');
   try {
-    const updated = await storageService.updateEventStatus(id, 'CONFIRMADO');
-    if (!updated) {
-      res.status(404).json({ error: { message: 'Evento não encontrado.' } });
-      return;
-    }
-    res.json(updated);
+    const salt = randomBytes(16).toString('hex');
+    const hash = scryptSync(String(newPassword), salt, 64).toString('hex');
+    await writeFile(adminPasswordPath, JSON.stringify({ hash, salt }, null, 2), 'utf8');
+    // Invalida todas as sessões admin existentes para forçar re-login
+    adminSessions.clear();
+    res.json({ ok: true, message: 'Senha administrativa alterada. Faça login novamente.' });
   } catch (err: any) {
-    res.status(500).json({ error: { message: 'Erro ao atualizar evento.' } });
+    res.status(500).json({ error: { message: 'Erro ao alterar senha administrativa.' } });
   }
 });
 
-app.patch('/api/eventos/:id/recusar', authMiddleware, async (req: AuthRequest, res: Response) => {
-  const user = req.user!;
-  if (!canConfirmEvent(user)) {
-    res.status(403).json({ error: { message: 'Apenas a Gestão pode recusar eventos.' } });
-    return;
+// ─── Admin: Listar perfis ──────────────────────────────────────────────────────
+app.get('/api/admin/profiles', adminAuthMiddleware, async (_req: AuthRequest, res: Response) => {
+  try {
+    const currentAccounts = JSON.parse(await readFile(accountsPath, 'utf8')) as any[];
+    res.json(currentAccounts.map(a => ({ username: a.username, role: a.role })));
+  } catch {
+    res.status(500).json({ error: { message: 'Erro ao listar perfis.' } });
   }
-  const updated = await storageService.updateEventStatus(String(req.params.id || ''), 'RECUSADO');
-  res.json(updated);
 });
 
+// ─── Configurações de Notificações (Mentor) ─────────────────────────────────
+// ATENÇÃO: estas rotas DEVEM ficar ANTES das rotas genéricas /api/:kind
 app.get('/api/configuracoes/notificacoes', authMiddleware, async (req: AuthRequest, res: Response) => {
   if (!canManageNotificationSettings(req.user!)) {
     res.status(403).json({ error: { message: 'Somente o Mentor pode visualizar estes endereços.' } });
@@ -471,6 +361,7 @@ app.put('/api/configuracoes/notificacoes', authMiddleware, async (req: AuthReque
   res.json(await collaborationService.saveNotificationSettings(value, req.user!.username));
 });
 
+// ─── Feedbacks (DEVE ficar antes de /api/:kind) ──────────────────────────────
 app.get('/api/feedbacks', async (req, res) => {
   const targetKind = String(req.query.targetKind || '') as 'registros' | 'testes' | 'eventos';
   const targetId = String(req.query.targetId || '');
@@ -488,9 +379,9 @@ app.post('/api/feedbacks', authMiddleware, async (req: AuthRequest, res: Respons
   }
   const targetKind = String(req.body?.targetKind || '') as 'registros' | 'testes' | 'eventos';
   const targetId = String(req.body?.targetId || '');
-  const authorTag = String(req.body?.authorTag || '') as 'DIREÇÃO' | 'COORDENAÇÃO' | 'TÉCNICO';
+  const authorTag = String(req.body?.authorTag || '') as 'DIREÇÃO' | 'COORDENAÇÃO' | 'TÉCNICO DE EQUIPE';
   const message = String(req.body?.message || '').trim();
-  if (!['registros', 'testes', 'eventos'].includes(targetKind) || !/^[a-f0-9]{8}$/.test(targetId) || !['DIREÇÃO', 'COORDENAÇÃO', 'TÉCNICO'].includes(authorTag) || !message || message.length > 2000) {
+  if (!['registros', 'testes', 'eventos'].includes(targetKind) || !/^[a-f0-9]{8}$/.test(targetId) || !['DIREÇÃO', 'COORDENAÇÃO', 'TÉCNICO DE EQUIPE'].includes(authorTag) || !message || message.length > 2000) {
     res.status(400).json({ error: { message: 'Preencha a tag e uma mensagem de até 2.000 caracteres.' } });
     return;
   }
@@ -505,6 +396,7 @@ app.post('/api/feedbacks', authMiddleware, async (req: AuthRequest, res: Respons
   }));
 });
 
+// ─── Banners (DEVE ficar antes de /api/:kind) ────────────────────────────────
 app.get('/api/banners/:teamKey', async (req, res) => {
   const teamKey = String(req.params.teamKey);
   if (!isTeamKey(teamKey)) {
@@ -620,8 +512,330 @@ app.get('/api/banners/:teamKey/canva', async (req, res) => {
   res.send(file);
 });
 
-// Servir arquivos de mídia dos registros/testes salvos em Logs/
-// GET /api/media/:kind/:folder/:file
+// ─── Stable public contract: BIOGLOW portal ───────────────────────────────────
+app.get('/api/public/teams/sesi-hortobots-fll', async (_req, res) => {
+  try {
+    const [records, tests] = await Promise.all([
+      storageService.listItems('registros'),
+      storageService.listItems('testes')
+    ]);
+    res.json({
+      version: 1,
+      team: 'SESI Hortobots (FLL)',
+      records: records.filter(belongsToSesiHortobotsFll),
+      tests: tests.filter(belongsToSesiHortobotsFll)
+    });
+  } catch {
+    res.status(500).json({ error: { message: 'Não foi possível consultar o acervo público da equipe.' } });
+  }
+});
+
+const biologyFeeds = {
+  nature: 'https://www.sciencedaily.com/rss/plants_animals.xml',
+  biology: 'https://www.sciencedaily.com/rss/plants_animals/biology.xml',
+  research: 'https://phys.org/rss-feed/biology-news/'
+} as const;
+const biologyFeedCache = new Map<string, { body: string; contentType: string; expiresAt: number }>();
+
+app.get('/api/public/biology-feed/:feed', async (req, res) => {
+  const feed = req.params.feed as keyof typeof biologyFeeds;
+  const source = biologyFeeds[feed];
+  if (!source) {
+    res.status(404).json({ error: { message: 'Feed de biologia não encontrado.' } });
+    return;
+  }
+
+  const cached = biologyFeedCache.get(feed);
+  if (cached && cached.expiresAt > Date.now()) {
+    res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
+    res.type(cached.contentType).send(cached.body);
+    return;
+  }
+
+  try {
+    const response = await fetch(source, {
+      signal: AbortSignal.timeout(12_000),
+      headers: { 'User-Agent': 'HortobotsPlanning/1.0 (+https://github.com/TiagoFG-DEV/Hortobots-Planning)' }
+    });
+    if (!response.ok) throw new Error(`Feed respondeu ${response.status}`);
+    const body = await response.text();
+    const contentType = response.headers.get('content-type') || 'application/xml; charset=utf-8';
+    biologyFeedCache.set(feed, { body, contentType, expiresAt: Date.now() + 10 * 60 * 1000 });
+    res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
+    res.type(contentType).send(body);
+  } catch {
+    if (cached) {
+      res.set('Warning', '110 - "Resposta de feed desatualizada"');
+      res.type(cached.contentType).send(cached.body);
+      return;
+    }
+    res.status(502).json({ error: { message: 'Não foi possível consultar este feed agora.' } });
+  }
+});
+
+// ─── Endpoint de Listagem genérico (registros, testes, eventos) ───────────────
+app.get('/api/:kind', async (req, res) => {
+  const kind = req.params.kind as 'registros' | 'testes' | 'eventos';
+  if (!['registros', 'testes', 'eventos'].includes(kind)) {
+    res.status(404).json({ error: { message: 'Recurso não encontrado.' } });
+    return;
+  }
+
+  try {
+    const items = await storageService.listItems(kind);
+    res.json(items);
+  } catch (err: any) {
+    res.status(500).json({ error: { message: 'Erro ao buscar itens.' } });
+  }
+});
+
+// ─── Endpoint individual por ID ───────────────────────────────────────────────
+app.get('/api/:kind/:id', async (req: Request, res: Response) => {
+  const kind = String(req.params.kind) as 'registros' | 'testes' | 'eventos';
+  const id = String(req.params.id);
+  if (!['registros', 'testes', 'eventos'].includes(kind)) {
+    res.status(404).json({ error: { message: 'Recurso não encontrado.' } });
+    return;
+  }
+  try {
+    const item = await storageService.getItem(kind, id);
+    if (!item) {
+      res.status(404).json({ error: { message: 'Item não encontrado.' } });
+      return;
+    }
+    res.json(item);
+  } catch (err: any) {
+    res.status(500).json({ error: { message: 'Erro ao buscar item.' } });
+  }
+});
+
+// ─── Endpoint de Criação ──────────────────────────────────────────────────────
+app.post('/api/:kind', authMiddleware, async (req: AuthRequest, res: Response) => {
+  const kind = String(req.params.kind) as 'registros' | 'testes' | 'eventos';
+  const body = req.body || {};
+  const user = req.user!;
+  const modality = String(body.modality || 'FLL').toUpperCase();
+
+  if (!['registros', 'testes', 'eventos'].includes(kind)) {
+    res.status(404).json({ error: { message: 'Recurso não encontrado.' } });
+    return;
+  }
+
+  if (kind === 'eventos' && !canCreateEvent(user)) {
+    res.status(403).json({ error: { message: 'Somente Mentor ou Gestão pode cadastrar eventos.' } });
+    return;
+  }
+
+  if (kind !== 'eventos' && !canCreateTeamContent(user, modality)) {
+    res.status(403).json({ error: { message: 'Somente a conta de aluno responsável por este caderno pode criar registros ou testes.' } });
+    return;
+  }
+
+  const id = randomBytes(4).toString('hex');
+  const dateStr = body.date || new Date().toISOString().split('T')[0];
+  const folderName = `${dateStr}-${id}`;
+
+  const mediaList = [];
+  for (const file of body.media || []) {
+    const uploaded = await storageService.uploadMediaItem(kind, folderName, file);
+    mediaList.push(uploaded);
+  }
+
+  let status = 'PUBLICADO';
+  if (kind === 'eventos') {
+    status = body.priority === 'URGENTE' || user.role === 'mentor' ? 'PENDENTE' : 'CONFIRMADO';
+  }
+
+  const recordData = {
+    ...body,
+    id,
+    media: mediaList,
+    status,
+    createdBy: user.username,
+    createdAt: new Date().toISOString()
+  };
+
+  try {
+    let saved = await storageService.saveItem(kind, recordData, folderName);
+
+    // Disparo automático de e-mail para qualquer evento novo
+    if (kind === 'eventos') {
+      const isUrgent = body.priority === 'URGENTE' || Boolean(body.important);
+      const notificationStatus = await tryFireEventEmail(saved, isUrgent);
+      saved = await storageService.updateItem('eventos', id, { ...saved, notificationStatus });
+    }
+
+    res.json(saved);
+  } catch (err: any) {
+    res.status(500).json({ error: { message: 'Erro ao salvar no armazenamento.' } });
+  }
+});
+
+// ─── Endpoint de Atualização ──────────────────────────────────────────────────
+app.put('/api/:kind/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
+  const kind = String(req.params.kind) as 'registros' | 'testes' | 'eventos';
+  const id = String(req.params.id);
+  const body = req.body || {};
+  const user = req.user!;
+  const modality = String(body.modality || 'FLL').toUpperCase();
+
+  if (!['registros', 'testes', 'eventos'].includes(kind)) {
+    res.status(404).json({ error: { message: 'Recurso não encontrado.' } });
+    return;
+  }
+
+  const existing = await storageService.getItem(kind, id);
+  if (!existing) {
+    res.status(404).json({ error: { message: 'Item não encontrado.' } });
+    return;
+  }
+
+  if (kind === 'eventos') {
+    if (!canEditEvent(user)) {
+      res.status(403).json({ error: { message: 'Somente o Mentor pode editar eventos.' } });
+      return;
+    }
+  } else {
+    if (!canMutateTeamContent(user, existing)) {
+      res.status(403).json({ error: { message: 'Somente o aluno responsável por este caderno pode editar registros ou testes.' } });
+      return;
+    }
+    if (modality !== String(existing.modality || '').toUpperCase()) {
+      res.status(403).json({ error: { message: 'Não é permitido transferir conteúdo entre modalidades.' } });
+      return;
+    }
+  }
+
+  const dateStr = body.date || new Date().toISOString().split('T')[0];
+  const folderName = `${dateStr}-${id}`;
+
+  const mediaList = [];
+  for (const file of body.media || []) {
+    const uploaded = await storageService.uploadMediaItem(kind, folderName, file);
+    mediaList.push(uploaded);
+  }
+
+  const updateData = {
+    ...body,
+    media: mediaList
+  };
+
+  try {
+    let updated = await storageService.updateItem(kind, id, updateData);
+
+    // Disparo automático de e-mail na edição de evento
+    if (kind === 'eventos') {
+      const isUrgent = (body.priority || existing.priority) === 'URGENTE' || Boolean(body.important || existing.important);
+      const notificationStatus = await tryFireEventEmail({ ...existing, ...updated }, isUrgent);
+      updated = await storageService.updateItem('eventos', id, { ...updated, notificationStatus });
+    }
+
+    res.json(updated);
+  } catch (err: any) {
+    res.status(500).json({ error: { message: 'Erro ao atualizar dados.' } });
+  }
+});
+
+// ─── Endpoint de Exclusão ─────────────────────────────────────────────────────
+app.delete('/api/:kind/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
+  const kind = String(req.params.kind) as 'registros' | 'testes' | 'eventos';
+  const id = String(req.params.id);
+  const user = req.user!;
+
+  if (!['registros', 'testes', 'eventos'].includes(kind)) {
+    res.status(404).json({ error: { message: 'Recurso não encontrado.' } });
+    return;
+  }
+
+  const existing = await storageService.getItem(kind, id);
+  if (!existing) {
+    res.status(404).json({ error: { message: 'Item não encontrado.' } });
+    return;
+  }
+
+  const allowed = kind === 'eventos'
+    ? canDeleteEvent(user)
+    : canMutateTeamContent(user, existing);
+  if (!allowed) {
+    res.status(403).json({ error: { message: kind === 'eventos' ? 'Somente o Mentor pode excluir eventos.' : 'Somente o aluno responsável por este caderno pode excluir registros ou testes.' } });
+    return;
+  }
+
+  try {
+    const result = await storageService.deleteItem(kind, id);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: { message: 'Erro ao excluir item.' } });
+  }
+});
+
+// ─── Upload direto para nuvem ─────────────────────────────────────────────────
+app.post('/api/storage/upload-url', authMiddleware, async (req: AuthRequest, res: Response) => {
+  const { filename, kind = 'registros', folderName, modality = '' } = req.body || {};
+  const user = req.user!;
+  if (!filename) {
+    res.status(400).json({ error: { message: 'Nome do arquivo obrigatório.' } });
+    return;
+  }
+  if (!['registros', 'testes'].includes(String(kind)) || !canCreateTeamContent(user, String(modality))) {
+    res.status(403).json({ error: { message: 'Sem permissão para enviar mídias para este caderno.' } });
+    return;
+  }
+
+  try {
+    const uploadData = await storageService.createDirectUploadUrl(
+      kind as any,
+      String(filename),
+      folderName ? String(folderName) : undefined
+    );
+
+    if (!uploadData) {
+      res.json({ direct: false });
+      return;
+    }
+
+    res.json({
+      direct: true,
+      ...uploadData
+    });
+  } catch (err: any) {
+    console.error('Erro ao gerar URL de upload direto:', err);
+    res.status(500).json({ error: { message: 'Não foi possível gerar a autorização de upload na nuvem.' } });
+  }
+});
+
+// ─── Confirmação / Recusa de Evento ──────────────────────────────────────────
+app.patch('/api/eventos/:id/confirmar', authMiddleware, async (req: AuthRequest, res: Response) => {
+  const user = req.user!;
+  if (!canConfirmEvent(user)) {
+    res.status(403).json({ error: { message: 'Apenas a Gestão pode autorizar eventos.' } });
+    return;
+  }
+
+  const id = String(req.params.id || '');
+  try {
+    const updated = await storageService.updateEventStatus(id, 'CONFIRMADO');
+    if (!updated) {
+      res.status(404).json({ error: { message: 'Evento não encontrado.' } });
+      return;
+    }
+    res.json(updated);
+  } catch (err: any) {
+    res.status(500).json({ error: { message: 'Erro ao atualizar evento.' } });
+  }
+});
+
+app.patch('/api/eventos/:id/recusar', authMiddleware, async (req: AuthRequest, res: Response) => {
+  const user = req.user!;
+  if (!canConfirmEvent(user)) {
+    res.status(403).json({ error: { message: 'Apenas a Gestão pode recusar eventos.' } });
+    return;
+  }
+  const updated = await storageService.updateEventStatus(String(req.params.id || ''), 'RECUSADO');
+  res.json(updated);
+});
+
+// ─── Servir mídias locais ─────────────────────────────────────────────────────
 app.get('/api/media/:kind/:folder/:file', (req: Request, res: Response): void => {
   const kind = String(req.params['kind'] ?? '');
   const folder = String(req.params['folder'] ?? '');
@@ -633,7 +847,6 @@ app.get('/api/media/:kind/:folder/:file', (req: Request, res: Response): void =>
     return;
   }
 
-  // Sanitiza para evitar path traversal
   const safeFolder = path.basename(folder);
   const safeFile = path.basename(file);
   const filePath = path.join(logsRoot, kind, safeFolder, 'midias', safeFile);
@@ -646,10 +859,9 @@ app.get('/api/media/:kind/:folder/:file', (req: Request, res: Response): void =>
   res.sendFile(filePath);
 });
 
-// Servir Frontend estático compilado (Web)
+// ─── Frontend estático ────────────────────────────────────────────────────────
 app.use(express.static(webRoot));
 
-// Fallback SPA para rotas não-API
 app.use((req: Request, res: Response) => {
   if (req.url.startsWith('/api/')) {
     res.status(404).json({ error: { message: 'Rota de API não encontrada.' } });
@@ -658,7 +870,7 @@ app.use((req: Request, res: Response) => {
   res.sendFile(path.join(webRoot, 'index.html'));
 });
 
-// Tratador de erros global
+// ─── Tratador de erros global ─────────────────────────────────────────────────
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   console.error('Erro na aplicação:', err);
   res.status(500).json({ error: { message: 'Não foi possível concluir esta ação no servidor.' } });

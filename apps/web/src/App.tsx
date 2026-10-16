@@ -16,6 +16,7 @@ import {
   Menu,
   Plus,
   Search,
+  Shield,
   Trash2,
   Video,
   X
@@ -44,6 +45,7 @@ import { SESI_BIOGLOW_PORTAL } from './teamPortals';
 import { API, api } from './client';
 import { BannerStudio } from './BannerStudio';
 import { MentorSettings } from './MentorSettings';
+import { AdminPanel } from './AdminPanel';
 import { FeedbackThread } from './FeedbackThread';
 import { PerformancePanel } from './PerformancePanel';
 import { BIOGLOW_SEASON } from '@hortobots/shared';
@@ -314,7 +316,7 @@ function Login({ onLogin }: { onLogin: (u: User) => void }) {
           <div className="login-public-links">
             <Link className="visitor-calendar-link" to="/calendario">
               <Eye size={19} />
-              <span><strong>Somente visualizar</strong><small>Calendário e pesquisa geral</small></span>
+              <span><strong>Somente visualizar</strong><small>Calendário e pesquisar registros</small></span>
             </Link>
             <Link className="visitor-calendar-link bioglow-access-link" to={SESI_BIOGLOW_PORTAL.route}>
               <Leaf size={19} />
@@ -322,6 +324,9 @@ function Login({ onLogin }: { onLogin: (u: User) => void }) {
             </Link>
           </div>
           <small>Acesso exclusivo das equipes SESI 437</small>
+          <Link to="/admin" className="login-admin-access" aria-label="Acesso administrativo do sistema" tabIndex={-1}>
+            <Shield size={11} />
+          </Link>
         </form>
       </section>
     </main>
@@ -341,9 +346,9 @@ function Home() {
           {(['fll', 'under', 'obr'] as const).map(key => {
             const team = TEAMS[key];
             const canWrite = canCreateTeamContent(user, team.modality);
-            return <Link className="notebook-logo" data-team={key} to={canWrite ? `/${team.route}` : teamArchiveUrl(key)} key={key}>
+            return <Link className="notebook-logo" data-team={key} to={`/${team.route}`} key={key}>
               <img src={teamBooks[key]} alt={`Caderno ${team.short}`} />
-              <strong>{team.short}</strong><small>{canWrite ? team.modality : 'CONSULTAR ACERVO'}</small>
+              <strong>{team.short}</strong><small>{team.modality}{canWrite ? '' : ' • VISUALIZAR'}</small>
             </Link>;
           })}
         </div>
@@ -352,7 +357,7 @@ function Home() {
           <Link to="/fll/registros"><List />SESI Hortobots</Link>
           <Link to="/underconstruction/registros"><List />Under Construction</Link>
           <Link to="/obr/registros"><List />Registros OBR</Link>
-          <Link to="/calendario?view=list"><ChartNoAxesCombined />Pesquisa geral</Link>
+          <Link to="/calendario?view=list"><ChartNoAxesCombined />Pesquisar registros</Link>
           <Link to={SESI_BIOGLOW_PORTAL.route}><Leaf />Portal BIOGLOW</Link>
           {user?.role === 'mentor' && <Link to="/mentor/configuracoes"><Mail />Alertas por e-mail</Link>}
           {user && <Link to="/fll/banner"><LayoutTemplate />Banner SESI</Link>}
@@ -399,7 +404,7 @@ function SideMenu({ mod }: { mod: string }) {
             {notebook.key === 'fll' && <Link to={SESI_BIOGLOW_PORTAL.route}><Leaf />PORTAL BIOGLOW</Link>}
           </nav>
           <footer>
-            <Link to={user ? '/' : '/calendario?view=list'}>{user ? 'Trocar de caderno' : 'Voltar à pesquisa geral'}</Link>
+            <Link to={user ? '/' : '/calendario?view=list'}>{user ? 'Trocar de caderno' : 'Voltar a pesquisar registros'}</Link>
           </footer>
         </aside>
       </div>
@@ -427,22 +432,24 @@ function Hub() {
   const { mod = 'fll' } = useParams();
   const notebook = useNotebook();
   const user = useCurrentUser();
-  if (!canCreateTeamContent(user, notebook.modality)) return <Navigate to={teamArchiveUrl(notebook.key)} replace />;
+  const canWrite = canCreateTeamContent(user, notebook.modality);
   return (
     <Shell>
       <section className="hub page-transition">
         <div className="stamp">{notebook.modality}</div>
         <h1>Diário de Bordo</h1>
         <NotebookIdentity hub />
-        <div className="action-grid three">
-          <Link to={`/${mod}/novo`} aria-label="Novo registro">
-            <img src={novo} alt="Novo Registro" />
-          </Link>
+        <div className={`action-grid ${canWrite ? 'three' : 'two'}`}>
+          {canWrite && (
+            <Link to={`/${mod}/novo`} aria-label="Novo registro">
+              <img src={novo} alt="Novo Registro" />
+            </Link>
+          )}
           <Link to={`/${mod}/registros`} aria-label="Registros salvos">
             <img src={salvos} alt="Registros Salvos" />
           </Link>
-          <Link to={`/${mod}/testes`} aria-label="Simulações e testes">
-            <img src={testsButton} alt="Simulações e Testes" />
+          <Link to={canWrite ? `/${mod}/testes` : `/${mod}/testes-salvos`} aria-label={canWrite ? "Simulações e testes" : "Testes salvos"}>
+            <img src={testsButton} alt={canWrite ? "Simulações e Testes" : "Testes Salvos"} />
           </Link>
         </div>
         <Link className="hub-banner-link" to={`/${mod}/banner`}><LayoutTemplate /> Criar ou consultar Banner A × B</Link>
@@ -885,8 +892,45 @@ function Editor({ isEdit }: { isEdit?: boolean }) {
               />
             </label>
             <div className="custom-tag">
-              <input aria-label="Nova tag" value={tag} onChange={e => setTag(e.target.value)} placeholder="Nova tag" />
+              <input aria-label="Nova tag" value={tag} onChange={e => setTag(e.target.value)} placeholder="Nova tag personalizada" />
               <button type="button" onClick={add}><Plus /> Adicionar</button>
+            </div>
+            <div className="competition-tag-suggestions">
+              <small>Elementos da competição ({notebook.modality}):</small>
+              <div className="tag-chips">
+                {(notebook.modality === 'FLL' ? [
+                  'projeto-de-inovacao',
+                  'design-do-robo',
+                  'core-values',
+                  'treino-de-mesa',
+                  'missao-bioglow',
+                  'programacao',
+                  'mecanica',
+                  'calibracao'
+                ] : [
+                  'resgate-2026',
+                  'seguidor-de-linha',
+                  'area-de-resgate',
+                  'vitimas',
+                  'obstaculos',
+                  'gangorra-redutor',
+                  'sensores',
+                  'programacao'
+                ]).map(suggested => (
+                  <button
+                    key={suggested}
+                    type="button"
+                    className={`tag-chip ${form.tags.includes(suggested) ? 'selected' : ''}`}
+                    onClick={() => {
+                      if (!form.tags.includes(suggested)) {
+                        setForm({ ...form, tags: [...form.tags, suggested] });
+                      }
+                    }}
+                  >
+                    +{suggested}
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="tags">
               {form.tags.filter(t => !isTeamTag(t)).map(t => (
@@ -1284,15 +1328,37 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
               <AutoArea value={base.objective} onChange={e => setBase({ ...base, objective: e.target.value })} />
             </label>
             {notebook.modality === 'FLL' && (
-              <label>
-                Missão BIOGLOW
-                <select value={base.mission} onChange={e => setBase({ ...base, mission: e.target.value })}>
-                  <option value="">Selecione</option>
-                  {MISSIONS.map(m => (
-                    <option key={m}>{m}</option>
-                  ))}
-                </select>
-              </label>
+              <>
+                <label>
+                  Missão BIOGLOW (Temporada 2026/2027 • Teto 530 pts)
+                  <select value={base.mission} onChange={e => setBase({ ...base, mission: e.target.value })}>
+                    <option value="">Selecione a missão</option>
+                    {MISSIONS.map(m => (
+                      <option key={m}>{m}</option>
+                    ))}
+                  </select>
+                </label>
+                {(() => {
+                  const missionId = base.mission.slice(0, 3);
+                  const missionData = BIOGLOW_SEASON.missions.find(m => m.id === missionId);
+                  if (!missionData) return null;
+                  return (
+                    <div className="season-mission-hint" style={{ padding: '0.8rem', background: 'rgba(11, 43, 25, 0.85)', border: '1px solid #16794b', borderRadius: '8px', marginBottom: '0.9rem', fontSize: '0.88rem' }}>
+                      <strong style={{ color: '#9fe870', display: 'block', marginBottom: '0.3rem' }}>
+                        {missionData.id} — {missionData.name} ({missionData.minimum === missionData.maximum ? `${missionData.maximum} pts` : `${missionData.minimum} a ${missionData.maximum} pts`})
+                      </strong>
+                      <p style={{ margin: '0 0 0.4rem', color: '#dceadf', fontSize: '0.82rem', lineHeight: 1.4 }}>
+                        {missionData.scoring.join(' • ')}
+                      </p>
+                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        {missionData.shared && <span style={{ background: '#2563eb', color: '#fff', fontSize: '0.72rem', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold' }}>COMPARTILHADA</span>}
+                        {missionData.losable && <span style={{ background: '#d97706', color: '#fff', fontSize: '0.72rem', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold' }}>PONTOS PERDÍVEIS</span>}
+                        <span style={{ background: '#16794b', color: '#fff', fontSize: '0.72rem', padding: '2px 8px', borderRadius: '4px' }}>Teto Oficial: 530 pts</span>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </>
             )}
             {notebook.modality === 'OBR' && <label>
               Pontuação máxima da arena
@@ -1698,7 +1764,7 @@ function TestView() {
     return String(raw).startsWith('/api/') ? API + raw : String(raw);
   };
   return <Shell><main className="content test-detail page-transition">
-    <div className="page-title"><h1>Teste e simulação</h1><Link className="button" to="/calendario?view=list">Pesquisa geral</Link></div>
+    <div className="page-title"><h1>Teste e simulação</h1><Link className="button" to="/calendario?view=list">Pesquisar registros</Link></div>
     {error ? <p className="empty-public" role="alert">{error}</p> : !item ? <p className="empty-public" role="status">Carregando teste...</p> : <>
       <article className="paper test-detail-summary" data-team={getTeamKey(item)}>
         <div className="activity-meta"><span className="team-badge">{TEAMS[getTeamKey(item)].label}</span><time dateTime={item.date}>{displayDate(item.date)}</time></div>
@@ -1987,6 +2053,7 @@ export function App() {
             <Route path={SESI_BIOGLOW_PORTAL.route} element={<TeamPortalFrame />} />
             <Route path="/:mod/teste/:id" element={<TestView key={location.pathname} />} />
             <Route path="/:mod/registro/:id" element={<RecordView key={location.pathname} />} />
+            <Route path="/admin" element={<AdminPanel />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </DialogProvider>
@@ -2014,6 +2081,7 @@ export function App() {
           <Route path="/login" element={<Navigate to={safeReturnTo} replace />} />
           <Route path="/calendario" element={<CalendarView api={api} user={user} />} />
           <Route path="/mentor/configuracoes" element={user.role === 'mentor' ? <MentorSettings /> : <Navigate to="/" replace />} />
+          <Route path="/admin" element={<AdminPanel />} />
           <Route path={SESI_BIOGLOW_PORTAL.route} element={<TeamPortalFrame />} />
           <Route path="/:mod" element={<Hub />} />
           <Route path="/:mod/registros" element={<Records key={location.pathname} />} />

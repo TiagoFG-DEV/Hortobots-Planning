@@ -190,7 +190,13 @@ export function CalendarView({ api, user }: CalendarViewProps) {
   const currentPage = Math.min(page, totalPages);
   const changeView = (next: 'calendar' | 'list') => {
     const params = new URLSearchParams(urlParams);
-    if (next === 'list') params.set('view', 'list'); else params.delete('view');
+    if (next === 'list') {
+      params.set('view', 'list');
+      params.delete('team');
+      setTeamFilter('');
+    } else {
+      params.delete('view');
+    }
     setUrlParams(params, { replace: true });
   };
 
@@ -453,7 +459,7 @@ export function CalendarView({ api, user }: CalendarViewProps) {
           <span className="cal-badge-pill">DIÁRIO & CRONOGRAMA OFICIAL</span>
           <h1>Calendário de Atividades</h1>
           <p className="cal-subtitle">
-            Outubro, Novembro e Dezembro de {currentYear} &bull; Hoje é <strong>{todayStr}</strong>
+            {MONTH_NAMES[currentMonth]} de {currentYear} &bull; Hoje é <strong>{todayStr}</strong>
           </p>
         </div>
         {canCreateEvent(user) && (
@@ -472,7 +478,7 @@ export function CalendarView({ api, user }: CalendarViewProps) {
 
       <nav className="calendar-view-switch" aria-label="Visualização das atividades">
         <button type="button" aria-pressed={view === 'calendar'} aria-controls="calendar-panel" onClick={() => changeView('calendar')}><CalendarDays size={20} /> Calendário</button>
-        <button type="button" aria-pressed={view === 'list'} aria-controls="activity-search-panel" onClick={() => changeView('list')}><Search size={20} /> Pesquisa geral</button>
+        <button type="button" aria-pressed={view === 'list'} aria-controls="activity-search-panel" onClick={() => changeView('list')}><Search size={20} /> Pesquisar registros</button>
       </nav>
       {loadError && <div className="activity-load-error" role="alert"><p>{loadError}</p><button type="button" disabled={loading} onClick={() => void loadAll()}>Tentar novamente</button></div>}
       {loading && <p className="activity-loading" role="status">Carregando atividades…</p>}
@@ -488,7 +494,7 @@ export function CalendarView({ api, user }: CalendarViewProps) {
             <button
               className="cal-nav-btn"
               onClick={handlePrevMonth}
-              disabled={currentMonth <= 9}
+              disabled={currentYear <= 2026 && currentMonth <= 0}
               title="Mês anterior"
             >
               <ChevronLeft size={20} />
@@ -500,7 +506,7 @@ export function CalendarView({ api, user }: CalendarViewProps) {
             <button
               className="cal-nav-btn"
               onClick={handleNextMonth}
-              disabled={currentMonth >= 11}
+              disabled={currentYear >= 2027 && currentMonth >= 11}
               title="Próximo mês"
             >
               <ChevronRight size={20} />
@@ -603,10 +609,10 @@ export function CalendarView({ api, user }: CalendarViewProps) {
         </section>
       </div>}
 
-      {view === 'list' && <section id="activity-search-panel" className="activity-search-panel" aria-label="Pesquisa geral de atividades">
+      {view === 'list' && <section id="activity-search-panel" className="activity-search-panel" aria-label="Pesquisar registros e atividades">
         <header className="activity-search-heading">
-          <div><span className="paper-label">ACERVO DAS EQUIPES</span><h2>{teamFilter ? `Registros e testes — ${TEAMS[teamFilter].short}` : 'Registros, testes e eventos'}</h2></div>
-          <p>{teamFilter ? 'Conteúdo técnico do caderno selecionado, do mais recente para o mais antigo.' : 'Registros, testes e eventos reunidos, do mais recente para o mais antigo.'}</p>
+          <div><span className="paper-label">ACERVO DAS EQUIPES</span><h2>{teamFilter ? `Registros e testes — ${TEAMS[teamFilter].short}` : 'Pesquisar registros, testes e eventos'}</h2></div>
+          <p>{teamFilter ? 'Conteúdo técnico do caderno selecionado, do mais recente para o mais antigo.' : 'Todos os registros técnicos, testes e eventos reunidos para visualização irrestrita de todos os perfis.'}</p>
         </header>
         <div className="activity-filters">
           <label className="activity-query">Palavras-chave
@@ -626,7 +632,14 @@ export function CalendarView({ api, user }: CalendarViewProps) {
         </div>
         <div className="activity-results-meta">
           <p role="status">{loading ? 'Consultando acervo…' : `${matches.length} ${matches.length === 1 ? 'lançamento encontrado' : 'lançamentos encontrados'}`}</p>
-          {(query || teamFilter || kindFilter) && <button type="button" onClick={() => { setQuery(''); setTeamFilter(''); setKindFilter(''); }}>Limpar filtros</button>}
+          {(query || teamFilter || kindFilter) && <button type="button" onClick={() => {
+            setQuery('');
+            setTeamFilter('');
+            setKindFilter('');
+            const params = new URLSearchParams(urlParams);
+            params.delete('team');
+            setUrlParams(params, { replace: true });
+          }}>Limpar filtros</button>}
         </div>
         {!loading && !matches.length && <div className="activity-empty"><Search size={32} /><h3>Nenhum lançamento encontrado</h3><p>Tente outra palavra ou remova um filtro para ampliar a busca.</p></div>}
         <div className="activity-results">

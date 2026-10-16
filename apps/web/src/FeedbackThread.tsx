@@ -5,7 +5,7 @@ import { api } from './client';
 
 type Feedback = {
   id: string;
-  authorTag: 'DIREÇÃO' | 'COORDENAÇÃO' | 'TÉCNICO';
+  authorTag: 'DIREÇÃO' | 'COORDENAÇÃO' | 'TÉCNICO DE EQUIPE';
   message: string;
   createdAt: string;
 };
@@ -16,7 +16,7 @@ export function FeedbackThread({ targetKind, targetId, user }: {
   user: AccountUser | null;
 }) {
   const [items, setItems] = useState<Feedback[]>([]);
-  const [authorTag, setAuthorTag] = useState<Feedback['authorTag']>('COORDENAÇÃO');
+  const [authorTag, setAuthorTag] = useState<Feedback['authorTag']>('DIREÇÃO');
   const [message, setMessage] = useState('');
   const [status, setStatus] = useState('');
   const [sending, setSending] = useState(false);
@@ -59,7 +59,7 @@ export function FeedbackThread({ targetKind, targetId, user }: {
     {user?.role === 'management' && <form onSubmit={submit} className="feedback-form">
       <label>Enviar como
         <select value={authorTag} onChange={event => setAuthorTag(event.target.value as Feedback['authorTag'])}>
-          <option>DIREÇÃO</option><option>COORDENAÇÃO</option><option>TÉCNICO</option>
+          <option>DIREÇÃO</option><option>COORDENAÇÃO</option><option>TÉCNICO DE EQUIPE</option>
         </select>
       </label>
       <label>Mensagem
