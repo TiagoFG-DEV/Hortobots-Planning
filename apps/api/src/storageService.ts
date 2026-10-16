@@ -273,21 +273,59 @@ export const storageService = {
             .select('*')
             .order('date', { ascending: false });
 
-          if (!error && data) {
+          if (!error && data && data.length > 0) {
             return data.map(ev => ({
               id: ev.id,
               date: ev.date,
               title: ev.title,
-              priority: ev.priority,
-              period: ev.period,
-              lesson: ev.lesson,
-              status: ev.status,
-              createdBy: ev.created_by,
+              priority: ev.priority || 'COMUM',
+              period: ev.period || '',
+              lesson: ev.lesson || '',
+              status: ev.status || 'PUBLICADO',
+              createdBy: ev.created_by || '',
               comments: ev.comments || '',
-              important: Boolean(ev.important),
-              notificationStatus: ev.notification_status || '',
+              important: ev.priority === 'URGENTE',
+              notificationStatus: '',
               createdAt: ev.created_at
             }));
+          }
+
+          // Se o banco estiver vazio mas houver eventos locais, sincroniza automaticamente para o Supabase
+          try {
+            const localBase = path.join(logsRoot, 'eventos');
+            if (existsSync(localBase)) {
+              const localDirs = await readdir(localBase, { withFileTypes: true });
+              const syncedEvents: any[] = [];
+              for (const d of localDirs.filter(x => x.isDirectory())) {
+                const jsonFile = path.join(localBase, d.name, 'dados.json');
+                if (existsSync(jsonFile)) {
+                  const ev = JSON.parse(await readFile(jsonFile, 'utf8'));
+                  if (ev.id && ev.title) {
+                    await supabase.from('events').upsert({
+                      id: ev.id,
+                      date: ev.date,
+                      title: ev.title,
+                      priority: ev.priority || (ev.important ? 'URGENTE' : 'COMUM'),
+                      period: ev.period || '',
+                      lesson: ev.lesson || '',
+                      status: ev.status || 'PUBLICADO',
+                      created_by: ev.createdBy || '',
+                      comments: ev.comments || ''
+                    }, { onConflict: 'id' });
+                    syncedEvents.push(ev);
+                  }
+                }
+              }
+              if (syncedEvents.length > 0) {
+                return syncedEvents.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+              }
+            }
+          } catch (syncErr) {
+            console.warn('[Supabase Sync] Sincronização inicial de eventos:', syncErr);
+          }
+
+          if (!error && data) {
+            return [];
           }
         } else if (kind === 'testes') {
           const { data, error } = await supabase
@@ -391,20 +429,22 @@ export const storageService = {
           });
           if (error) console.error('[Supabase] Erro ao salvar registro:', error.message);
         } else if (kind === 'eventos') {
-          const { error } = await supabase.from('events').upsert({
+          const eventPayload = {
             id: data.id,
             date: data.date,
             title: data.title,
-            priority: data.priority,
-            period: data.period,
-            lesson: data.lesson,
-            status: data.status,
+            priority: data.priority || (data.important ? 'URGENTE' : 'COMUM'),
+            period: data.period || '',
+            lesson: data.lesson || '',
+            status: data.status || 'PUBLICADO',
             created_by: data.createdBy || '',
-            comments: data.comments || '',
-            important: Boolean(data.important),
-            notification_status: data.notificationStatus || null
-          });
-          if (error) console.error('[Supabase] Erro ao salvar evento:', error.message);
+            comments: data.comments || ''
+          };
+          const { error } = await supabase.from('events').upsert(eventPayload, { onConflict: 'id' });
+          if (error) {
+            console.error('[Supabase] Erro ao salvar evento no banco de dados:', error.message);
+            throw new Error(`Falha ao salvar evento no banco: ${error.message}`);
+          }
         } else if (kind === 'testes') {
           const rawMax = data.maxScore == null
             ? (String(data.modality || '').toUpperCase() === 'FLL' ? 530 : null)
@@ -427,22 +467,18 @@ export const storageService = {
             mission: data.mission || '',
             chart: data.chart || 'line',
             attempts: attemptsPayload,
-            max_score: rawMax,
             created_by: data.createdBy || ''
           };
 
-          const { error } = await supabase.from('tests').upsert(testPayload);
+          const { error } = await supabase.from('tests').upsert(testPayload, { onConflict: 'id' });
           if (error) {
-            console.warn('[Supabase] Tentativa inicial com max_score falhou:', error.message);
-            delete testPayload.max_score;
-            const retry = await supabase.from('tests').upsert(testPayload);
-            if (retry.error) {
-              console.error('[Supabase] Erro ao salvar teste no Supabase:', retry.error.message);
-            }
+            console.error('[Supabase] Erro ao salvar teste no banco de dados:', error.message);
+            throw new Error(`Falha ao salvar teste no banco: ${error.message}`);
           }
         }
       } catch (err) {
         console.error(`[Supabase] Erro ao salvar ${kind}:`, err);
+        throw err;
       }
     }
 
@@ -478,18 +514,20 @@ export const storageService = {
           }).eq('id', id);
           if (error) console.error('[Supabase] Erro ao atualizar registro:', error.message);
         } else if (kind === 'eventos') {
-          const { error } = await supabase.from('events').update({
+          const eventUpdate = {
             date: data.date,
             title: data.title,
-            priority: data.priority,
-            period: data.period,
-            lesson: data.lesson,
-            status: data.status,
-            comments: data.comments || '',
-            important: Boolean(data.important),
-            notification_status: data.notificationStatus || null
-          }).eq('id', id);
-          if (error) console.error('[Supabase] Erro ao atualizar evento:', error.message);
+            priority: data.priority || (data.important ? 'URGENTE' : 'COMUM'),
+            period: data.period || '',
+            lesson: data.lesson || '',
+            status: data.status || 'PUBLICADO',
+            comments: data.comments || ''
+          };
+          const { error } = await supabase.from('events').update(eventUpdate).eq('id', id);
+          if (error) {
+            console.error('[Supabase] Erro ao atualizar evento no banco de dados:', error.message);
+            throw new Error(`Falha ao atualizar evento no banco: ${error.message}`);
+          }
         } else if (kind === 'testes') {
           const rawMax = data.maxScore == null
             ? (String(data.modality || '').toUpperCase() === 'FLL' ? 530 : null)
@@ -509,22 +547,18 @@ export const storageService = {
             comments: data.comments || '',
             mission: data.mission || '',
             chart: data.chart || 'line',
-            attempts: attemptsPayload,
-            max_score: rawMax
+            attempts: attemptsPayload
           };
 
           const { error } = await supabase.from('tests').update(updatePayload).eq('id', id);
           if (error) {
-            console.warn('[Supabase] Tentativa inicial com max_score falhou:', error.message);
-            delete updatePayload.max_score;
-            const retry = await supabase.from('tests').update(updatePayload).eq('id', id);
-            if (retry.error) {
-              console.error('[Supabase] Erro ao atualizar teste no Supabase:', retry.error.message);
-            }
+            console.error('[Supabase] Erro ao atualizar teste no banco de dados:', error.message);
+            throw new Error(`Falha ao atualizar teste no banco: ${error.message}`);
           }
         }
       } catch (err) {
         console.error(`[Supabase] Erro ao atualizar ${kind}:`, err);
+        throw err;
       }
     }
 
