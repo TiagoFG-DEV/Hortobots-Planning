@@ -914,12 +914,16 @@ function MediaPagePanel({
       {/* Player de foco para preview */}
       {focusSlot && (
         <div className="focus-layer" onClick={() => onFocus(null)}>
-          <button aria-label="Fechar" onClick={() => onFocus(null)}><X /></button>
-          {isImage(focusSlot) ? (
-            <img src={focusSlot.url} alt={focusSlot.name} />
-          ) : (
-            <video controls src={focusSlot.url} autoPlay onClick={e => e.stopPropagation()} />
-          )}
+          <div className="focus-media-wrapper" onClick={e => e.stopPropagation()}>
+            <button className="focus-close-btn" aria-label="Fechar mídia" onClick={() => onFocus(null)}>
+              <X size={20} />
+            </button>
+            {isImage(focusSlot) ? (
+              <img src={focusSlot.url} alt={focusSlot.name} />
+            ) : (
+              <video controls src={focusSlot.url} autoPlay />
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -1934,12 +1938,16 @@ function RecordView() {
         {/* Lightbox de foco */}
         {focusMedia && (
           <div className="focus-layer" onClick={() => setFocusMedia(null)}>
-            <button aria-label="Fechar" onClick={() => setFocusMedia(null)}><X /></button>
-            {focusMedia.isVideo || isVideoItem(focusMedia, focusMedia.resolvedUrl || focusMedia.url) ? (
-              <video controls autoPlay src={focusMedia.resolvedUrl || focusMedia.url} onClick={e => e.stopPropagation()} />
-            ) : (
-              <img src={focusMedia.resolvedUrl || focusMedia.url} alt={focusMedia.name} />
-            )}
+            <div className="focus-media-wrapper" onClick={e => e.stopPropagation()}>
+              <button className="focus-close-btn" aria-label="Fechar mídia" onClick={() => setFocusMedia(null)}>
+                <X size={20} />
+              </button>
+              {focusMedia.isVideo || isVideoItem(focusMedia, focusMedia.resolvedUrl || focusMedia.url) ? (
+                <video controls autoPlay src={focusMedia.resolvedUrl || focusMedia.url} />
+              ) : (
+                <img src={focusMedia.resolvedUrl || focusMedia.url} alt={focusMedia.name} />
+              )}
+            </div>
           </div>
         )}
       </main>
@@ -1997,7 +2005,20 @@ function TestView() {
       })}</section>}
       {id && <FeedbackThread targetKind="testes" targetId={id} user={user} />}
     </>}
-    {focus && <div className="focus-layer" onClick={() => setFocus(null)}><button aria-label="Fechar mídia" onClick={() => setFocus(null)}><X /></button>{focus.video ? <video src={focus.url} controls autoPlay playsInline onClick={e => e.stopPropagation()} /> : <img src={focus.url} alt={focus.name} />}</div>}
+    {focus && (
+      <div className="focus-layer" onClick={() => setFocus(null)}>
+        <div className="focus-media-wrapper" onClick={e => e.stopPropagation()}>
+          <button className="focus-close-btn" aria-label="Fechar mídia" onClick={() => setFocus(null)}>
+            <X size={20} />
+          </button>
+          {focus.video ? (
+            <video src={focus.url} controls autoPlay playsInline />
+          ) : (
+            <img src={focus.url} alt={focus.name} />
+          )}
+        </div>
+      </div>
+    )}
   </main></Shell>;
 }
 

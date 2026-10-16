@@ -100,7 +100,16 @@ const styles = StyleSheet.create({
   mediaImage: { width: '100%', height: 145, objectFit: 'cover', borderRadius: 3 },
   mediaCaption: { marginTop: 5, fontSize: 7.5, color: '#535a51' },
   videoBadge: { position: 'absolute', top: 12, right: 12, color: '#ffffff', backgroundColor: '#161616', paddingVertical: 3, paddingHorizontal: 6, borderRadius: 8, fontFamily: 'Helvetica-Bold', fontSize: 6.5 },
-  emptyMedia: { color: '#777d75', fontStyle: 'italic' }
+  emptyMedia: { color: '#777d75', fontStyle: 'italic' },
+  performanceBox: { backgroundColor: '#ffffff', borderWidth: 0.8, borderColor: '#d9ddd6', borderRadius: 5, padding: 10, marginTop: 12, marginBottom: 13 },
+  performanceKicker: { fontFamily: 'Helvetica-Bold', fontSize: 7.2, letterSpacing: 1.2, textTransform: 'uppercase', color: '#2b8d35', marginBottom: 2 },
+  performanceSeasonTitle: { fontFamily: 'Helvetica-Bold', fontSize: 10.5, color: '#15351b', marginBottom: 6 },
+  performanceNumbers: { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginBottom: 6 },
+  performanceScoreBig: { fontFamily: 'Helvetica-Bold', fontSize: 20, color: '#2b8d35' },
+  performanceScoreSub: { fontSize: 8.5, color: '#565d54' },
+  progressBarBg: { height: 7, backgroundColor: '#e2e7df', borderRadius: 3.5, overflow: 'hidden', marginBottom: 6 },
+  progressBarFill: { height: 7, backgroundColor: '#2b8d35', borderRadius: 3.5 },
+  performanceMetaRow: { flexDirection: 'row', justifyContent: 'space-between', fontSize: 7.8, color: '#687066' }
 });
 
 const asNumber = (value: unknown) => Number.isFinite(Number(value)) ? Number(value) : 0;
@@ -358,6 +367,32 @@ export const ActivityDocument = ({ item, kind, team, media, teamLogo, competitio
                 </View>;
               })}
             </View>)}
+          {(team === 'fll' || team === 'under' || String(item.modality || '').toUpperCase() === 'FLL') && (() => {
+            const configuredMaximum = Number(item.maxScore) > 0 ? Number(item.maxScore) : 530;
+            const best = scores.length ? Math.max(...scores) : 0;
+            const bestPercent = configuredMaximum > 0 ? Math.min(100, Math.max(0, (best / configuredMaximum) * 100)) : 0;
+            const averageScore = average(scores);
+            const averagePercent = configuredMaximum > 0 ? Math.min(100, Math.max(0, (averageScore / configuredMaximum) * 100)) : 0;
+            const potentialRemaining = Math.max(0, configuredMaximum - best);
+
+            return (
+              <View style={styles.performanceBox} wrap={false}>
+                <Text style={styles.performanceKicker}>APROVEITAMENTO OFICIAL</Text>
+                <Text style={styles.performanceSeasonTitle}>BIOGLOW 2026/2027</Text>
+                <View style={styles.performanceNumbers}>
+                  <Text style={styles.performanceScoreBig}>{bestPercent.toFixed(1)}%</Text>
+                  <Text style={styles.performanceScoreSub}>melhor resultado: {best} de {configuredMaximum} pontos</Text>
+                </View>
+                <View style={styles.progressBarBg}>
+                  <View style={[styles.progressBarFill, { width: `${Math.max(1, bestPercent).toFixed(1)}%` }]} />
+                </View>
+                <View style={styles.performanceMetaRow}>
+                  <Text>Média: {averageScore.toFixed(1)} pts ({averagePercent.toFixed(1)}%)</Text>
+                  <Text>Potencial restante: {potentialRemaining} pts</Text>
+                </View>
+              </View>
+            );
+          })()}
         </View>
         {item.comments && <View style={styles.section} minPresenceAhead={80}>
           <Text style={[styles.sectionTitle, { color: identity.ink, borderBottomColor: identity.secondary }]}>Comentários</Text>

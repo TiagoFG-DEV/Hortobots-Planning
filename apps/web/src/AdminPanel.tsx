@@ -190,23 +190,14 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     setEmailsSaving(true);
     setEmailsMsg('');
     try {
-      // Admin usa token de admin, mas a rota exige token de mentor; vamos diferenciar se necessário
-      // Por enquanto admin salva via rota própria se implementada; fallback para a rota mentor
-      const res = await fetch('/api/configuracoes/notificacoes', {
+      const data = await adminFetch('/api/configuracoes/notificacoes', {
         method: 'PUT',
-        headers: { 'content-type': 'application/json', authorization: `Bearer ${getAdminToken()}` },
         body: JSON.stringify(emails)
       });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        // Se a rota exigir perfil mentor, informa o usuário
-        setEmailsMsg(json?.error?.message || 'Use a tela do Mentor para salvar os enderecos de e-mail.');
-      } else {
-        setEmails(json);
-        setEmailsMsg('Destinatarios salvos com sucesso.');
-      }
+      setEmails(data);
+      setEmailsMsg('Destinatários salvos com sucesso no banco de dados.');
     } catch (err: any) {
-      setEmailsMsg(err.message);
+      setEmailsMsg(err.message || 'Erro ao salvar destinatários.');
     } finally {
       setEmailsSaving(false);
     }

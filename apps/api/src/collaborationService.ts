@@ -53,25 +53,35 @@ const readJson = async <T>(file: string, fallback: T): Promise<T> => {
 export const collaborationService = {
   async getNotificationSettings(): Promise<NotificationSettings> {
     if (isSupabaseEnabled && supabase) {
-      const { data } = await supabase.from('app_settings').select('setting_value').eq('setting_key', 'event_notifications').maybeSingle();
-      if (data?.setting_value) return data.setting_value as NotificationSettings;
+      try {
+        const { data, error } = await supabase.from('app_settings').select('setting_value').eq('setting_key', 'event_notifications').maybeSingle();
+        if (!error && data?.setting_value) return data.setting_value as NotificationSettings;
+      } catch (err) {
+        console.warn('[Supabase] Falha ao ler app_settings:', err);
+      }
     }
     return readJson(settingsPath, { managementEmail: '', coordinationEmail: '', technicalEmail: '' });
   },
 
   async saveNotificationSettings(value: NotificationSettings, updatedBy: string) {
     if (isSupabaseEnabled && supabase) {
-      const { error } = await supabase.from('app_settings').upsert({
-        setting_key: 'event_notifications',
-        setting_value: value,
-        updated_by: updatedBy,
-        updated_at: new Date().toISOString()
-      });
-      if (error) throw error;
-    } else {
-      await ensureLocal();
-      await writeFile(settingsPath, JSON.stringify(value, null, 2), 'utf8');
+      try {
+        const { error } = await supabase.from('app_settings').upsert({
+          setting_key: 'event_notifications',
+          setting_value: value,
+          updated_by: updatedBy,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'setting_key' });
+        if (error) {
+          console.warn('[Supabase] Falha ao gravar em app_settings no banco:', error.message);
+        }
+      } catch (err) {
+        console.warn('[Supabase] Exceção ao salvar app_settings:', err);
+      }
     }
+
+    await ensureLocal();
+    await writeFile(settingsPath, JSON.stringify(value, null, 2), 'utf8');
     return value;
   },
 
@@ -171,6 +181,30 @@ export const collaborationService = {
     }
 
     return item;
+  },
+
+  async deleteFeedback(id: string): Promise<boolean> {
+    if (isSupabaseEnabled && supabase) {
+      try {
+        const { error } = await supabase.from('feedbacks').delete().eq('id', id);
+        if (error) {
+          console.warn('[Supabase] Aviso ao deletar feedback no banco:', error.message);
+        }
+      } catch (err) {
+        console.warn('[Supabase] Exceção ao deletar feedback no banco:', err);
+      }
+    }
+
+    try {
+      await ensureLocal();
+      const items = await readJson<Feedback[]>(feedbackPath, []);
+      const filtered = items.filter(x => x.id !== id);
+      await writeFile(feedbackPath, JSON.stringify(filtered, null, 2), 'utf8');
+    } catch (err) {
+      console.warn('[Local] Falha ao deletar feedback no arquivo local:', err);
+    }
+
+    return true;
   },
 
   async getBanner(teamKey: BannerRecord['teamKey']): Promise<BannerRecord | null> {

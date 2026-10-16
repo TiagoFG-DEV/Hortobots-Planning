@@ -299,13 +299,23 @@ export const storageService = {
             return data.map(t => {
               let attempts = [];
               let mediaList: StoredMedia[] = [];
+              let attemptsMaxScore: number | undefined = undefined;
 
               if (t.attempts && typeof t.attempts === 'object' && !Array.isArray(t.attempts)) {
                 attempts = (t.attempts as any).list || [];
                 mediaList = (t.attempts as any).media || [];
+                if ((t.attempts as any).maxScore != null) {
+                  attemptsMaxScore = Number((t.attempts as any).maxScore);
+                }
               } else if (Array.isArray(t.attempts)) {
                 attempts = t.attempts;
               }
+
+              const resolvedMaxScore = t.max_score != null
+                ? Number(t.max_score)
+                : (attemptsMaxScore != null
+                  ? attemptsMaxScore
+                  : (String(t.modality || '').toUpperCase() === 'FLL' ? 530 : undefined));
 
               return {
                 id: t.id,
@@ -318,7 +328,7 @@ export const storageService = {
                 mission: t.mission || '',
                 chart: t.chart || 'line',
                 attempts,
-                maxScore: t.max_score == null ? undefined : Number(t.max_score),
+                maxScore: resolvedMaxScore,
                 media: mediaList,
                 createdBy: t.created_by,
                 createdAt: t.created_at
@@ -363,7 +373,7 @@ export const storageService = {
           const coverUrl = Array.isArray(data.media) && data.media.length > 0 ? data.media[0].url : null;
           const mediaJson = JSON.stringify(data.media || []);
 
-          await supabase.from('records').upsert({
+          const { error } = await supabase.from('records').upsert({
             id: data.id,
             modality: data.modality,
             status: 'published',
@@ -379,8 +389,9 @@ export const storageService = {
             author_name: data.createdBy || '',
             search_text: `${data.title} ${data.summary || ''} ${(data.tags || []).join(' ')}`
           });
+          if (error) console.error('[Supabase] Erro ao salvar registro:', error.message);
         } else if (kind === 'eventos') {
-          await supabase.from('events').upsert({
+          const { error } = await supabase.from('events').upsert({
             id: data.id,
             date: data.date,
             title: data.title,
@@ -393,13 +404,19 @@ export const storageService = {
             important: Boolean(data.important),
             notification_status: data.notificationStatus || null
           });
+          if (error) console.error('[Supabase] Erro ao salvar evento:', error.message);
         } else if (kind === 'testes') {
+          const rawMax = data.maxScore == null
+            ? (String(data.modality || '').toUpperCase() === 'FLL' ? 530 : null)
+            : Number(data.maxScore);
+
           const attemptsPayload = {
             list: data.attempts || [],
-            media: data.media || []
+            media: data.media || [],
+            maxScore: rawMax
           };
 
-          await supabase.from('tests').upsert({
+          const testPayload: any = {
             id: data.id,
             modality: data.modality,
             team: data.team,
@@ -410,24 +427,32 @@ export const storageService = {
             mission: data.mission || '',
             chart: data.chart || 'line',
             attempts: attemptsPayload,
-            max_score: data.maxScore == null ? null : Number(data.maxScore),
+            max_score: rawMax,
             created_by: data.createdBy || ''
-          });
+          };
+
+          const { error } = await supabase.from('tests').upsert(testPayload);
+          if (error) {
+            console.warn('[Supabase] Tentativa inicial com max_score falhou:', error.message);
+            delete testPayload.max_score;
+            const retry = await supabase.from('tests').upsert(testPayload);
+            if (retry.error) {
+              console.error('[Supabase] Erro ao salvar teste no Supabase:', retry.error.message);
+            }
+          }
         }
       } catch (err) {
         console.error(`[Supabase] Erro ao salvar ${kind}:`, err);
       }
     }
 
-    // 2. Salva localmente na pasta Logs apenas em modo offline (sem Supabase)
-    if (!isSupabaseEnabled) {
-      try {
-        const dir = path.join(logsRoot, kind, folderName);
-        await mkdir(dir, { recursive: true });
-        await writeFile(path.join(dir, 'dados.json'), JSON.stringify(data, null, 2), 'utf8');
-      } catch {
-        // ignora caso sistema de arquivos local seja read-only
-      }
+    // 2. Salva SEMPRE localmente como garantia e redundância operacional
+    try {
+      const dir = path.join(logsRoot, kind, folderName);
+      await mkdir(dir, { recursive: true });
+      await writeFile(path.join(dir, 'dados.json'), JSON.stringify(data, null, 2), 'utf8');
+    } catch {
+      // ignora caso sistema de arquivos local seja read-only
     }
 
     return data;
@@ -441,7 +466,7 @@ export const storageService = {
           const coverUrl = Array.isArray(data.media) && data.media.length > 0 ? data.media[0].url : null;
           const mediaJson = JSON.stringify(data.media || []);
 
-          await supabase.from('records').update({
+          const { error } = await supabase.from('records').update({
             record_date: data.date,
             title: data.title,
             summary: data.summary || '',
@@ -451,8 +476,9 @@ export const storageService = {
             search_text: `${data.title} ${data.summary || ''} ${(data.tags || []).join(' ')}`,
             updated_at: new Date().toISOString()
           }).eq('id', id);
+          if (error) console.error('[Supabase] Erro ao atualizar registro:', error.message);
         } else if (kind === 'eventos') {
-          await supabase.from('events').update({
+          const { error } = await supabase.from('events').update({
             date: data.date,
             title: data.title,
             priority: data.priority,
@@ -463,13 +489,19 @@ export const storageService = {
             important: Boolean(data.important),
             notification_status: data.notificationStatus || null
           }).eq('id', id);
+          if (error) console.error('[Supabase] Erro ao atualizar evento:', error.message);
         } else if (kind === 'testes') {
+          const rawMax = data.maxScore == null
+            ? (String(data.modality || '').toUpperCase() === 'FLL' ? 530 : null)
+            : Number(data.maxScore);
+
           const attemptsPayload = {
             list: data.attempts || [],
-            media: data.media || []
+            media: data.media || [],
+            maxScore: rawMax
           };
 
-          await supabase.from('tests').update({
+          const updatePayload: any = {
             date: data.date,
             title: data.title,
             team: data.team,
@@ -478,31 +510,39 @@ export const storageService = {
             mission: data.mission || '',
             chart: data.chart || 'line',
             attempts: attemptsPayload,
-            max_score: data.maxScore == null ? null : Number(data.maxScore)
-          }).eq('id', id);
+            max_score: rawMax
+          };
+
+          const { error } = await supabase.from('tests').update(updatePayload).eq('id', id);
+          if (error) {
+            console.warn('[Supabase] Tentativa inicial com max_score falhou:', error.message);
+            delete updatePayload.max_score;
+            const retry = await supabase.from('tests').update(updatePayload).eq('id', id);
+            if (retry.error) {
+              console.error('[Supabase] Erro ao atualizar teste no Supabase:', retry.error.message);
+            }
+          }
         }
       } catch (err) {
         console.error(`[Supabase] Erro ao atualizar ${kind}:`, err);
       }
     }
 
-    // 2. Atualiza localmente apenas em modo offline (sem Supabase)
-    if (!isSupabaseEnabled) {
-      try {
-        const dirs = await readdir(path.join(logsRoot, kind), { withFileTypes: true });
-        for (const d of dirs.filter(x => x.isDirectory() && x.name.endsWith(id))) {
-          const filePath = path.join(logsRoot, kind, d.name, 'dados.json');
-          let prev = {};
-          try {
-            prev = JSON.parse(await readFile(filePath, 'utf8'));
-          } catch {}
-          const merged = { ...prev, ...data, id };
-          await writeFile(filePath, JSON.stringify(merged, null, 2), 'utf8');
-          break;
-        }
-      } catch {
-        // ignora caso local falhe
+    // 2. Atualiza SEMPRE localmente como garantia e redundância operacional
+    try {
+      const dirs = await readdir(path.join(logsRoot, kind), { withFileTypes: true });
+      for (const d of dirs.filter(x => x.isDirectory() && x.name.endsWith(id))) {
+        const filePath = path.join(logsRoot, kind, d.name, 'dados.json');
+        let prev = {};
+        try {
+          prev = JSON.parse(await readFile(filePath, 'utf8'));
+        } catch {}
+        const merged = { ...prev, ...data, id };
+        await writeFile(filePath, JSON.stringify(merged, null, 2), 'utf8');
+        break;
       }
+    } catch {
+      // ignora caso local falhe
     }
 
     return { id, ...data };

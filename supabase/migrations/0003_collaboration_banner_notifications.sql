@@ -41,4 +41,12 @@ alter table public.feedbacks enable row level security;
 alter table public.banners enable row level security;
 
 create policy "Permitir leitura publica de feedbacks" on public.feedbacks for select using (true);
+create policy "Permitir insercao de feedbacks" on public.feedbacks for insert with check (true);
+create policy "Permitir exclusao de feedbacks" on public.feedbacks for delete using (true);
+
 create policy "Permitir leitura publica de banners" on public.banners for select using (true);
+create policy "Permitir escrita de banners" on public.banners for all using (true) with check (true);
+
+create policy "Permitir leitura publica de app_settings" on public.app_settings for select using (true);
+create policy "Permitir escrita de app_settings" on public.app_settings for all using (true) with check (true);
+

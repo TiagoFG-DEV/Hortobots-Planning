@@ -32,7 +32,16 @@ export function TeamPortalFrame() {
         window.clearTimeout(timer);
         setReady(true);
       }
-      if (event.data?.type === 'hortobots-bioglow:navigate-planner') navigate('/');
+      if (event.data?.type === 'hortobots-bioglow:navigate-planner') {
+        const targetPath = event.data?.path || event.data?.url || '/';
+        navigate(targetPath.startsWith('http') ? new URL(targetPath).pathname : targetPath);
+      }
+      if (event.data?.type === 'hortobots-bioglow:navigate') {
+        const targetPath = event.data?.path || event.data?.url;
+        if (targetPath) {
+          navigate(targetPath.startsWith('http') ? new URL(targetPath).pathname : targetPath);
+        }
+      }
     };
     window.addEventListener('message', receive);
     return () => { window.clearTimeout(timer); window.removeEventListener('message', receive); };
@@ -52,7 +61,7 @@ export function TeamPortalFrame() {
       src={portalUrl}
       title="Portal Hortobots BIOGLOW"
       onLoad={() => window.setTimeout(() => setReady(true), 180)}
-      sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+      sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation allow-top-navigation-by-user-activation"
       allow="fullscreen"
     />
     {!ready && <div className="team-portal-loading" role="status">

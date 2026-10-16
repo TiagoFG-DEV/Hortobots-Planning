@@ -171,6 +171,16 @@ export function CalendarFeedbacks({
     }
   };
 
+  const handleDeleteFeedback = async (id: string) => {
+    if (!window.confirm('Deseja excluir este comentário?')) return;
+    try {
+      await api(`/api/feedbacks/${id}`, { method: 'DELETE' });
+      setFeedbacks(prev => prev.filter(f => f.id !== id));
+    } catch (err: any) {
+      alert(`Erro ao excluir comentário: ${err.message}`);
+    }
+  };
+
   return (
     <section className="calendar-feedbacks-section" aria-labelledby="cal-feedbacks-heading">
       {/* Cabeçalho da Seção */}
@@ -412,12 +422,25 @@ export function CalendarFeedbacks({
                                 <span className="comment-user">@{item.createdBy}</span>
                               )}
                             </div>
-                            <time dateTime={item.createdAt} className="comment-time">
-                              {new Intl.DateTimeFormat('pt-BR', {
-                                dateStyle: 'short',
-                                timeStyle: 'short'
-                              }).format(new Date(item.createdAt))}
-                            </time>
+                            <div className="comment-bubble-meta-right">
+                              <time dateTime={item.createdAt} className="comment-time">
+                                {new Intl.DateTimeFormat('pt-BR', {
+                                  dateStyle: 'short',
+                                  timeStyle: 'short'
+                                }).format(new Date(item.createdAt))}
+                              </time>
+                              {user?.role === 'management' && (
+                                <button
+                                  type="button"
+                                  className="feedback-disguised-delete"
+                                  title="Excluir comentário"
+                                  aria-label="Excluir comentário"
+                                  onClick={() => handleDeleteFeedback(item.id)}
+                                >
+                                  X
+                                </button>
+                              )}
+                            </div>
                           </div>
                           <div className="comment-bubble-text">
                             <p>{item.message}</p>

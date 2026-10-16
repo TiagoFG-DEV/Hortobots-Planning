@@ -365,7 +365,12 @@ app.put('/api/configuracoes/notificacoes', async (req: AuthRequest, res: Respons
     return;
   }
   const author = user?.username || 'admin';
-  res.json(await collaborationService.saveNotificationSettings(value, author));
+  try {
+    const saved = await collaborationService.saveNotificationSettings(value, author);
+    res.json(saved);
+  } catch (err: any) {
+    res.status(500).json({ error: { message: err?.message || 'Erro ao salvar configurações de notificação.' } });
+  }
 });
 
 // ─── Feedbacks (DEVE ficar antes de /api/:kind) ──────────────────────────────
@@ -476,6 +481,20 @@ app.post('/api/feedbacks', authMiddleware, async (req: AuthRequest, res: Respons
     targetTitle: target?.title || '',
     targetDate: target?.date || ''
   });
+});
+
+app.delete('/api/feedbacks/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
+  if (req.user?.role !== 'management') {
+    res.status(403).json({ error: { message: 'Somente a conta da Gestão pode excluir comentários.' } });
+    return;
+  }
+  const id = String(req.params.id || '').trim();
+  if (!id) {
+    res.status(400).json({ error: { message: 'ID do comentário inválido.' } });
+    return;
+  }
+  await collaborationService.deleteFeedback(id);
+  res.json({ ok: true, id });
 });
 
 // ─── Banners (DEVE ficar antes de /api/:kind) ────────────────────────────────

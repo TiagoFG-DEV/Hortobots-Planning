@@ -96,6 +96,17 @@ export function FeedbackThread({
     }
   };
 
+  const handleDelete = async (feedbackId: string) => {
+    if (!window.confirm('Deseja excluir este comentário?')) return;
+    try {
+      await api(`/api/feedbacks/${feedbackId}`, { method: 'DELETE' });
+      setItems(previous => previous.filter(f => f.id !== feedbackId));
+      if (onFeedbackAdded) onFeedbackAdded();
+    } catch (err: any) {
+      alert(err.message || 'Erro ao excluir feedback.');
+    }
+  };
+
   return (
     <section className="feedback-thread" aria-labelledby={`feedback-${targetKind}-${targetId}`}>
       <header className="feedback-header">
@@ -135,12 +146,25 @@ export function FeedbackThread({
                       <span className="feedback-username">@{item.createdBy}</span>
                     )}
                   </div>
-                  <time dateTime={item.createdAt}>
-                    {new Intl.DateTimeFormat('pt-BR', {
-                      dateStyle: 'short',
-                      timeStyle: 'short'
-                    }).format(new Date(item.createdAt))}
-                  </time>
+                  <div className="feedback-comment-meta-right">
+                    <time dateTime={item.createdAt}>
+                      {new Intl.DateTimeFormat('pt-BR', {
+                        dateStyle: 'short',
+                        timeStyle: 'short'
+                      }).format(new Date(item.createdAt))}
+                    </time>
+                    {user?.role === 'management' && (
+                      <button
+                        type="button"
+                        className="feedback-disguised-delete"
+                        title="Excluir comentário"
+                        aria-label="Excluir comentário"
+                        onClick={() => handleDelete(item.id)}
+                      >
+                        X
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div className="feedback-comment-body">
                   <p>{item.message}</p>

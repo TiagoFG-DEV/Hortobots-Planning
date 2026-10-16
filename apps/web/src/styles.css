@@ -148,6 +148,35 @@
   font-weight: 500;
 }
 
+.feedback-comment-meta-right,
+.comment-bubble-meta-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.feedback-disguised-delete {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 6px;
+  line-height: 1;
+  border-radius: 4px;
+  opacity: 0.35;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.feedback-disguised-delete:hover {
+  opacity: 1;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.12);
+}
+
 .feedback-comment-body p {
   margin: 0;
   color: #f1f5f9;
@@ -2797,7 +2826,42 @@ textarea {
   backdrop-filter: blur(12px);
   display: grid;
   place-items: center;
-  padding: 5vw
+  padding: 5vw;
+}
+
+.focus-media-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 90vw;
+  max-height: 84vh;
+}
+
+.focus-close-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+  background: rgba(15, 23, 18, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.focus-close-btn:hover {
+  transform: scale(1.08);
+  background: rgba(220, 38, 38, 0.9);
+  color: #ffffff;
 }
 
 .focus-layer>button {
@@ -2808,17 +2872,23 @@ textarea {
   border: 0;
   border-radius: 50%;
   width: 48px;
-  height: 48px
+  height: 48px;
 }
 
 .focus-layer img,
 .focus-layer video,
 .focus-layer .chart,
-.focus-layer .pie {
+.focus-layer .pie,
+.focus-media-wrapper img,
+.focus-media-wrapper video,
+.focus-media-wrapper .chart,
+.focus-media-wrapper .pie {
   max-width: 90vw;
   max-height: 84vh;
+  object-fit: contain;
   background: #fff;
-  border-radius: 18px
+  border-radius: 18px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
 }
 
 .calendar-page {
