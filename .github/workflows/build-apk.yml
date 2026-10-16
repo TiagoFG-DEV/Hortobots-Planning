@@ -41,6 +41,9 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Install dependencies
         run: npm ci
 
@@ -53,7 +56,7 @@ jobs:
       - name: Build Android APK (Gradle)
         run: |
           cd apps/web/android
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Prepare APK Asset
         run: |
