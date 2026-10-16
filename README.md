@@ -4,6 +4,19 @@ Plataforma de Diário de Bordo Digital e Gestão Técnica para as equipes SESI H
 
 O projeto opera como um monorepo modular em TypeScript. O backend em Node.js com Express e arquitetura hibrida gerencia as requisicoes da API e serve a Single Page Application (SPA) compilada em React + Vite.
 
+## ⚠️ Branches — Versões Separadas e Independentes
+
+> **🚫 IMPORTANTE: as branches deste repositório contêm versões completamente diferentes do projeto e JAMAIS devem ser combinadas (merge/rebase).**
+
+| Branch | Versão | Descrição |
+|--------|--------|-----------|
+| [`main`](https://github.com/TiagoFG-DEV/Hortobots-Planning/tree/main) | **2.2.0** | Plataforma Web principal — deploy no Render + Supabase. Esta é a versão de produção acessada pelo navegador. |
+| [`WebApp`](https://github.com/TiagoFG-DEV/Hortobots-Planning/tree/WebApp) | **v1.0-beta** | Portabilidade Android (.apk) com arquitetura Offline-First via Capacitor. Contém o projeto nativo Android e o workflow de CI/CD para geração do APK. |
+
+Cada branch possui sua própria linha evolutiva, dependências adicionais e estrutura específica. Fazer merge entre elas causaria conflitos irreparáveis. Para propagar melhorias da `main` para a `WebApp`, aplique os patches manualmente apenas nos arquivos relevantes.
+
+---
+
 ## Versões
 
 - **[WebApp Android 1.0 Beta (`v1.0-beta`)](https://github.com/TiagoFG-DEV/Hortobots-Planning/releases/tag/v1.0-beta):** Portabilidade oficial da plataforma para aplicativo Android (`.apk`) e WebApp progressivo (PWA) com arquitetura **Offline-First**. O app mantém cache local inteligente de todas as informações do banco de dados (eventos, registros, testes e feedbacks), permitindo navegação fluida mesmo sem acesso à internet. Inclui indicador de status de conexão no topo da tela, sessão persistente no dispositivo, proteção contra edições acidentais offline e compilação automatizada do `.apk` via GitHub Actions com publicação direta nas [Releases](https://github.com/TiagoFG-DEV/Hortobots-Planning/releases).

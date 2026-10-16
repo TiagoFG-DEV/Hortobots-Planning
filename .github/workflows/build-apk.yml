@@ -52,6 +52,9 @@ jobs:
 
       - name: Build Android APK (Gradle)
         run: |
+          export JAVA_HOME="${JAVA_HOME_21_X64:-$JAVA_HOME}"
+          echo "JAVA_HOME=$JAVA_HOME"
+          java -version
           cd apps/web/android
           ./gradlew assembleDebug --no-daemon --stacktrace
 
