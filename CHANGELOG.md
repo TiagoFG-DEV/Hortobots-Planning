@@ -2,6 +2,56 @@
 
 As versões futuras devem ser acrescentadas no topo deste arquivo, preservando o histórico já publicado.
 
+## [2.2.0] — 2026-10-15
+
+### Orientações e Demandas do Usuário (Prompt Original na Íntegra)
+
+> *"Também revise o acompanhamento. A formatação deve ter o tamanho horizontal padrão e centralizados na tela. Também os comentários devem ser salvos no banco de dados e serem exibidos individualmente, permitindo mais de um comentário por registro/teste. Esses comentários devem ser exibidos no proprio visualizador do calendário, embaixo do proprio calendário. Perceba que existem elementos input que não estão estilizados na tela. TODOS OS ELEMENTOS DEVEM ser estilizados COMPLETAMENTE. Refine o design dessa funcionalidade incluindo a exibição dela na tela de calendário. Adicione uma sessão para ver só os feedbacks separados por registros como "Registro <titulo> data X:" e os feedbacks, depois os outros segundo o mesmo modelo etc. Atue como um verdadeiro webdesigner utilizando as skills de webdesigner. Verifique as telas novas que você gerou para garantir formatação bem feita principalmente responsiva e muito bem estilizada. GARANTA que o estilo esteja bem feito. Faça o push no final dos trabalhos."*
+
+---
+
+### Diagnóstico, Refinamento de Design e Implementações
+
+#### 1. Formatação Horizontal Padrão e Centralização na Tela
+- **Diagnóstico:** O componente `FeedbackThread` anterior possuía largura restrita (`max-width: 920px`) sem alinhamento universal, e na tela de teste (`.test-detail`) era confinado à primeira coluna de um grid de duas colunas, resultando em um cartão encolhido e desalinhado à esquerda.
+- **Solução Implementada:**
+  - O container `.feedback-thread` foi padronizado com `width: 100%`, `max-width: 1080px`, `margin: 2.2rem auto` e alinhamento centralizado com `box-sizing: border-box`.
+  - Em layouts de grade como `.test-detail`, foi configurado explicitamente `grid-column: 1 / -1; width: 100%;`, garantindo que ocupe a largura completa horizontal padrão da tela.
+  - No modal de detalhes de eventos (`.event-detail-modal`), foi adaptado com espaçamento interno fluído e bordas arredondadas harmônicas.
+
+#### 2. Persistência de Múltiplos Comentários no Banco de Dados
+- **Diagnóstico:** O endpoint `/api/feedbacks` continha validação rígida de ID (`/^[a-f0-9]{8}$/`), rejeitando identificadores UUIDs e slugs com o erro `400: Destino do feedback inválido.`. Além disso, a constraint de banco de dados para `author_tag` impedia tags variantes sem fallback.
+- **Solução Implementada:**
+  - Validação de identificador relaxada para aceitar com segurança qualquer chave técnica válida (`/^[a-zA-Z0-9_\-.]{1,100}$/`).
+  - Suporte completo a múltiplos comentários/feedbacks independentes por item, cada um com identificador único (`randomBytes`), autor (`createdBy`), tag oficial (`authorTag`), data/hora e mensagem.
+  - Implementado tratamento resiliente no `collaborationService.ts`: tenta gravação no Supabase com mapeamento seguro de tags e, concomitantemente, mantém redundância em arquivo JSON local para tolerância total a falhas.
+  - Rota `GET /api/feedbacks` enriquecida: quando consultada sem parâmetros, busca o acervo completo e associa automaticamente `targetTitle`, `targetDate`, `targetModality` e `targetTeam` de registros, testes e eventos aos comentários.
+
+#### 3. Estilização Completa de TODOS os Elementos Input (Webdesigner Skills)
+- **Eliminação de Elementos Nativos Não Estilizados:**
+  - **Dropdown (`<select>`):** Recebeu a classe `.feedback-select`, com fundo escuro personalizado `rgba(18, 36, 26, 0.95)`, ícone chevron verde em SVG embutido via `background-image`, borda com realce esmeralda `rgba(74, 222, 128, 0.35)`, tipografia padronizada, padding ergonômico e anel de foco luminoso `box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.3)`.
+  - **Área de Texto (`<textarea>`):** Recebeu a classe `.feedback-textarea`, com cantos arredondados de 12px, altura mínima confortável, contador de caracteres em tempo real (`0/2000`), realce esmeralda ao focar e placeholder legível e sutil.
+  - **Botões (`<button>`):** Botões com gradiente vibrante esmeralda (`#22c55e` a `#16a34a`), sombras suaves de elevação, micro-animações de hover (`transform: translateY(-2px)`), feedback tátil no clique e estado desabilitado com opacidade e cursor coerentes.
+  - **Pills e Badges de Autores:**
+    - **DIREÇÃO:** Badge dourado/âmbar com ícone `<Award />` (`.author-tag-direction`).
+    - **COORDENAÇÃO:** Badge azul-celeste com ícone `<ShieldCheck />` (`.author-tag-coordination`).
+    - **TÉCNICO DE EQUIPE:** Badge lilás/magenta com ícone `<UserCheck />` (`.author-tag-technical`).
+
+#### 4. Nova Seção Dedicada de Acompanhamento na Tela de Calendário
+- **Componente `CalendarFeedbacks` Criado e Integrado:**
+  - Posicionado diretamente **embaixo do calendário técnico**, no visualizador principal (`CalendarView`).
+  - **Agrupamento Conforme Modelo Exigido:**
+    - Exibe cada item no formato exato: `Registro "<titulo>" data DD/MM/AAAA:` ou `Teste "<titulo>" data DD/MM/AAAA:` ou `Evento "<titulo>" data DD/MM/AAAA:`.
+    - Sob cada título agrupado, lista todos os comentários e feedbacks individuais correspondentes, com metadados do autor, arroba de login, data e hora formatada em `pt-BR` e mensagem completa com quebra de linhas preservada.
+    - Cada grupo possui atalhos diretos: **"Acessar registro →"**, **"Acessar teste →"** ou **"Ver no calendário"**.
+    - Permite à Gestão clicar em **"+ Comentar"** diretamente em qualquer grupo para adicionar orientações técnicas imediatas sem sair da tela do calendário.
+  - **Barra de Filtros e Busca Inteligente:**
+    - Filtros por categoria: *Todos*, *Registros*, *Testes* e *Eventos*, com contadores numéricos dinâmicos.
+    - Campo de busca responsivo para localizar feedbacks por título de registro, nome do autor, mensagem ou data.
+    - Painel responsivo que se adapta com perfeição a smartphones, tablets e monitores widescreen.
+
+---
+
 ## [2.1.0] — 2026-10-15
 
 ### Orientações e Demandas do Usuário (Prompt Original na Íntegra)

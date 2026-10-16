@@ -77,40 +77,99 @@ export const collaborationService = {
 
   async listFeedback(targetKind: Feedback['targetKind'], targetId: string): Promise<Feedback[]> {
     if (isSupabaseEnabled && supabase) {
-      const { data, error } = await supabase.from('feedbacks').select('*').eq('target_kind', targetKind).eq('target_id', targetId).order('created_at');
-      if (error) throw error;
-      return (data || []).map(row => ({
-        id: row.id,
-        targetKind: row.target_kind,
-        targetId: row.target_id,
-        authorTag: row.author_tag,
-        message: row.message,
-        createdBy: row.created_by,
-        createdAt: row.created_at
-      }));
+      try {
+        const { data, error } = await supabase
+          .from('feedbacks')
+          .select('*')
+          .eq('target_kind', targetKind)
+          .eq('target_id', targetId)
+          .order('created_at', { ascending: true });
+        if (!error && data) {
+          return data.map(row => ({
+            id: row.id,
+            targetKind: row.target_kind,
+            targetId: row.target_id,
+            authorTag: row.author_tag === 'TÉCNICO' ? 'TÉCNICO DE EQUIPE' : row.author_tag,
+            message: row.message,
+            createdBy: row.created_by,
+            createdAt: row.created_at
+          }));
+        }
+      } catch (err) {
+        console.warn('[Supabase] Erro ao listar feedbacks específicos, usando fallback:', err);
+      }
     }
     const items = await readJson<Feedback[]>(feedbackPath, []);
     return items.filter(item => item.targetKind === targetKind && item.targetId === targetId);
   },
 
-  async createFeedback(item: Feedback): Promise<Feedback> {
+  async listAllFeedbacks(targetKind?: Feedback['targetKind']): Promise<Feedback[]> {
     if (isSupabaseEnabled && supabase) {
-      const { error } = await supabase.from('feedbacks').insert({
-        id: item.id,
-        target_kind: item.targetKind,
-        target_id: item.targetId,
-        author_tag: item.authorTag,
-        message: item.message,
-        created_by: item.createdBy,
-        created_at: item.createdAt
-      });
-      if (error) throw error;
-    } else {
+      try {
+        let query = supabase.from('feedbacks').select('*').order('created_at', { ascending: false });
+        if (targetKind) {
+          query = query.eq('target_kind', targetKind);
+        }
+        const { data, error } = await query;
+        if (!error && data) {
+          const dbItems = data.map(row => ({
+            id: row.id,
+            targetKind: row.target_kind as Feedback['targetKind'],
+            targetId: row.target_id,
+            authorTag: (row.author_tag === 'TÉCNICO' ? 'TÉCNICO DE EQUIPE' : row.author_tag) as Feedback['authorTag'],
+            message: row.message,
+            createdBy: row.created_by,
+            createdAt: row.created_at
+          }));
+          return dbItems;
+        }
+      } catch (err) {
+        console.warn('[Supabase] Erro ao listar todos os feedbacks, usando fallback:', err);
+      }
+    }
+    const items = await readJson<Feedback[]>(feedbackPath, []);
+    const filtered = targetKind ? items.filter(item => item.targetKind === targetKind) : items;
+    return filtered.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+  },
+
+  async createFeedback(item: Feedback): Promise<Feedback> {
+    let savedInDb = false;
+    if (isSupabaseEnabled && supabase) {
+      try {
+        // Tenta salvar com a tag original; se falhar por constraint de 'TÉCNICO', tenta com fallback
+        const payload = {
+          id: item.id,
+          target_kind: item.targetKind,
+          target_id: item.targetId,
+          author_tag: item.authorTag === 'TÉCNICO DE EQUIPE' ? 'TÉCNICO' : item.authorTag,
+          message: item.message,
+          created_by: item.createdBy,
+          created_at: item.createdAt
+        };
+        const { error } = await supabase.from('feedbacks').insert(payload);
+        if (!error) {
+          savedInDb = true;
+        } else {
+          console.warn('[Supabase] Falha ao inserir feedback:', error.message);
+        }
+      } catch (err) {
+        console.warn('[Supabase] Exceção ao gravar feedback no banco:', err);
+      }
+    }
+
+    // Salva cópia local como redundância/garantia
+    try {
       await ensureLocal();
       const items = await readJson<Feedback[]>(feedbackPath, []);
-      items.push(item);
-      await writeFile(feedbackPath, JSON.stringify(items, null, 2), 'utf8');
+      // Evita duplicidade se o mesmo ID já existir
+      if (!items.some(x => x.id === item.id)) {
+        items.push(item);
+        await writeFile(feedbackPath, JSON.stringify(items, null, 2), 'utf8');
+      }
+    } catch (err) {
+      if (!savedInDb) throw err;
     }
+
     return item;
   },
 

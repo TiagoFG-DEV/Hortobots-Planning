@@ -5,6 +5,7 @@ import { ActivityCard, type ActivityKind, type ActivitySource } from './Activity
 import { TEAMS, notebookRoute, type TeamKey } from './teams';
 import { findActivities } from './activities';
 import { FeedbackThread } from './FeedbackThread';
+import { CalendarFeedbacks } from './CalendarFeedbacks';
 import {
   canConfirmEvent,
   canCreateEvent,
@@ -608,6 +609,22 @@ export function CalendarView({ api, user }: CalendarViewProps) {
           </div>
         </section>
       </div>}
+
+      {/* Acompanhamento e Feedbacks da Gestão organizado por registros abaixo do calendário */}
+      {view === 'calendar' && (
+        <CalendarFeedbacks
+          user={user}
+          onSelectEvent={(eventId, date) => {
+            const params = new URLSearchParams(urlParams);
+            params.set('event', eventId);
+            if (date) {
+              params.set('date', date);
+              setSelectedDate(date);
+            }
+            setUrlParams(params, { replace: true });
+          }}
+        />
+      )}
 
       {view === 'list' && <section id="activity-search-panel" className="activity-search-panel" aria-label="Pesquisar registros e atividades">
         <header className="activity-search-heading">

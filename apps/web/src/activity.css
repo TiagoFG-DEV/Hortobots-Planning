@@ -178,7 +178,7 @@ a.activity-main:hover { color: var(--team-accent); }
 .activity-loading { color: #fff; }
 
 .test-detail { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 1.5rem; }
-.test-detail > .page-title, .test-detail-media, .test-detail > .empty-public { grid-column: 1 / -1; }
+.test-detail > .page-title, .test-detail-media, .test-detail > .empty-public, .test-detail > .feedback-thread { grid-column: 1 / -1; width: 100%; }
 .test-detail-summary { padding: clamp(1rem, 3vw, 2rem); border-top: 4px solid var(--team-accent); }
 .test-detail-summary h2 { font: 700 clamp(1.8rem, 4vw, 3rem)/1.15 'Barlow Condensed', sans-serif; margin: 1rem 0; }
 .test-detail-summary p { line-height: 1.8; white-space: pre-wrap; }

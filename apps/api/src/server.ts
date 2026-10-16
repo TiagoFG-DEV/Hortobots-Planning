@@ -370,13 +370,75 @@ app.put('/api/configuracoes/notificacoes', async (req: AuthRequest, res: Respons
 
 // ─── Feedbacks (DEVE ficar antes de /api/:kind) ──────────────────────────────
 app.get('/api/feedbacks', async (req, res) => {
-  const targetKind = String(req.query.targetKind || '') as 'registros' | 'testes' | 'eventos';
-  const targetId = String(req.query.targetId || '');
-  if (!['registros', 'testes', 'eventos'].includes(targetKind) || !/^[a-f0-9]{8}$/.test(targetId)) {
-    res.status(400).json({ error: { message: 'Destino do feedback inválido.' } });
+  const targetKind = req.query.targetKind ? String(req.query.targetKind) : undefined;
+  const targetId = req.query.targetId ? String(req.query.targetId) : undefined;
+
+  // Se ambos foram informados, retorna os feedbacks específicos do item
+  if (targetKind && targetId) {
+    if (!['registros', 'testes', 'eventos'].includes(targetKind) || !/^[a-zA-Z0-9_\-.]{1,100}$/.test(targetId)) {
+      res.status(400).json({ error: { message: 'Destino do feedback inválido.' } });
+      return;
+    }
+    const list = await collaborationService.listFeedback(targetKind as any, targetId);
+    res.json(list);
     return;
   }
-  res.json(await collaborationService.listFeedback(targetKind, targetId));
+
+  // Se não foi especificado targetId, retorna lista geral de feedbacks enriquecida com os dados do registro/teste/evento
+  const validKind = targetKind && ['registros', 'testes', 'eventos'].includes(targetKind)
+    ? (targetKind as 'registros' | 'testes' | 'eventos')
+    : undefined;
+
+  const rawList = await collaborationService.listAllFeedbacks(validKind);
+
+  // Busca acervo para associar títulos e datas
+  try {
+    const [records, tests, events] = await Promise.all([
+      storageService.listItems('registros'),
+      storageService.listItems('testes'),
+      storageService.listItems('eventos')
+    ]);
+
+    const recordMap = new Map((records || []).map((r: any) => [String(r.id), r]));
+    const testMap = new Map((tests || []).map((t: any) => [String(t.id), t]));
+    const eventMap = new Map((events || []).map((e: any) => [String(e.id), e]));
+
+    const enriched = rawList.map(item => {
+      let targetTitle = '';
+      let targetDate = '';
+      let targetModality = '';
+      let targetTeam = '';
+
+      if (item.targetKind === 'registros') {
+        const r = recordMap.get(item.targetId);
+        targetTitle = r?.title || `Registro #${item.targetId}`;
+        targetDate = r?.date || '';
+        targetModality = r?.modality || '';
+      } else if (item.targetKind === 'testes') {
+        const t = testMap.get(item.targetId);
+        targetTitle = t?.title || `Teste #${item.targetId}`;
+        targetDate = t?.date || '';
+        targetModality = t?.modality || '';
+        targetTeam = t?.team || '';
+      } else if (item.targetKind === 'eventos') {
+        const e = eventMap.get(item.targetId);
+        targetTitle = e?.title || `Evento #${item.targetId}`;
+        targetDate = e?.date || '';
+      }
+
+      return {
+        ...item,
+        targetTitle,
+        targetDate,
+        targetModality,
+        targetTeam
+      };
+    });
+
+    res.json(enriched);
+  } catch (err) {
+    res.json(rawList);
+  }
 });
 
 app.post('/api/feedbacks', authMiddleware, async (req: AuthRequest, res: Response) => {
@@ -385,22 +447,35 @@ app.post('/api/feedbacks', authMiddleware, async (req: AuthRequest, res: Respons
     return;
   }
   const targetKind = String(req.body?.targetKind || '') as 'registros' | 'testes' | 'eventos';
-  const targetId = String(req.body?.targetId || '');
-  const authorTag = String(req.body?.authorTag || '') as 'DIREÇÃO' | 'COORDENAÇÃO' | 'TÉCNICO DE EQUIPE';
+  const targetId = String(req.body?.targetId || '').trim();
+  let authorTag = String(req.body?.authorTag || '').trim() as 'DIREÇÃO' | 'COORDENAÇÃO' | 'TÉCNICO DE EQUIPE';
+  if (authorTag === ('TÉCNICO' as any)) authorTag = 'TÉCNICO DE EQUIPE';
   const message = String(req.body?.message || '').trim();
-  if (!['registros', 'testes', 'eventos'].includes(targetKind) || !/^[a-f0-9]{8}$/.test(targetId) || !['DIREÇÃO', 'COORDENAÇÃO', 'TÉCNICO DE EQUIPE'].includes(authorTag) || !message || message.length > 2000) {
+
+  if (!['registros', 'testes', 'eventos'].includes(targetKind) || !/^[a-zA-Z0-9_\-.]{1,100}$/.test(targetId) || !['DIREÇÃO', 'COORDENAÇÃO', 'TÉCNICO DE EQUIPE'].includes(authorTag) || !message || message.length > 2000) {
     res.status(400).json({ error: { message: 'Preencha a tag e uma mensagem de até 2.000 caracteres.' } });
     return;
   }
+
+  // Tenta verificar se o item existe (sem travar caso o cache local ainda não tenha sincronizado)
   const target = await storageService.getItem(targetKind, targetId);
-  if (!target) {
-    res.status(404).json({ error: { message: 'O item comentado não foi encontrado.' } });
-    return;
-  }
-  res.json(await collaborationService.createFeedback({
-    id: randomBytes(4).toString('hex'), targetKind, targetId, authorTag, message,
-    createdBy: req.user!.username, createdAt: new Date().toISOString()
-  }));
+  const feedbackId = randomBytes(4).toString('hex');
+
+  const created = await collaborationService.createFeedback({
+    id: feedbackId,
+    targetKind,
+    targetId,
+    authorTag,
+    message,
+    createdBy: req.user!.username,
+    createdAt: new Date().toISOString()
+  });
+
+  res.json({
+    ...created,
+    targetTitle: target?.title || '',
+    targetDate: target?.date || ''
+  });
 });
 
 // ─── Banners (DEVE ficar antes de /api/:kind) ────────────────────────────────
