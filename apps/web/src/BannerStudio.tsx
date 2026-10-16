@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Download, FileText, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ChevronLeft, Download, FileText, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
 import type { AccountUser } from '@hortobots/shared/permissions';
 import { canManageBanner } from '@hortobots/shared/permissions';
 import { API, api } from './client';
@@ -34,6 +35,19 @@ export function BannerStudio({ teamKey, user }: { teamKey: TeamKey; user: Accoun
   const [researchFiles, setResearchFiles] = useState<File[]>([]);
   const [designFiles, setDesignFiles] = useState<File[]>([]);
   const canManage = canManageBanner(user, team.modality);
+
+  // Aviso ao tentar sair da tela com dados ou arquivos não salvos
+  useEffect(() => {
+    const isDirty = Boolean(problemQuestion.trim().length > 0 || researchFiles.length > 0 || designFiles.length > 0) && !saving;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [problemQuestion, researchFiles.length, designFiles.length, saving]);
 
   useEffect(() => {
     api(`/api/banners/${teamKey}`)
@@ -77,6 +91,11 @@ export function BannerStudio({ teamKey, user }: { teamKey: TeamKey; user: Accoun
 
   if (loading) return <main className="content"><p className="empty-public">Carregando estúdio de banner...</p></main>;
   return <main className="content banner-studio page-transition">
+    <div className="banner-top-bar">
+      <Link to="/" className="back-home-button" title="Voltar ao início">
+        <ChevronLeft size={18} /> Início
+      </Link>
+    </div>
     <header className="banner-studio-head"><div><span className="kicker">CANVA • ELEMENTOS EDITÁVEIS</span><h1>Banner A × B</h1><p>{team.label}</p></div><Sparkles size={42} /></header>
     <div className="banner-studio-grid">
       <section className="banner-controls">

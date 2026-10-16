@@ -334,19 +334,25 @@ app.get('/api/admin/profiles', adminAuthMiddleware, async (_req: AuthRequest, re
   }
 });
 
-// ─── Configurações de Notificações (Mentor) ─────────────────────────────────
+// ─── Configurações de Notificações (Mentor ou Admin) ────────────────────────
 // ATENÇÃO: estas rotas DEVEM ficar ANTES das rotas genéricas /api/:kind
-app.get('/api/configuracoes/notificacoes', authMiddleware, async (req: AuthRequest, res: Response) => {
-  if (!canManageNotificationSettings(req.user!)) {
-    res.status(403).json({ error: { message: 'Somente o Mentor pode visualizar estes endereços.' } });
+app.get('/api/configuracoes/notificacoes', async (req: AuthRequest, res: Response) => {
+  const token = String(req.headers.authorization || '').replace('Bearer ', '').trim();
+  const isAdmin = adminSessions.has(token);
+  const user = sessions.get(token);
+  if (!isAdmin && (!user || !canManageNotificationSettings(user))) {
+    res.status(403).json({ error: { message: 'Somente o Mentor ou Administrador pode visualizar estes endereços.' } });
     return;
   }
   res.json(await collaborationService.getNotificationSettings());
 });
 
-app.put('/api/configuracoes/notificacoes', authMiddleware, async (req: AuthRequest, res: Response) => {
-  if (!canManageNotificationSettings(req.user!)) {
-    res.status(403).json({ error: { message: 'Somente o Mentor pode alterar estes endereços.' } });
+app.put('/api/configuracoes/notificacoes', async (req: AuthRequest, res: Response) => {
+  const token = String(req.headers.authorization || '').replace('Bearer ', '').trim();
+  const isAdmin = adminSessions.has(token);
+  const user = sessions.get(token);
+  if (!isAdmin && (!user || !canManageNotificationSettings(user))) {
+    res.status(403).json({ error: { message: 'Somente o Mentor ou Administrador pode alterar estes endereços.' } });
     return;
   }
   const value = {
@@ -358,7 +364,8 @@ app.put('/api/configuracoes/notificacoes', authMiddleware, async (req: AuthReque
     res.status(400).json({ error: { message: 'Informe os três e-mails em formato válido.' } });
     return;
   }
-  res.json(await collaborationService.saveNotificationSettings(value, req.user!.username));
+  const author = user?.username || 'admin';
+  res.json(await collaborationService.saveNotificationSettings(value, author));
 });
 
 // ─── Feedbacks (DEVE ficar antes de /api/:kind) ──────────────────────────────

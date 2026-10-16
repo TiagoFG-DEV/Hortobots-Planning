@@ -6,11 +6,11 @@ O projeto opera como um monorepo modular em TypeScript. O backend em Node.js com
 
 ## Versões
 
-O estado de implementação, os bloqueios conhecidos e os testes ainda necessários da versão 1.1.0 estão no [relatório de entrega](docs/RELATORIO-ENTREGA-1.1.0.md). A versão ainda depende das correções e da homologação descritas nesse documento.
-
+- **2.1.0 — Painel Administrativo, Menu Lateral e Groq AI:** Menu lateral (Drawer) na Home com as cores das equipes na hierarquia solicitada, Painel Administrativo unificado com autenticação a cada recarga (F5), backup completo em `.zip`, limpeza de banco, alteração de senhas dos perfis, botão de salvar com alto contraste e suporte à Groq API no Estúdio de Banner.
+- **2.0.0 — Notificações e Visualização Universal:** Alertas por e-mail via API do Gmail, Lei Geral de Visualização Irrestrita de registros para todos os perfis, temporada FLL BIOGLOW 2026/2027 e OBR Resgate 2026 nos diários, e exportação de Banner Científico compatível com Canva.com.
 - **1.1.0 — Colaboração e desempenho:** pontuação oficial BIOGLOW, aproveitamento por teste, banners editáveis no Canva, avisos de eventos importantes e feedbacks da Gestão.
 - **[1.0.0 — Lançamento estável](CHANGELOG.md#100--2026-10-10):** reúne autenticação e permissões, três cadernos de equipe, registros, testes, gráficos, calendário, pesquisa geral, mídias, PDFs, persistência local/nuvem e a primeira auditoria responsiva completa.
-- As próximas versões serão adicionadas acima da `1.0.0`, mantendo o histórico detalhado em [CHANGELOG.md](CHANGELOG.md).
+- O histórico completo e detalhado com todos os prompts na íntegra está disponível em [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
@@ -144,13 +144,35 @@ A cortina de carregamento impede que fontes, fundos e sprites apareçam progress
 
 O usuário escolhe diretamente um dos quatro perfis fixos e informa a senha correspondente. Gestão acompanha e aprova; Mentor administra eventos e a mentoria; Aluno OBR cria, edita e exclui registros e testes do caderno OBR; Aluno FLL faz o mesmo nos cadernos SESI Hortobots e Under Construction. Essas permissões pertencem ao perfil e ao caderno, independentemente de quem criou o item. A opção **Somente visualizar** abre o calendário e a pesquisa geral sem autenticação, enquanto **Hortobots BIOGLOW** abre o portal público da equipe. Visitantes e contas autenticadas podem abrir o conteúdo completo de registros, testes e eventos. A sessão controla tanto os elementos exibidos quanto a autorização efetiva de cada requisição no servidor.
 
-### 4.3 Escolha do diário e atalhos de consulta
+### 4.3 Escolha do diário e Menu Lateral da Home
 
-![Tela inicial com os três diários](docs/telas/Home.png)
+A tela Home apresenta os três cadernos de forma limpa, espaçada e respirável, sem botões soltos na base.
+Toda a navegação da plataforma foi organizada em um **Menu Lateral (Drawer)** acionado pelo botão `MENU` no topo:
 
-A home autenticada é o ponto fixo de retorno da plataforma. Nela o usuário abre um dos três cadernos e acessa os atalhos de consulta para calendário, registros por equipe, pesquisa geral e portal BIOGLOW. Cada caderno mantém rotas, identidade visual e dados de equipe próprios, mesmo quando compartilha os mesmos componentes de formulário.
+- **Hierarquia Estrita do Menu:**
+  1. **CALENDÁRIO:** Agenda completa de eventos, com navegação contínua e destaques de eventos comuns e urgentes.
+  2. **PESQUISAR REGISTROS:** Motor de busca e filtros combinados de texto, data e tags em todos os cadernos.
+  3. **VER REGISTROS:** Agrupador expansível que exibe 3 botões estilizados nas cores das equipes:
+     - **SESI Hortobots FLL** (Verde `#22c55e`)
+     - **Under Construction FLL** (Magenta `#d946ef`)
+     - **Hortobots OBR** (Vermelho `#ef4444`)
+  4. **BANNER A × B:** Agrupador expansível com atalhos para os banners de cada time.
+  5. **PORTAL BIOGLOW:** Acesso ao portal oficial da equipe.
+  6. **PAINEL ADMINISTRATIVO:** Botão exclusivo para a conta **Mentor**, destacado com ícone `<Shield />`.
 
-### 4.4 Portal independente Hortobots BIOGLOW
+### 4.4 Painel Administrativo do Sistema
+
+Acesso exclusivo para manutenção e administração de dados (`/admin` e `/mentor/configuracoes`):
+
+- **Autenticação em Memória (Exigida a cada F5):** A sessão administrativa não utiliza armazenamento persistente; qualquer recarga de página exige nova validação de senha (`Horto#Mentor26`).
+- **Status do Banco de Dados:** Medição em tempo real do volume de armazenamento ocupado (`storageMb`), quantidade de eventos, registros de diários, testes de simulação e total de itens.
+- **Backup Completo (.zip):** Download instantâneo de um arquivo compactado `.zip` contendo os dados do SQLite, arquivos exportados e índice de mídias.
+- **Esvaziamento Seguro do Banco:** Limpeza integral com confirmação por digitação (`CONFIRMAR`).
+- **Destinatários de Alertas por E-mail:** Gerenciamento dos endereços da Gestão/Direção, Coordenação e Técnico, com botão de salvamento de alto contraste visual verde sólido `#16794b` com texto branco.
+- **Alteração de Senhas:** Redefinição de senha para qualquer perfil (`gestao`, `mentor`, `aluno_fll`, `aluno_obr`) e da própria senha mestra administrativa.
+- **Botão Voltar ao Início:** Retorno rápido à Home em qualquer estado do painel.
+
+### 4.5 Portal independente Hortobots BIOGLOW
 
 O botão **Hortobots BIOGLOW** abre o site oficial da equipe SESI Hortobots FLL dentro de um host isolado e responsivo, renderizado pelo próprio Planner. Uma barra permanece disponível para voltar à plataforma. A integração aguarda o sinal de carregamento do site e fornece apenas os endereços necessários para o retorno e para o acervo público da equipe.
 

@@ -15,18 +15,20 @@ import {
   ChevronLeft
 } from 'lucide-react';
 
-const ADMIN_TOKEN_KEY = 'hortobots-admin-token';
+// Armazenamento em memória volátil: ao recarregar a página (F5),
+// a memória do JavaScript é reinicializada do zero, forçando nova autenticação.
+let inMemoryAdminToken: string | null = null;
 
 function getAdminToken() {
-  return sessionStorage.getItem(ADMIN_TOKEN_KEY);
+  return inMemoryAdminToken;
 }
 
 function setAdminToken(token: string) {
-  sessionStorage.setItem(ADMIN_TOKEN_KEY, token);
+  inMemoryAdminToken = token;
 }
 
 function clearAdminToken() {
-  sessionStorage.removeItem(ADMIN_TOKEN_KEY);
+  inMemoryAdminToken = null;
 }
 
 async function adminFetch(path: string, init: RequestInit = {}) {
@@ -46,6 +48,7 @@ async function adminFetch(path: string, init: RequestInit = {}) {
 
 // ─── Tela de Login Admin ──────────────────────────────────────────────────────
 function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
+  const navigate = useNavigate();
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -72,15 +75,24 @@ function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
   };
 
   return (
-    <div className="admin-login-wrap">
+    <div className="admin-login-wrap page-transition">
       <div className="admin-login-card">
+        <button
+          type="button"
+          className="admin-login-back-btn"
+          onClick={() => navigate('/')}
+          title="Voltar ao início do site"
+        >
+          <ChevronLeft size={16} /> Voltar ao Início
+        </button>
         <div className="admin-login-icon" aria-hidden="true">
           <Shield size={36} />
         </div>
         <span className="paper-label">ACESSO RESTRITO</span>
         <h1>Painel Administrativo</h1>
         <p className="admin-login-desc">
-          Esta area e exclusiva para manutencao do sistema. A sessao e encerrada ao recarregar a pagina.
+          Área exclusiva para manutenção e configuração do sistema.
+          A autenticação é exigida novamente a cada recarregamento da página.
         </p>
         <form onSubmit={submit} className="admin-login-form">
           <label>
@@ -89,14 +101,15 @@ function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
-              placeholder="Informe a senha administrativa"
+              placeholder="Digite a senha administrativa"
               autoComplete="current-password"
               required
               disabled={loading}
+              autoFocus
             />
           </label>
           {error && <p className="form-error" role="alert">{error}</p>}
-          <button className="button" disabled={loading || !password}>
+          <button className="admin-primary-btn" disabled={loading || !password}>
             {loading ? 'Verificando...' : 'ACESSAR PAINEL'}
           </button>
         </form>

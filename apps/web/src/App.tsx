@@ -4,6 +4,8 @@ import {
   CalendarDays,
   ChartNoAxesCombined,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   Edit3,
   Eye,
   Home as HomeIcon,
@@ -335,8 +337,196 @@ function Login({ onLogin }: { onLogin: (u: User) => void }) {
 
 function Home() {
   const user = useCurrentUser();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [showRecordsTeams, setShowRecordsTeams] = useState(false);
+  const [showBannerTeams, setShowBannerTeams] = useState(false);
+
   return (
     <main className="cover page-transition">
+      {/* Botão de acionamento do Menu Lateral na tela inicial */}
+      <button
+        type="button"
+        className="home-menu-trigger"
+        onClick={() => setDrawerOpen(true)}
+        aria-label="Abrir menu lateral"
+        aria-expanded={drawerOpen}
+      >
+        <Menu size={22} />
+        <span>MENU</span>
+      </button>
+
+      {/* Menu Lateral Estilizado com Cores das Equipes (Drawer) */}
+      <div
+        className={`home-drawer-layer ${drawerOpen ? 'open' : ''}`}
+        onClick={() => setDrawerOpen(false)}
+        aria-hidden={!drawerOpen}
+      >
+        <aside
+          className="home-drawer-panel"
+          onClick={e => e.stopPropagation()}
+          aria-label="Menu principal de navegação"
+        >
+          <header className="home-drawer-header">
+            <div className="home-drawer-brand">
+              <img src={logo} alt="Hortobots Planning" />
+              <div>
+                <strong>HORTOBOTS</strong>
+                <span>MENU PRINCIPAL</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="home-drawer-close"
+              onClick={() => setDrawerOpen(false)}
+              aria-label="Fechar menu"
+            >
+              <X size={22} />
+            </button>
+          </header>
+
+          <nav className="home-drawer-nav">
+            {/* 1. Calendário */}
+            <Link
+              to="/calendario"
+              className="home-drawer-link"
+              onClick={() => setDrawerOpen(false)}
+            >
+              <CalendarDays size={20} />
+              <span>CALENDÁRIO</span>
+            </Link>
+
+            {/* 2. Pesquisar Registros */}
+            <Link
+              to="/calendario?view=list"
+              className="home-drawer-link"
+              onClick={() => setDrawerOpen(false)}
+            >
+              <Search size={20} />
+              <span>PESQUISAR REGISTROS</span>
+            </Link>
+
+            {/* 3. Ver Registros (simplificado em 1 botão com expansão para as 3 equipes) */}
+            <div className="home-drawer-group">
+              <button
+                type="button"
+                className={`home-drawer-link home-drawer-expandable ${showRecordsTeams ? 'expanded' : ''}`}
+                onClick={() => setShowRecordsTeams(prev => !prev)}
+                aria-expanded={showRecordsTeams}
+              >
+                <div className="drawer-link-left">
+                  <List size={20} />
+                  <span>VER REGISTROS</span>
+                </div>
+                {showRecordsTeams ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+              </button>
+              {showRecordsTeams && (
+                <div className="home-drawer-sublist">
+                  <Link
+                    to="/fll/registros"
+                    className="drawer-sublink team-sub-fll"
+                    onClick={() => setDrawerOpen(false)}
+                  >
+                    <span className="team-dot fll-dot" />
+                    <span className="team-name">SESI Hortobots</span>
+                    <small>FLL</small>
+                  </Link>
+                  <Link
+                    to="/underconstruction/registros"
+                    className="drawer-sublink team-sub-under"
+                    onClick={() => setDrawerOpen(false)}
+                  >
+                    <span className="team-dot under-dot" />
+                    <span className="team-name">Under Construction</span>
+                    <small>FLL</small>
+                  </Link>
+                  <Link
+                    to="/obr/registros"
+                    className="drawer-sublink team-sub-obr"
+                    onClick={() => setDrawerOpen(false)}
+                  >
+                    <span className="team-dot obr-dot" />
+                    <span className="team-name">Hortobots OBR</span>
+                    <small>OBR</small>
+                  </Link>
+                </div>
+              )}
+            </div>
+
+            {/* 4. Banner A × B (simplificado em 1 botão com expansão para as 3 equipes) */}
+            <div className="home-drawer-group">
+              <button
+                type="button"
+                className={`home-drawer-link home-drawer-expandable ${showBannerTeams ? 'expanded' : ''}`}
+                onClick={() => setShowBannerTeams(prev => !prev)}
+                aria-expanded={showBannerTeams}
+              >
+                <div className="drawer-link-left">
+                  <LayoutTemplate size={20} />
+                  <span>BANNER A × B</span>
+                </div>
+                {showBannerTeams ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+              </button>
+              {showBannerTeams && (
+                <div className="home-drawer-sublist">
+                  <Link
+                    to="/fll/banner"
+                    className="drawer-sublink team-sub-fll"
+                    onClick={() => setDrawerOpen(false)}
+                  >
+                    <span className="team-dot fll-dot" />
+                    <span className="team-name">Banner SESI Hortobots</span>
+                    <small>FLL</small>
+                  </Link>
+                  <Link
+                    to="/underconstruction/banner"
+                    className="drawer-sublink team-sub-under"
+                    onClick={() => setDrawerOpen(false)}
+                  >
+                    <span className="team-dot under-dot" />
+                    <span className="team-name">Banner Under</span>
+                    <small>FLL</small>
+                  </Link>
+                  <Link
+                    to="/obr/banner"
+                    className="drawer-sublink team-sub-obr"
+                    onClick={() => setDrawerOpen(false)}
+                  >
+                    <span className="team-dot obr-dot" />
+                    <span className="team-name">Banner Hortobots OBR</span>
+                    <small>OBR</small>
+                  </Link>
+                </div>
+              )}
+            </div>
+
+            {/* 5. Portal BIOGLOW */}
+            <Link
+              to={SESI_BIOGLOW_PORTAL.route}
+              className="home-drawer-link"
+              onClick={() => setDrawerOpen(false)}
+            >
+              <Leaf size={20} />
+              <span>PORTAL BIOGLOW</span>
+            </Link>
+
+            {/* 6. Painel Administrativo (Exclusivo Mentor) */}
+            {user?.role === 'mentor' && (
+              <div className="home-drawer-admin-section">
+                <div className="home-drawer-divider" />
+                <Link
+                  to="/mentor/configuracoes"
+                  className="home-drawer-link drawer-admin-btn"
+                  onClick={() => setDrawerOpen(false)}
+                >
+                  <Shield size={20} />
+                  <span>PAINEL ADMINISTRATIVO</span>
+                </Link>
+              </div>
+            )}
+          </nav>
+        </aside>
+      </div>
+
       <section className="home-screen">
         <Link to="/" aria-label="Hortobots Planning — escolher diário">
           <img className="brand" src={logo} alt="Hortobots Planning" />
@@ -346,24 +536,16 @@ function Home() {
           {(['fll', 'under', 'obr'] as const).map(key => {
             const team = TEAMS[key];
             const canWrite = canCreateTeamContent(user, team.modality);
-            return <Link className="notebook-logo" data-team={key} to={`/${team.route}`} key={key}>
-              <img src={teamBooks[key]} alt={`Caderno ${team.short}`} />
-              <strong>{team.short}</strong><small>{team.modality}{canWrite ? '' : ' • VISUALIZAR'}</small>
-            </Link>;
+            return (
+              <Link className="notebook-logo" data-team={key} to={`/${team.route}`} key={key}>
+                <img src={teamBooks[key]} alt={`Caderno ${team.short}`} />
+                <strong>{team.short}</strong>
+                <small>{team.modality}{canWrite ? '' : ' • VISUALIZAR'}</small>
+              </Link>
+            );
           })}
         </div>
-        <nav className="public-links">
-          <Link to="/calendario"><CalendarDays />Calendário</Link>
-          <Link to="/fll/registros"><List />SESI Hortobots</Link>
-          <Link to="/underconstruction/registros"><List />Under Construction</Link>
-          <Link to="/obr/registros"><List />Registros OBR</Link>
-          <Link to="/calendario?view=list"><ChartNoAxesCombined />Pesquisar registros</Link>
-          <Link to={SESI_BIOGLOW_PORTAL.route}><Leaf />Portal BIOGLOW</Link>
-          {user?.role === 'mentor' && <Link to="/mentor/configuracoes"><Mail />Alertas por e-mail</Link>}
-          {user && <Link to="/fll/banner"><LayoutTemplate />Banner SESI</Link>}
-          {user && <Link to="/underconstruction/banner"><LayoutTemplate />Banner Under</Link>}
-          {user && <Link to="/obr/banner"><LayoutTemplate />Banner OBR</Link>}
-        </nav>
+
         <Link className="global-calendar" to="/calendario">
           <CalendarDays /> VER CALENDÁRIO <b>URGENTES</b>
         </Link>
@@ -757,6 +939,19 @@ function Editor({ isEdit }: { isEdit?: boolean }) {
   const [isSaving, setIsSaving] = useState(false);
   const [celebration, setCelebration] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Aviso de alterações não salvas ao fechar ou recarregar
+  useEffect(() => {
+    const isDirty = Boolean(form.title.trim() || form.summary.trim() || media.length > 0) && !isSaving && !celebration;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [form.title, form.summary, media.length, isSaving, celebration]);
 
   // Se for modo edição, carrega dados atuais
   useEffect(() => {
@@ -1174,6 +1369,19 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
   const [errorMsg, setErrorMsg] = useState('');
   const [base, setBase] = useState({ date: today, title: '', objective: '', comments: '', mission: '', maxScore: notebook.modality === 'FLL' ? BIOGLOW_SEASON.maximumScore : 0 });
   const [showAnalysis, setShowAnalysis] = useState(false);
+
+  // Aviso de alterações não salvas ao fechar ou recarregar
+  useEffect(() => {
+    const isDirty = Boolean(base.title.trim() || base.objective.trim() || media.length > 0) && !isSaving && !celebration;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [base.title, base.objective, media.length, isSaving, celebration]);
 
   useEffect(() => {
     let active = true;
@@ -2080,7 +2288,7 @@ export function App() {
           <Route path="/home" element={<Home />} />
           <Route path="/login" element={<Navigate to={safeReturnTo} replace />} />
           <Route path="/calendario" element={<CalendarView api={api} user={user} />} />
-          <Route path="/mentor/configuracoes" element={user.role === 'mentor' ? <MentorSettings /> : <Navigate to="/" replace />} />
+          <Route path="/mentor/configuracoes" element={user.role === 'mentor' ? <AdminPanel /> : <Navigate to="/" replace />} />
           <Route path="/admin" element={<AdminPanel />} />
           <Route path={SESI_BIOGLOW_PORTAL.route} element={<TeamPortalFrame />} />
           <Route path="/:mod" element={<Hub />} />

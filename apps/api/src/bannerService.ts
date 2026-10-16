@@ -143,43 +143,94 @@ export async function synthesizeBanner(input: {
   research: string;
   robot: string;
   previous?: BannerContent;
-}): Promise<{ content: BannerContent; generatedBy: 'openai' | 'fallback' }> {
+}): Promise<{ content: BannerContent; generatedBy: 'groq' | 'openai' | 'fallback' }> {
   const fallback = fallbackContent(input.teamName, input.problem, input.research, input.robot);
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return { content: fallback, generatedBy: 'fallback' };
 
   const source = JSON.stringify({
     equipe: input.teamName,
     pergunta: compactText(input.problem, 900),
-    pesquisa: compactText(input.research, 8000),
-    designRobo: compactText(input.robot, 8000),
+    pesquisa: compactText(input.research, 6000),
+    designRobo: compactText(input.robot, 6000),
     bannerAtual: input.previous || undefined
   });
-  try {
-    const response = await fetch('https://api.openai.com/v1/responses', {
-      method: 'POST',
-      signal: AbortSignal.timeout(25_000),
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({
-        model: process.env.OPENAI_BANNER_MODEL || 'gpt-5-nano',
-        store: false,
-        max_output_tokens: 650,
-        text: { verbosity: 'low', format: { type: 'json_schema', name: 'banner_content', strict: true, schema: bannerSchema } },
-        input: [
-          { role: 'developer', content: 'Sintetize em português do Brasil um banner científico escolar. Use frases curtas e palavras-chave concretas. Não invente resultados, números ou fontes. Preserve fatos do material. Em atualização, complemente e refine o conteúdo anterior.' },
-          { role: 'user', content: source }
-        ]
-      })
-    });
-    if (!response.ok) throw new Error(`OpenAI ${response.status}`);
-    const body = await response.json() as any;
-    const outputText = body.output_text || body.output?.flatMap((item: any) => item.content || []).find((item: any) => item.type === 'output_text')?.text;
-    if (!outputText) throw new Error('Resposta vazia');
-    return { content: JSON.parse(outputText) as BannerContent, generatedBy: 'openai' };
-  } catch (error) {
-    console.warn('[Banner IA] Usando síntese local:', error instanceof Error ? error.message : error);
-    return { content: fallback, generatedBy: 'fallback' };
+
+  // 1. Prioriza Groq se configurado (velocidade extrema e consumo mínimo de tokens)
+  const groqApiKey = process.env.GROQ_API_KEY;
+  if (groqApiKey) {
+    try {
+      const groqModel = process.env.GROQ_BANNER_MODEL || 'llama-3.1-8b-instant';
+      const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        signal: AbortSignal.timeout(15_000),
+        headers: {
+          'content-type': 'application/json',
+          authorization: `Bearer ${groqApiKey}`
+        },
+        body: JSON.stringify({
+          model: groqModel,
+          temperature: 0.1,
+          max_tokens: 650,
+          response_format: { type: 'json_object' },
+          messages: [
+            {
+              role: 'system',
+              content: 'Sintetize em português do Brasil um banner científico escolar para equipe de robótica (FLL ou OBR). Retorne estritamente um JSON com: kicker (string curta), title (string), subtitle (string), problem (string), research (array de 3 strings curtas), innovation (array de 3 strings curtas), learning (array de 3 strings curtas), robotDesign (array de 3 strings curtas), footer (string). Não invente dados; resuma o material fornecido.'
+            },
+            {
+              role: 'user',
+              content: source
+            }
+          ]
+        })
+      });
+      if (groqRes.ok) {
+        const json = await groqRes.json() as any;
+        const text = json.choices?.[0]?.message?.content;
+        if (text) {
+          const parsed = JSON.parse(text) as BannerContent;
+          if (parsed.title && Array.isArray(parsed.research)) {
+            return { content: parsed, generatedBy: 'groq' };
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[Banner Groq] Falha ou timeout na API Groq, tentando alternativa:', err instanceof Error ? err.message : err);
+    }
   }
+
+  // 2. Tenta OpenAI se configurado
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (apiKey) {
+    try {
+      const response = await fetch('https://api.openai.com/v1/responses', {
+        method: 'POST',
+        signal: AbortSignal.timeout(20_000),
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model: process.env.OPENAI_BANNER_MODEL || 'gpt-5-nano',
+          store: false,
+          max_output_tokens: 650,
+          text: { verbosity: 'low', format: { type: 'json_schema', name: 'banner_content', strict: true, schema: bannerSchema } },
+          input: [
+            { role: 'developer', content: 'Sintetize em português do Brasil um banner científico escolar. Use frases curtas e palavras-chave concretas. Não invente resultados, números ou fontes. Preserve fatos do material. Em atualização, complemente e refine o conteúdo anterior.' },
+            { role: 'user', content: source }
+          ]
+        })
+      });
+      if (response.ok) {
+        const body = await response.json() as any;
+        const outputText = body.output_text || body.output?.flatMap((item: any) => item.content || []).find((item: any) => item.type === 'output_text')?.text;
+        if (outputText) {
+          return { content: JSON.parse(outputText) as BannerContent, generatedBy: 'openai' };
+        }
+      }
+    } catch (error) {
+      console.warn('[Banner OpenAI] Usando síntese local pre-set:', error instanceof Error ? error.message : error);
+    }
+  }
+
+  // 3. Fallback local pre-set baseado nas especificações do SESI e robótica
+  return { content: fallback, generatedBy: 'fallback' };
 }
 
 const addSection = (slide: any, title: string, items: string[], x: number, y: number, w: number, h: number, accent: string) => {

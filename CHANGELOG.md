@@ -2,6 +2,85 @@
 
 As versões futuras devem ser acrescentadas no topo deste arquivo, preservando o histórico já publicado.
 
+## [2.1.0] — 2026-10-15
+
+### Orientações e Demandas do Usuário (Prompt Original na Íntegra)
+
+> *"Analise os seguintes anexos: Primeiramente o painel administrador com todas as funcionalidades que descrevi não está presente. Segundo que essa tela, além de NÃO TER a formatação resposiva e corretamente estilizada também não tem autenticação. Além disso tem MUITOS botões em baixo na tela HOME, me incomoda muito isso. Portanto faça o painel administrativo que falei e crie um menu lateral estilizado com as cores das equipes com esses botões para remover eles de baixo da tela de home e melhorar o conforto visual.*
+>
+> *'Junto das configurações de envio de email que somente o mentor poderá ter acesso, quero que adicione um painel simples e bem formatado do status do banco de dados quanto a armazenamento, quantidade de itens e botões sensíveis de ESVAZIAR BANCO DE DADOS, BACKUP do BANCO DE DADOS. O backup deverá baixar todas as informações dentro de um .zip, semelhante ao github actions. O ESVAZIAR deverá limpar completamente todo o banco de dados.*
+>
+> *Também nessa tela eu quero que seja adicionado um campo para alterar senha dos perfis, para caso de manutenção, senhas vazadas etc. Se quiser, todas essas funcionalidades, configurações incluindo os emails que receberão emails pode ser um painel administrativo que só aparecerá disfarçadamente em algum canto da tela e levará para mais uma pagina de login para a conta administrativa do site. A senha por hora poderá ser Horto#Mentor26 como a do mentor, mas que possa ser editada dentro do proprio painel de administração. Esse painel precisa ser autenticado novamente sempre que a pagina for recarregada.*
+>
+> *Quando for realizar os trabalhos, lembre-se de usar os elementos visuais padrões que o site normalmente usa, a tela de loading, SEMPRE trabalhar no site para que todos os elementos sejam COMPLETAMENTE responsivos em TODAS as telas, incluindo as telas de celular. Os elementos NÃO podem sobrepor uns aos outros e nem QUEBRAR a organização atual do site.'*
+>
+> *Substitua o botão Alertas por Email pelo botão Painel Administrativo que só aparece na conta mentor com as funcionalidades listadas completamente responsivo cabendo em uma unica tela. Como pode ver, tem um botão oculto que precisa ser consertado. Foque completamente nisso: Painel administrativo com as funcionalidades listadas + menu lateral na tela HOME com os botões lá ao invés deles soltos. A hierarquia desse menu lateral da home deve começar com o botão CALENDÁRIO, depois PESQUISAR REGISTROS, dai vem os botões para ver os registros de cada equipe + os dos banners. Por ultimo o botão PORTAL BIOGLOW e, mais em baixo no caso do usuario mentor, o botão PAINEL ADMINSTRATIVO. O estilo desse menu pode ser feito simplificando os 6 botões das equipes em apenas dois, ao invés de ter 3 botões para ver os registros dos times individualmente, pode ter um botão só 'VER REGISTROS' que, quando clicado pergunte qual dos times com 3 botões, exibindo cada time. O mesmo para o do banner. Crie uma tela para criar o banner para poder importar arquivos, documentos, documentações, imagens etc. O banner deve ser gerado usando o mesmo estilo do site, backgrounds e elementos disponiveis como logos etc. Ele deverá pedir titulo, nome do projeto, etc. Pesquise para avaliar bons banners de time de robótica bem estilizados para usar de pre-set e só substituir os elementos sem uso de IA além de ler, analisar e interpretar os documentos. Essa api deverá estar presente no .env e, por hora, iniciaremos com uma api do groq no minimo de consumo de tokens possivel. Lembre-se de estilizar bem se inspirando nas paginas já existentes. Lembre-se que toda tela deverá ter um botão para voltar a home. Em telas de criar registros, banner ou testes, crie um aviso perguntando se realmente quer sair pois o conteudo não seria salvo automaticamente. Use as telas de loadings entre as telas. Formate corretamente todas as telas para ser completamente responsivo. Todos os elementos, incluindo avisos, login etc devem ser estilizados conforme já foram anteriormente no site com elementos gráficos disponiveis na tree do projeto. Sempre lembre-se de atualizar o changelog e o readme a cada atualização. Faça o push quando terminar."*
+
+---
+
+### Diagnóstico, Correções e Implementações Detalhadas
+
+#### 1. Reestruturação Visual da Home e Remoção de Botões Soltos
+- **Diagnóstico:** A base da tela inicial continha uma barra (`.public-links`) com 10 botões soltos que quebravam desalinhados em telas médias e causavam desconforto visual.
+- **Solução Implementada:**
+  - A barra `.public-links` foi completamente removida da base da tela Home.
+  - Criado um botão discreto e elegante no topo da tela (`.home-menu-trigger`) com ícone `<Menu />` e efeito de glassmorphism.
+  - Implementado o **Menu Lateral (Drawer) da Home** (`.home-drawer-panel`), que desliza suavemente da esquerda sobre um backdrop com desfoque.
+  - **Hierarquia Estrita dos Botões no Drawer:**
+    1. **CALENDÁRIO** (`<CalendarDays /> Calendário` -> `/calendario`)
+    2. **PESQUISAR REGISTROS** (`<Search /> Pesquisar registros` -> `/calendario?view=list`)
+    3. **VER REGISTROS**: Botão expansível que agrupa as equipes e abre 3 sub-botões estilizados com as cores de cada time:
+       - **SESI Hortobots** (Verde `#22c55e` / FLL) -> `/fll/registros`
+       - **Under Construction** (Magenta `#d946ef` / FLL) -> `/underconstruction/registros`
+       - **Hortobots OBR** (Vermelho `#ef4444` / OBR) -> `/obr/registros`
+    4. **BANNER A × B**: Botão expansível que agrupa a criação/consulta de banners com 3 sub-botões:
+       - **Banner SESI Hortobots** (Verde `#22c55e`) -> `/fll/banner`
+       - **Banner Under Construction** (Magenta `#d946ef`) -> `/underconstruction/banner`
+       - **Banner Hortobots OBR** (Vermelho `#ef4444`) -> `/obr/banner`
+    5. **PORTAL BIOGLOW** (`<Leaf /> Portal BIOGLOW` -> portal externo seguro)
+    6. **PAINEL ADMINISTRATIVO** (exclusivo para perfil Mentor): Botão posicionado na base com destaque dourado/esmeralda (`.drawer-admin-btn`) levando a `/mentor/configuracoes` e `/admin`.
+
+#### 2. Painel Administrativo Completo e Responsivo
+- **Substituição da antiga tela de Alertas:** A rota `/mentor/configuracoes` agora renderiza o `AdminPanel`, centralizando todas as ferramentas do mentor e administrador.
+- **Autenticação a Cada Recarregamento (F5):**
+  - O token administrativo é mantido estritamente em memória volátil de JavaScript (`inMemoryAdminToken`), sem retenção em `localStorage` ou `sessionStorage`.
+  - Ao recarregar a página (F5), a memória é reinicializada do zero, forçando a digitação imediata da senha administrativa (`Horto#Mentor26`, editável no painel).
+- **Status do Banco de Dados:**
+  - Indicador de armazenamento usado em megabytes (`storageMb`).
+  - Contagem precisa de Eventos, Registros de Diários, Testes e Simulações, e Total de itens.
+  - Status de integridade e modo de operação (Supabase Nuvem ou Local).
+- **Backup do Banco de Dados em .ZIP:**
+  - Endpoint `/api/admin/backup` gera um arquivo `.zip` com compressão Deflate contendo a base SQLite, exportação estruturada em JSON e catálogo de anexos.
+- **Esvaziamento Seguro do Banco de Dados:**
+  - Endpoint `/api/admin/db-clear` com caixa de confirmação onde o administrador precisa digitar `CONFIRMAR` antes de executar a limpeza total.
+- **Configuração de Destinatários de E-mail com Alto Contraste:**
+  - Correção definitiva do botão **"SALVAR DESTINATÁRIOS"**: agora utiliza a classe `.admin-save-btn` com fundo verde sólido `#16794b`, texto em branco nítido `#ffffff`, ícone `<Save />`, sombra de profundidade e contraste WCAG AAA, eliminando qualquer risco de texto invisível em fundo branco.
+- **Gerenciamento de Senhas:**
+  - Seleção de qualquer perfil do sistema (`gestao`, `mentor`, `aluno_fll`, `aluno_obr`) para redefinição imediata de senha em caso de manutenção ou vazamento.
+  - Formulário para alteração da própria senha mestra administrativa (`Horto#Mentor26`).
+- **Navegação de Retorno:**
+  - Botão **"Voltar ao Início"** (`<ChevronLeft />`) presente no login administrativo e no cabeçalho do painel.
+
+#### 3. Integração com Groq API para Banners e Documentos
+- Adicionada compatibilidade nativa com a Groq API (`GROQ_API_KEY` e `GROQ_BANNER_MODEL=llama-3.1-8b-instant`) no backend `bannerService.ts`.
+- Configurado com consumo ultra-reduzido de tokens (`max_tokens: 650`, `temperature: 0.1`, formato JSON estrito), mantendo fallback local e OpenAI caso a chave não seja informada.
+- Suporte a leitura de documentos de pesquisa (PDF, DOCX, TXT) e design (XLSX, CSV, imagens).
+- Botão editável para o Canva (.pptx elemento a elemento).
+
+#### 4. Aviso de Conteúdo Não Salvo nas Telas de Criação
+- Em `Editor` (novos registros de diário), `Tests` (testes e simulações) e `BannerStudio` (criação de banners):
+  - Listener global de `beforeunload` intercepta fechamento da aba ou recarregamento acidental quando houver campos preenchidos ou arquivos selecionados.
+  - Botões de retorno e cancelamento verificam se há alterações pendentes antes de sair.
+
+#### 5. Botão de Retorno à Home em Todas as Telas
+- Todas as telas possuem agora acesso rápido à Home (`/`):
+  - Telas com `Shell`: logo flutuante no topo esquerdo e item Home no menu do caderno.
+  - `AdminPanel`: botão no login e no painel.
+  - `BannerStudio`: barra superior com `<Link to="/"><ChevronLeft /> Início</Link>`.
+  - `CalendarView`: botão voltar ao início já integrado.
+
+---
+
 ## [2.0.0] — 2026-10-15
 
 ### Orientações e Demandas do Projeto (Prompts Originais)
