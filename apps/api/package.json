@@ -13,7 +13,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@hortobots/shared": "1.1.0",
+    "@hortobots/shared": "2.2.0",
     "@supabase/supabase-js": "2.117.2",
     "@types/pg": "^8.23.1",
     "cors": "^2.8.6",

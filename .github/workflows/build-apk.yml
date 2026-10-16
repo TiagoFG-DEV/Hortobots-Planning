@@ -1,0 +1,96 @@
+name: Build Android APK and Publish Release
+
+on:
+  push:
+    branches:
+      - WebApp
+    tags:
+      - 'v1.0-beta*'
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag de release'
+        required: false
+        default: 'v1.0-beta'
+
+permissions:
+  contents: write
+
+jobs:
+  build-apk:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Setup Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Web Application and Sync Capacitor
+        run: npm run mobile:build
+
+      - name: Make Gradlew Executable
+        run: chmod +x apps/web/android/gradlew
+
+      - name: Build Android APK (Gradle)
+        run: |
+          cd apps/web/android
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Prepare APK Asset
+        run: |
+          mkdir -p release-assets
+          cp apps/web/android/app/build/outputs/apk/debug/app-debug.apk release-assets/Hortobots-Planning-v1.0-beta.apk
+          ls -la release-assets/
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hortobots-planning-apk
+          path: release-assets/Hortobots-Planning-v1.0-beta.apk
+          retention-days: 30
+
+      - name: Publish GitHub Release (v1.0-beta)
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/') || github.ref_name == 'WebApp' || github.event_name == 'workflow_dispatch'
+        with:
+          tag_name: ${{ inputs.tag_name || 'v1.0-beta' }}
+          name: 'Hortobots Planning WebApp v1.0-beta'
+          prerelease: true
+          files: release-assets/Hortobots-Planning-v1.0-beta.apk
+          body: |
+            # 📱 Hortobots Planning — WebApp Android (v1.0-beta)
+
+            Primeiro protótipo oficial do aplicativo móvel (.apk) da plataforma **Hortobots Planning**, portado com arquitetura **Offline-First**.
+
+            ### 🚀 Principais Recursos desta Versão:
+            - **Funcionamento Offline Inteligente:** Navegue pelos registros, simulações, testes e calendário mesmo sem nenhuma conexão com a internet. O aplicativo utiliza armazenamento local resiliente para renderizar os últimos dados sincronizados do banco.
+            - **Indicador de Conexão:** Alerta flutuante e discreto indicando se o app está no *Modo Offline* ou com *Conexão restabelecida*.
+            - **Proteção de Edição Offline:** Garante a integridade dos dados, avisando o usuário quando uma ação requer conexão com o servidor.
+            - **Sessão Persistente:** Mantenha-se conectado no dispositivo sem necessidade de relogar a cada abertura do aplicativo.
+            - **Interface 100% Responsiva:** Otimizada para telas móveis, toque e navegação fluida em smartphones e tablets Android.
+
+            ### 📲 Instruções de Instalação:
+            1. Baixe o arquivo `Hortobots-Planning-v1.0-beta.apk` abaixo no seu dispositivo Android.
+            2. Toque no arquivo baixado para instalar (caso solicitado, permita a instalação de apps de fontes confiáveis).
+            3. Abra o **Hortobots Planning** e acesse com suas credenciais ou no modo visitante!
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -15,7 +15,8 @@
     "dev:local": "concurrently \"npm run dev:local -w @hortobots/api\" \"npm run dev -w @hortobots/web\"",
     "sync:bioglow": "node scripts/sync-bioglow.mjs",
     "backup": "node scripts/backup-database.mjs",
-    "verify:pdf": "node scripts/verify-activity-pdf.mjs"
+    "verify:pdf": "node scripts/verify-activity-pdf.mjs",
+    "mobile:build": "npm run build && npx -w @hortobots/web cap sync android"
   },
   "devDependencies": {
     "@types/node": "22.10.5",

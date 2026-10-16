@@ -21,8 +21,11 @@ import {
   Shield,
   Trash2,
   Video,
+  Wifi,
+  WifiOff,
   X
 } from 'lucide-react';
+import { useOnlineStatus } from './offlineStorage';
 import logo from './assets/generated/Logo.webp';
 import fll from './assets/generated/fll_team_logo.webp';
 import obr from './assets/generated/obr_team_logo.webp';
@@ -241,6 +244,8 @@ function Login({ onLogin }: { onLogin: (u: User) => void }) {
       const r = await api('/api/auth/login', { method: 'POST', body: JSON.stringify(v) });
       sessionStorage.setItem('hortobots-token', r.token);
       sessionStorage.setItem('hortobots-user', JSON.stringify(r.user));
+      localStorage.setItem('hortobots-token', r.token);
+      localStorage.setItem('hortobots-user', JSON.stringify(r.user));
       onLogin(r.user);
     } catch (x) {
       setError((x as Error).message);
@@ -2136,12 +2141,34 @@ function TransitionScreen({ active }: { active: boolean }) {
   );
 }
 
+function OfflineNotice() {
+  const { isOnline, wasOffline } = useOnlineStatus();
+  if (isOnline && !wasOffline) return null;
+
+  return (
+    <aside
+      className={`offline-banner ${isOnline ? 'online' : 'offline'}`}
+      role="status"
+      aria-live="polite"
+    >
+      <div className="offline-banner-content">
+        {isOnline ? <Wifi size={14} /> : <WifiOff size={14} />}
+        <span>
+          {isOnline
+            ? 'Conexão restabelecida · Dados atualizados'
+            : 'Modo Offline · Exibindo dados locais sincronizados'}
+        </span>
+      </div>
+    </aside>
+  );
+}
+
 export function App() {
   useOverlayAccessibility();
-  // Restaura sessao anterior da sessionStorage, se existir
+  // Restaura sessao anterior da sessionStorage ou localStorage (WebApp offline), se existir
   const [user, setUser] = useState<User | null>(() => {
     try {
-      const raw = sessionStorage.getItem('hortobots-user');
+      const raw = sessionStorage.getItem('hortobots-user') || localStorage.getItem('hortobots-user');
       return raw ? (JSON.parse(raw) as User) : null;
     } catch {
       return null;
@@ -2254,6 +2281,8 @@ export function App() {
   const handleLogout = () => {
     setIsTransitioning(true);
     sessionStorage.clear();
+    localStorage.removeItem('hortobots-token');
+    localStorage.removeItem('hortobots-user');
     setUser(null);
     navigate('/');
 
@@ -2275,6 +2304,7 @@ export function App() {
     return (
       <UserContext.Provider value={null}>
         <DialogProvider>
+          <OfflineNotice />
           <TransitionScreen active={isOverlayActive} />
           <Routes>
             <Route path="/" element={<Login onLogin={handleLoginSuccess} />} />
@@ -2295,6 +2325,7 @@ export function App() {
   return (
     <UserContext.Provider value={user}>
       <DialogProvider>
+        <OfflineNotice />
         <TransitionScreen active={isOverlayActive} />
         <button
           className="logout"

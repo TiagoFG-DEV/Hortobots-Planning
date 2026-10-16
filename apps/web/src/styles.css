@@ -7072,3 +7072,61 @@ textarea,
   margin-bottom: 0.8rem;
 }
 
+/* ── Banner de Status Offline (WebApp / PWA) ────────────────────────────── */
+.offline-banner {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 99999;
+  pointer-events: none;
+  animation: offlineBannerEnter 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.offline-banner-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.5rem 1.15rem;
+  border-radius: 999px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.offline-banner.offline .offline-banner-content {
+  background: rgba(30, 24, 14, 0.94);
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  color: #fde68a;
+}
+
+.offline-banner.offline svg {
+  color: #f59e0b;
+}
+
+.offline-banner.online .offline-banner-content {
+  background: rgba(14, 28, 20, 0.94);
+  border: 1px solid rgba(74, 222, 128, 0.45);
+  color: #86efac;
+}
+
+.offline-banner.online svg {
+  color: #22c55e;
+}
+
+@keyframes offlineBannerEnter {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -12px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+

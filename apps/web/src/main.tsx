@@ -2,3 +2,13 @@ import React from 'react'; import ReactDOM from 'react-dom/client'; import { Bro
 import './activity.css';
 import './teamPortal.css';
 ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><div className="app-backdrop" aria-hidden="true"><span className="backdrop-layer backdrop-obr" /><span className="backdrop-layer backdrop-under" /><span className="backdrop-layer backdrop-calendar" /><span className="backdrop-layer backdrop-home" /></div><QueryClientProvider client={new QueryClient()}><BrowserRouter><App /></BrowserRouter></QueryClientProvider></React.StrictMode>);
+
+// Registra o Service Worker para suporte PWA e funcionamento offline do WebApp
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(err => {
+      console.warn('[PWA] Aviso ao registrar Service Worker:', err);
+    });
+  });
+}
+
