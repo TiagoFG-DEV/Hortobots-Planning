@@ -461,37 +461,60 @@ app.get('/api/feedbacks', async (req, res) => {
     const testMap = new Map((tests || []).map((t: any) => [String(t.id), t]));
     const eventMap = new Map((events || []).map((e: any) => [String(e.id), e]));
 
-    const enriched = rawList.map(item => {
+    const orphanedFeedbackIds: string[] = [];
+    const enriched: any[] = [];
+
+    for (const item of rawList) {
       let targetTitle = '';
       let targetDate = '';
       let targetModality = '';
       let targetTeam = '';
+      let exists = false;
 
       if (item.targetKind === 'registros') {
         const r = recordMap.get(item.targetId);
-        targetTitle = r?.title || `Registro #${item.targetId}`;
-        targetDate = r?.date || '';
-        targetModality = r?.modality || '';
+        if (r) {
+          exists = true;
+          targetTitle = r.title || `Registro #${item.targetId}`;
+          targetDate = r.date || '';
+          targetModality = r.modality || '';
+        }
       } else if (item.targetKind === 'testes') {
         const t = testMap.get(item.targetId);
-        targetTitle = t?.title || `Teste #${item.targetId}`;
-        targetDate = t?.date || '';
-        targetModality = t?.modality || '';
-        targetTeam = t?.team || '';
+        if (t) {
+          exists = true;
+          targetTitle = t.title || `Teste #${item.targetId}`;
+          targetDate = t.date || '';
+          targetModality = t.modality || '';
+          targetTeam = t.team || '';
+        }
       } else if (item.targetKind === 'eventos') {
         const e = eventMap.get(item.targetId);
-        targetTitle = e?.title || `Evento #${item.targetId}`;
-        targetDate = e?.date || '';
+        if (e) {
+          exists = true;
+          targetTitle = e.title || `Evento #${item.targetId}`;
+          targetDate = e.date || '';
+        }
       }
 
-      return {
-        ...item,
-        targetTitle,
-        targetDate,
-        targetModality,
-        targetTeam
-      };
-    });
+      if (!exists) {
+        // Item de origem (evento, teste ou registro) não existe mais: marca para expurgo
+        orphanedFeedbackIds.push(item.id);
+      } else {
+        enriched.push({
+          ...item,
+          targetTitle,
+          targetDate,
+          targetModality,
+          targetTeam
+        });
+      }
+    }
+
+    // Expurga silenciosamente do banco e nuvem quaisquer feedbacks órfãos encontrados
+    if (orphanedFeedbackIds.length > 0) {
+      Promise.all(orphanedFeedbackIds.map(id => collaborationService.deleteFeedback(id))).catch(() => {});
+    }
 
     res.json(enriched);
   } catch (err) {
@@ -537,8 +560,8 @@ app.post('/api/feedbacks', authMiddleware, async (req: AuthRequest, res: Respons
 });
 
 app.delete('/api/feedbacks/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
-  if (req.user?.role !== 'management') {
-    res.status(403).json({ error: { message: 'Somente a conta da Gestão pode excluir comentários.' } });
+  if (req.user?.role !== 'management' && req.user?.role !== 'mentor') {
+    res.status(403).json({ error: { message: 'Somente a conta da Gestão ou Mentor pode excluir comentários.' } });
     return;
   }
   const id = String(req.params.id || '').trim();
@@ -917,6 +940,8 @@ app.delete('/api/:kind/:id', authMiddleware, async (req: AuthRequest, res: Respo
 
   try {
     const result = await storageService.deleteItem(kind, id);
+    // Exclui em cascata todos os feedbacks vinculados a este registro, teste ou evento
+    await collaborationService.deleteFeedbacksByTarget(kind, id);
     res.json(result);
   } catch (err: any) {
     res.status(500).json({ error: { message: 'Erro ao excluir item.' } });

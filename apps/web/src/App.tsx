@@ -261,6 +261,7 @@ function Login({ onLogin }: { onLogin: (u: User) => void }) {
             <img src={underBook} alt="Caderno Under Construction" />
             <img src={obrBook} alt="Caderno OBR" />
           </div>
+          <span className="login-version-tag" title="Hortobots Planning v2.2.0">v2.2.0</span>
         </div>
         <form onSubmit={submit}>
           <div className="login-team-icons">

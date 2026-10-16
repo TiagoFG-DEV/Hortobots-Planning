@@ -433,7 +433,7 @@ export function CalendarFeedbacks({
                                   timeStyle: 'short'
                                 }).format(new Date(item.createdAt))}
                               </time>
-                              {user?.role === 'management' && (
+                              {(user?.role === 'management' || user?.role === 'mentor') && (
                                 <button
                                   type="button"
                                   className="feedback-disguised-delete"

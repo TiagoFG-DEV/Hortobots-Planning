@@ -499,3 +499,131 @@ html:has(.menu-layer.open, .dialog-layer, .focus-layer, .hb-dialog-overlay) .log
     transform: none !important;
   }
 }
+
+/* ── Responsividade Universal: Feedbacks, Acompanhamento e Telas Móveis ── */
+@media (max-width: 900px) {
+  .calendar-feedbacks-section {
+    padding: 1.6rem;
+    margin: 2.5rem 0 1.5rem;
+    border-radius: 22px;
+  }
+  .cal-feedbacks-header h2 {
+    font-size: 1.65rem;
+  }
+  .cal-feedback-group-card {
+    padding: 1.25rem;
+  }
+}
+
+@media (max-width: 680px) {
+  .calendar-feedbacks-section {
+    padding: 1.15rem 0.85rem;
+    border-radius: 18px;
+    margin: 1.8rem 0 1.2rem;
+  }
+  .cal-feedbacks-badge {
+    font-size: 0.68rem;
+    padding: 0.28rem 0.65rem;
+  }
+  .cal-feedbacks-header h2 {
+    font-size: 1.35rem;
+    line-height: 1.2;
+  }
+  .cal-feedbacks-subtitle {
+    font-size: 0.84rem;
+    line-height: 1.45;
+  }
+  .cal-feedbacks-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+  .cal-feedbacks-filter-pills {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+  }
+  .cal-filter-pill {
+    padding: 0.42rem 0.8rem;
+    font-size: 0.78rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .cal-feedbacks-search-bar {
+    max-width: 100%;
+    min-width: 0;
+  }
+  .cal-feedback-group-card {
+    padding: 1rem 0.75rem;
+    border-radius: 16px;
+  }
+  .group-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.6rem;
+  }
+  .group-card-title-col {
+    width: 100%;
+  }
+  .group-card-title {
+    font-size: 1.05rem;
+    word-break: break-word;
+  }
+  .group-card-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  .group-card-actions .cal-btn-feedback-reply {
+    width: 100%;
+    justify-content: center;
+  }
+  .comment-bubble-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+  }
+  .comment-bubble-meta-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .group-comment-bubble {
+    padding: 0.8rem;
+    border-radius: 12px;
+  }
+  .comment-bubble-text p {
+    font-size: 0.88rem;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+  .login-version-tag {
+    position: static;
+    display: block;
+    text-align: center;
+    margin-top: 0.25rem;
+    font-size: 0.68rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .calendar-feedbacks-section {
+    padding: 0.9rem 0.6rem;
+    border-radius: 14px;
+    margin: 1.2rem 0 1rem;
+  }
+  .cal-feedback-toast-success {
+    font-size: 0.82rem;
+    padding: 0.65rem 0.85rem;
+  }
+  .feedback-thread {
+    padding: 0.9rem;
+  }
+  .feedback-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}
+

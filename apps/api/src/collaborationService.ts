@@ -242,24 +242,79 @@ export const collaborationService = {
   },
 
   async deleteFeedback(id: string): Promise<boolean> {
+    const cleanId = String(id || '').trim();
+    if (!cleanId) return false;
+
     if (isSupabaseEnabled && supabase) {
       try {
-        const { error } = await supabase.from('feedbacks').delete().eq('id', id);
+        const { error } = await supabase.from('feedbacks').delete().eq('id', cleanId);
         if (error) {
           console.warn('[Supabase] Aviso ao deletar feedback no banco:', error.message);
         }
       } catch (err) {
         console.warn('[Supabase] Exceção ao deletar feedback no banco:', err);
       }
+
+      // Sincroniza remoção no armazenamento em nuvem (system/feedbacks.json)
+      try {
+        const cloudFeedbacks = await readCloudStorageJson<Feedback[]>('system/feedbacks.json');
+        if (cloudFeedbacks && Array.isArray(cloudFeedbacks)) {
+          const updated = cloudFeedbacks.filter(x => String(x.id).trim() !== cleanId);
+          await writeCloudStorageJson('system/feedbacks.json', updated);
+        }
+      } catch (err) {
+        console.warn('[Supabase Storage] Falha ao sincronizar exclusão de feedback na nuvem:', err);
+      }
     }
 
     try {
       await ensureLocal();
       const items = await readJson<Feedback[]>(feedbackPath, []);
-      const filtered = items.filter(x => x.id !== id);
+      const filtered = items.filter(x => String(x.id).trim() !== cleanId);
       await writeFile(feedbackPath, JSON.stringify(filtered, null, 2), 'utf8');
     } catch (err) {
       console.warn('[Local] Falha ao deletar feedback no arquivo local:', err);
+    }
+
+    return true;
+  },
+
+  async deleteFeedbacksByTarget(targetKind: string, targetId: string): Promise<boolean> {
+    const cleanTargetId = String(targetId || '').trim();
+    if (!cleanTargetId) return false;
+
+    if (isSupabaseEnabled && supabase) {
+      try {
+        const { error } = await supabase
+          .from('feedbacks')
+          .delete()
+          .eq('target_id', cleanTargetId);
+        if (error) {
+          console.warn('[Supabase] Aviso ao deletar feedbacks em cascata no banco:', error.message);
+        }
+      } catch (err) {
+        console.warn('[Supabase] Exceção ao deletar feedbacks em cascata:', err);
+      }
+
+      // Sincroniza remoção em lote no armazenamento em nuvem
+      try {
+        const cloudFeedbacks = await readCloudStorageJson<Feedback[]>('system/feedbacks.json');
+        if (cloudFeedbacks && Array.isArray(cloudFeedbacks)) {
+          const updated = cloudFeedbacks.filter(x => String(x.targetId).trim() !== cleanTargetId);
+          await writeCloudStorageJson('system/feedbacks.json', updated);
+        }
+      } catch (err) {
+        console.warn('[Supabase Storage] Falha ao remover feedbacks em cascata na nuvem:', err);
+      }
+    }
+
+    try {
+      await ensureLocal();
+      const items = await readJson<Feedback[]>(feedbackPath, []);
+      const filtered = items.filter(x => String(x.targetId).trim() !== cleanTargetId);
+      await writeFile(feedbackPath, JSON.stringify(filtered, null, 2), 'utf8');
+    } catch (err) {
+      console.warn('[Local] Falha ao deletar feedbacks locais em cascata:', err);
     }
 
     return true;
