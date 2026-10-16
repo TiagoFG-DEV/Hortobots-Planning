@@ -32,126 +32,217 @@ export function importantEventManagementUrl(event: { id: string; date: string })
   return `${appUrl}/login?profile=gestao&returnTo=${encodeURIComponent(returnTo)}`;
 }
 
-// ─── Template: Evento URGENTE ────────────────────────────────────────────────
+// ─── Template HTML de E-mail (Identidade Visual Padrão Hortobots — Verde/Calmo) ───
+export function buildEventEmailHtml(event: any, managementUrl: string, isUrgent = false) {
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(event.date || '') ? event.date.split('-').reverse().join('/') : event.date;
+  const hasUrgentTag = isUrgent || event.priority === 'URGENTE' || Boolean(event.important);
+  const tagLabel = hasUrgentTag ? 'Tag: Prioritário' : 'Novo Evento';
+
+  return `<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>Um novo evento foi enviado — Hortobots Planning</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f7f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#183225;-webkit-font-smoothing:antialiased">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#f4f7f4;padding:32px 12px">
+    <tr>
+      <td align="center">
+        <!-- Container Principal -->
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;background-color:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 6px 24px rgba(11,43,25,0.08);border:1px solid #dbe6dd">
+          
+          <!-- Cabeçalho Institucional Hortobots (Verde Floresta Elegante) -->
+          <tr>
+            <td style="padding:32px 32px 28px;background:linear-gradient(135deg,#0b2b19 0%,#16794b 100%);color:#ffffff">
+              <div style="font-size:11px;letter-spacing:2.5px;color:#a9ed86;font-weight:700;margin-bottom:8px">HORTOBOTS PLANNING</div>
+              <div style="display:inline-block;background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.28);color:#ffffff;font-size:11px;font-weight:600;letter-spacing:1px;padding:3px 10px;border-radius:999px;margin-bottom:12px">${escapeHtml(tagLabel)}</div>
+              <h1 style="margin:0 0 6px;font-size:24px;line-height:1.25;font-weight:700;color:#ffffff">Um novo evento foi enviado!</h1>
+              <p style="margin:0;color:#dcecdf;font-size:14px;line-height:1.45">Uma nova atividade foi cadastrada na agenda da equipe e já está disponível para acompanhamento.</p>
+            </td>
+          </tr>
+
+          <!-- Corpo com Detalhes do Evento -->
+          <tr>
+            <td style="padding:32px 30px">
+              
+              <!-- Card de Detalhes -->
+              <div style="background-color:#fbfdfb;border:1px solid #dce8df;border-left:4px solid #16794b;border-radius:12px;padding:20px;margin-bottom:20px">
+                <div style="font-size:11px;letter-spacing:1.5px;color:#16794b;font-weight:700;margin-bottom:8px">DETALHES DO EVENTO</div>
+                <h2 style="font-size:20px;margin:0 0 14px;color:#0b2b19;line-height:1.3">${escapeHtml(event.title)}</h2>
+                
+                <table role="presentation" cellspacing="0" cellpadding="0" style="width:100%">
+                  <tr>
+                    <td style="padding:6px 0;color:#496557;font-size:13px;width:50%">
+                      <strong style="color:#0b2b19">Data:</strong> ${escapeHtml(date)}
+                    </td>
+                    <td style="padding:6px 0;color:#496557;font-size:13px;width:50%">
+                      <strong style="color:#0b2b19">Período:</strong> ${escapeHtml(event.period || 'Não especificado')}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td colspan="2" style="padding:6px 0;color:#496557;font-size:13px">
+                      <strong style="color:#0b2b19">Horário:</strong> ${escapeHtml(event.lesson || 'Não especificado')}
+                    </td>
+                  </tr>
+                </table>
+              </div>
+
+              <!-- Observações (se houver) -->
+              ${event.comments ? `
+              <div style="background-color:#ffffff;border:1px solid #e1ece3;border-radius:12px;padding:16px 18px;line-height:1.55;color:#2c4537;font-size:13px;margin-bottom:20px">
+                <strong style="display:block;margin-bottom:6px;color:#16794b;font-size:12px;letter-spacing:1px">OBSERVAÇÕES:</strong>
+                ${escapeHtml(event.comments)}
+              </div>` : ''}
+
+              <!-- Informação Tranquila e Acolhedora -->
+              <div style="background-color:#f2f7f3;border-radius:10px;padding:14px 18px;margin-bottom:24px;border-left:3px solid #16794b">
+                <p style="margin:0;color:#214e36;font-size:13px;line-height:1.55">Você pode consultar este evento diretamente no calendário da equipe e registrar notas, feedbacks ou confirmações pelo painel da gestão.</p>
+              </div>
+
+              <!-- Botão de Ação (Estilo Padrão Hortobots) -->
+              <p style="margin:0 0 8px;font-size:13px;color:#496557">Clique no botão abaixo para acessar a plataforma:</p>
+              <p style="margin:0 0 4px">
+                <a href="${escapeHtml(managementUrl)}" style="display:inline-block;background-color:#16794b;color:#ffffff;text-decoration:none;font-weight:700;padding:13px 26px;border-radius:10px;font-size:14px;letter-spacing:0.3px;box-shadow:0 3px 10px rgba(22,121,75,0.2)">VISUALIZAR EVENTO NA PLATAFORMA</a>
+              </p>
+              <p style="margin:12px 0 0;font-size:11px;color:#708a7b;line-height:1.4">O botão direciona você diretamente para a data do evento no calendário após o login com o perfil Gestão.</p>
+            </td>
+          </tr>
+
+          <!-- Rodapé Institucional -->
+          <tr>
+            <td style="padding:16px 30px;background-color:#eef4ef;color:#496557;font-size:12px;border-top:1px solid #dce8df">
+              SESI 437 — Hortobots Planning &bull; Planejamento e organização em um só lugar.
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+// ─── Versão Texto Puro (Essencial para pontuação anti-spam e inbox normal) ─────
+export function buildEventEmailText(event: any, managementUrl: string, isUrgent = false) {
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(event.date || '') ? event.date.split('-').reverse().join('/') : event.date;
+  const hasUrgentTag = isUrgent || event.priority === 'URGENTE' || Boolean(event.important);
+  const tagLabel = hasUrgentTag ? '[Tag: Prioritário]' : '[Novo Evento]';
+
+  return `HORTOBOTS PLANNING
+${tagLabel}
+
+Um novo evento foi enviado!
+Uma nova atividade foi cadastrada na agenda da equipe e já está disponível para acompanhamento.
+
+DETALHES DO EVENTO:
+- Título: ${event.title || 'Sem título'}
+- Data: ${date}
+- Período: ${event.period || 'Não especificado'}
+- Horário: ${event.lesson || 'Não especificado'}
+${event.comments ? `- Observações: ${event.comments}\n` : ''}
+Para visualizar todos os detalhes e gerenciar o evento no calendário:
+${managementUrl}
+
+--
+SESI 437 — Hortobots Planning
+Planejamento e organização da equipe.`;
+}
+
+// Aliases para manter compatibilidade com módulos existentes
 export function urgentEventEmailHtml(event: any, managementUrl: string) {
-  const date = /^\d{4}-\d{2}-\d{2}$/.test(event.date || '') ? event.date.split('-').reverse().join('/') : event.date;
-  return `<!doctype html><html lang="pt-BR"><head><meta name="viewport" content="width=device-width,initial-scale=1"><meta charset="UTF-8"><title>Evento URGENTE — Hortobots Planning</title></head>
-  <body style="margin:0;background:#1a0505;font-family:Arial,sans-serif;color:#1a0505">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#1a0505;padding:24px 12px"><tr><td align="center">
-      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;background:#fff8f5;border-radius:22px;overflow:hidden;border:2px solid #c0392b">
-        <tr><td style="padding:30px;background:linear-gradient(135deg,#7b1010,#c0392b);color:#fff">
-          <div style="font-size:11px;letter-spacing:3px;color:#ffcdd2;font-weight:700;margin-bottom:6px">HORTOBOTS PLANNING</div>
-          <div style="display:inline-block;background:#ff5252;color:#fff;font-size:11px;font-weight:700;letter-spacing:2px;padding:5px 12px;border-radius:999px;margin-bottom:12px">EVENTO URGENTE</div>
-          <h1 style="margin:0 0 6px;font-size:26px;line-height:1.2">Acao imediata necessaria</h1>
-          <p style="margin:0;color:#ffcdd2;font-size:14px">Um evento urgente foi lancado e aguarda sua aprovacao ou recusa.</p>
-        </td></tr>
-        <tr><td style="padding:28px">
-          <div style="background:#fff;border-left:4px solid #c0392b;border-radius:12px;padding:18px 20px;margin-bottom:18px">
-            <div style="font-size:11px;letter-spacing:2px;color:#c0392b;font-weight:700;margin-bottom:8px">DETALHES DO EVENTO</div>
-            <h2 style="font-size:22px;margin:0 0 10px;color:#1a0505">${escapeHtml(event.title)}</h2>
-            <table role="presentation" cellspacing="0" cellpadding="0" style="width:100%">
-              <tr>
-                <td style="padding:4px 0;color:#555;font-size:13px"><strong>Data:</strong> ${escapeHtml(date)}</td>
-                <td style="padding:4px 0;color:#555;font-size:13px"><strong>Periodo:</strong> ${escapeHtml(event.period)}</td>
-              </tr>
-              <tr>
-                <td colspan="2" style="padding:4px 0;color:#555;font-size:13px"><strong>Horario:</strong> ${escapeHtml(event.lesson)}</td>
-              </tr>
-            </table>
-          </div>
-          ${event.comments ? `<div style="background:#fff;border-radius:12px;border:1px solid #f5c6c6;padding:16px;line-height:1.6;color:#444;font-size:14px;margin-bottom:18px"><strong style="display:block;margin-bottom:6px;color:#c0392b">Observacoes:</strong>${escapeHtml(event.comments)}</div>` : ''}
-          <div style="background:#fff3e0;border-radius:12px;padding:16px;margin-bottom:20px;border-left:4px solid #ff9800">
-            <p style="margin:0;color:#e65100;font-size:13px;line-height:1.55"><strong>Atencao:</strong> Este evento exige sua analise. Voce pode confirmar, recusar ou simplesmente visualizar sem decidir. A decisao e opcional.</p>
-          </div>
-          <p style="margin:0 0 8px;font-size:13px;color:#666">Clique no botao abaixo para acessar a plataforma diretamente neste evento:</p>
-          <p style="margin:0 0 4px"><a href="${escapeHtml(managementUrl)}" style="display:inline-block;background:linear-gradient(135deg,#c0392b,#e74c3c);color:#fff;text-decoration:none;font-weight:700;padding:14px 26px;border-radius:12px;font-size:14px;letter-spacing:0.5px">VISUALIZAR E DECIDIR SOBRE O EVENTO</a></p>
-          <p style="margin:12px 0 0;font-size:11px;color:#999">O botao abrira a tela de login. Selecione o perfil Gestao, informe sua senha e sera redirecionado diretamente para o evento.</p>
-        </td></tr>
-        <tr><td style="padding:16px 28px;background:#ffeaea;color:#7b1010;font-size:12px">SESI 437 — Hortobots Planning &bull; Notificacao de evento urgente</td></tr>
-      </table>
-    </td></tr></table>
-  </body></html>`;
+  return buildEventEmailHtml(event, managementUrl, true);
 }
 
-// ─── Template: Evento COMUM ───────────────────────────────────────────────────
 export function comumEventEmailHtml(event: any, managementUrl: string) {
-  const date = /^\d{4}-\d{2}-\d{2}$/.test(event.date || '') ? event.date.split('-').reverse().join('/') : event.date;
-  return `<!doctype html><html lang="pt-BR"><head><meta name="viewport" content="width=device-width,initial-scale=1"><meta charset="UTF-8"><title>Novo Evento — Hortobots Planning</title></head>
-  <body style="margin:0;background:#07140d;font-family:Arial,sans-serif;color:#173326">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#07140d;padding:24px 12px"><tr><td align="center">
-      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;background:#f6f8f2;border-radius:22px;overflow:hidden;border:1px solid #2f5f43">
-        <tr><td style="padding:30px;background:linear-gradient(135deg,#0b2b19,#16794b);color:#fff">
-          <div style="font-size:11px;letter-spacing:3px;color:#a9ed86;font-weight:700;margin-bottom:6px">HORTOBOTS PLANNING</div>
-          <div style="display:inline-block;background:#2e7d52;color:#a9ed86;font-size:11px;font-weight:700;letter-spacing:2px;padding:5px 12px;border-radius:999px;margin-bottom:12px">NOVO EVENTO</div>
-          <h1 style="margin:0 0 6px;font-size:26px;line-height:1.2">Novo evento na agenda</h1>
-          <p style="margin:0;color:#dcecdf;font-size:14px">A agenda da equipe recebeu uma nova pauta. Clique para visualizar.</p>
-        </td></tr>
-        <tr><td style="padding:28px">
-          <div style="background:#fff;border-left:4px solid #16794b;border-radius:12px;padding:18px 20px;margin-bottom:18px">
-            <div style="font-size:11px;letter-spacing:2px;color:#16794b;font-weight:700;margin-bottom:8px">DETALHES DO EVENTO</div>
-            <h2 style="font-size:22px;margin:0 0 10px;color:#0c2818">${escapeHtml(event.title)}</h2>
-            <table role="presentation" cellspacing="0" cellpadding="0" style="width:100%">
-              <tr>
-                <td style="padding:4px 0;color:#537061;font-size:13px"><strong>Data:</strong> ${escapeHtml(date)}</td>
-                <td style="padding:4px 0;color:#537061;font-size:13px"><strong>Periodo:</strong> ${escapeHtml(event.period)}</td>
-              </tr>
-              <tr>
-                <td colspan="2" style="padding:4px 0;color:#537061;font-size:13px"><strong>Horario:</strong> ${escapeHtml(event.lesson)}</td>
-              </tr>
-            </table>
-          </div>
-          ${event.comments ? `<div style="background:#fff;border-radius:12px;border:1px solid #c3ddc8;padding:16px;line-height:1.6;color:#304b3c;font-size:14px;margin-bottom:18px"><strong style="display:block;margin-bottom:6px;color:#16794b">Observacoes:</strong>${escapeHtml(event.comments)}</div>` : ''}
-          <p style="margin:0 0 8px;font-size:13px;color:#537061">Acesse a plataforma para consultar todos os detalhes deste evento no calendario:</p>
-          <p style="margin:0 0 4px"><a href="${escapeHtml(managementUrl)}" style="display:inline-block;background:linear-gradient(135deg,#16794b,#1da462);color:#fff;text-decoration:none;font-weight:700;padding:14px 26px;border-radius:12px;font-size:14px;letter-spacing:0.5px">VISUALIZAR EVENTO NA PLATAFORMA</a></p>
-          <p style="margin:12px 0 0;font-size:11px;color:#8aa890">O botao abrira a tela de login. Selecione o perfil Gestao e sera redirecionado diretamente para o evento no calendario.</p>
-        </td></tr>
-        <tr><td style="padding:16px 28px;background:#e9f1e7;color:#5d7467;font-size:12px">SESI 437 — Hortobots Planning &bull; Planejamento, testes e historia em um so lugar.</td></tr>
-      </table>
-    </td></tr></table>
-  </body></html>`;
+  return buildEventEmailHtml(event, managementUrl, false);
 }
 
-// ─── Legado: template unificado (mantido para compatibilidade) ────────────────
 export function emailHtml(event: any, managementUrl: string) {
-  return event.priority === 'URGENTE' || Boolean(event.important)
-    ? urgentEventEmailHtml(event, managementUrl)
-    : comumEventEmailHtml(event, managementUrl);
+  const isUrgent = event.priority === 'URGENTE' || Boolean(event.important);
+  return buildEventEmailHtml(event, managementUrl, isUrgent);
 }
 
-// ─── Envio via Gmail API ──────────────────────────────────────────────────────
-async function sendEmail(event: any, settings: NotificationSettings, htmlBody: string, subject: string) {
-  const recipients = [settings.managementEmail, settings.coordinationEmail, settings.technicalEmail].map(value => value.trim()).filter(Boolean);
-  if (recipients.length !== 3) return { sent: false, reason: 'Destinatarios incompletos na configuracao do Mentor.' };
+// ─── Envio com Alta Entregabilidade (MIME Multipart + Headers Anti-Spam) ──────
+async function sendEmail(event: any, settings: NotificationSettings, isUrgent: boolean, subject: string) {
+  const recipients = [settings.managementEmail, settings.coordinationEmail, settings.technicalEmail]
+    .map(value => value.trim())
+    .filter(Boolean);
+  if (recipients.length !== 3) {
+    return { sent: false, reason: 'Destinatários incompletos na configuração do Mentor.' };
+  }
+
   const accessToken = await gmailAccessToken();
-  if (!accessToken) return { sent: false, reason: 'Credenciais OAuth da API Gmail nao configuradas no servidor.' };
+  if (!accessToken) {
+    return { sent: false, reason: 'Credenciais OAuth da API Gmail não configuradas no servidor.' };
+  }
+
+  const managementUrl = importantEventManagementUrl(event);
+  const htmlBody = buildEventEmailHtml(event, managementUrl, isUrgent);
+  const textBody = buildEventEmailText(event, managementUrl, isUrgent);
+
   const sender = process.env.GMAIL_SENDER || 'me';
-  const headers = [
-    ...(process.env.GMAIL_FROM_EMAIL ? [`From: Hortobots Planning <${process.env.GMAIL_FROM_EMAIL}>`] : []),
+  const fromEmail = process.env.GMAIL_FROM_EMAIL || 'tiagop05gregorio@gmail.com';
+  const boundary = `_NextPart_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  const messageId = `<${Date.now()}.${Math.random().toString(36).slice(2, 10)}@hortobots.planning>`;
+
+  // Monta mensagem MIME multipart/alternative completa (RFC 2046 e RFC 5322)
+  // E-mails que contêm tanto text/plain quanto text/html têm taxa de entrega na Caixa de Entrada drasticamente superior
+  const mimeMessage = [
+    `From: Hortobots Planning <${fromEmail}>`,
     `To: ${recipients.join(', ')}`,
-    `Subject: =?UTF-8?B?${Buffer.from(subject).toString('base64')}?=`,
+    `Reply-To: ${fromEmail}`,
+    `Subject: =?UTF-8?B?${Buffer.from(subject, 'utf8').toString('base64')}?=`,
+    `Date: ${new Date().toUTCString()}`,
+    `Message-ID: ${messageId}`,
     'MIME-Version: 1.0',
-    'Content-Type: text/html; charset=UTF-8',
+    'X-Priority: 3',
+    'Auto-Submitted: auto-generated',
+    'X-Auto-Response-Suppress: All',
+    'X-Mailer: Hortobots Planning Notification Engine',
+    `Content-Type: multipart/alternative; boundary="${boundary}"`,
     '',
-    htmlBody
+    `--${boundary}`,
+    'Content-Type: text/plain; charset=UTF-8',
+    'Content-Transfer-Encoding: base64',
+    '',
+    Buffer.from(textBody, 'utf8').toString('base64'),
+    '',
+    `--${boundary}`,
+    'Content-Type: text/html; charset=UTF-8',
+    'Content-Transfer-Encoding: base64',
+    '',
+    Buffer.from(htmlBody, 'utf8').toString('base64'),
+    '',
+    `--${boundary}--`
   ].join('\r\n');
+
   const response = await fetch(`https://gmail.googleapis.com/gmail/v1/users/${encodeURIComponent(sender)}/messages/send`, {
     method: 'POST',
     signal: AbortSignal.timeout(15_000),
     headers: { authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ raw: base64Url(headers) })
+    body: JSON.stringify({ raw: base64Url(mimeMessage) })
   });
-  if (!response.ok) throw new Error(`API Gmail respondeu ${response.status}: ${(await response.text()).slice(0, 300)}`);
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`API Gmail respondeu ${response.status}: ${errorBody.slice(0, 300)}`);
+  }
+
   const payload = await response.json() as { id?: string };
   return { sent: true, messageId: payload.id || '' };
 }
 
 // ─── Exportações públicas ─────────────────────────────────────────────────────
 export async function sendImportantEventEmail(event: any, settings: NotificationSettings) {
-  const managementUrl = importantEventManagementUrl(event);
-  return sendEmail(event, settings, urgentEventEmailHtml(event, managementUrl), `Evento URGENTE: ${event.title}`);
+  // Assunto limpo e informativo sem gatilhos de spam (evita 'URGENTE', 'AÇÃO IMEDIATA', etc.)
+  const cleanTitle = (event.title || 'Novo Evento').trim();
+  const subject = `Um novo evento foi enviado: ${cleanTitle}`;
+  return sendEmail(event, settings, true, subject);
 }
 
 export async function sendComumEventEmail(event: any, settings: NotificationSettings) {
-  const managementUrl = importantEventManagementUrl(event);
-  return sendEmail(event, settings, comumEventEmailHtml(event, managementUrl), `Novo evento na agenda: ${event.title}`);
+  const cleanTitle = (event.title || 'Novo Evento').trim();
+  const subject = `Um novo evento foi enviado: ${cleanTitle}`;
+  return sendEmail(event, settings, false, subject);
 }

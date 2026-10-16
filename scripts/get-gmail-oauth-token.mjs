@@ -34,11 +34,18 @@
 
 import http from 'node:http';
 import { createInterface } from 'node:readline';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import dotenv from 'dotenv';
 
-// ─── EDITE AQUI ────────────────────────────────────────────────────────────────
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+
+// ─── CREDENCIAIS ─────────────────────────────────────────────────────────────
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || '';
-// ────────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 
 const REDIRECT_URI = 'http://localhost:4000/oauth2callback';
 const SCOPE = 'https://www.googleapis.com/auth/gmail.send';

@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { mkdir, readFile, writeFile, rm } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { isSupabaseEnabled, logsRoot, supabase } from './storageService.js';
+import { isSupabaseEnabled, logsRoot, supabase, supabaseBucket } from './storageService.js';
 
 export type NotificationSettings = {
   managementEmail: string;
@@ -39,6 +39,7 @@ const feedbackPath = path.join(collaborationRoot, 'feedbacks.json');
 const bannersRoot = path.join(collaborationRoot, 'banners');
 
 const ensureLocal = async () => {
+  await mkdir(collaborationRoot, { recursive: true });
   await mkdir(bannersRoot, { recursive: true });
 };
 
@@ -50,6 +51,35 @@ const readJson = async <T>(file: string, fallback: T): Promise<T> => {
   }
 };
 
+async function readCloudStorageJson<T>(storagePath: string): Promise<T | null> {
+  if (!isSupabaseEnabled || !supabase) return null;
+  try {
+    const { data, error } = await supabase.storage.from(supabaseBucket).download(storagePath);
+    if (!error && data) {
+      const text = await data.text();
+      return JSON.parse(text) as T;
+    }
+  } catch {
+    // ignorar se ainda não existir
+  }
+  return null;
+}
+
+async function writeCloudStorageJson(storagePath: string, value: unknown): Promise<boolean> {
+  if (!isSupabaseEnabled || !supabase) return false;
+  try {
+    const buffer = Buffer.from(JSON.stringify(value, null, 2), 'utf8');
+    const { error } = await supabase.storage.from(supabaseBucket).upload(storagePath, buffer, {
+      upsert: true,
+      contentType: 'application/json'
+    });
+    return !error;
+  } catch (err) {
+    console.warn(`[Supabase Storage] Aviso ao persistir ${storagePath}:`, err);
+    return false;
+  }
+}
+
 export const collaborationService = {
   async getNotificationSettings(): Promise<NotificationSettings> {
     if (isSupabaseEnabled && supabase) {
@@ -57,8 +87,12 @@ export const collaborationService = {
         const { data, error } = await supabase.from('app_settings').select('setting_value').eq('setting_key', 'event_notifications').maybeSingle();
         if (!error && data?.setting_value) return data.setting_value as NotificationSettings;
       } catch (err) {
-        console.warn('[Supabase] Falha ao ler app_settings:', err);
+        console.warn('[Supabase] Falha ao ler app_settings da tabela, testando armazenamento em nuvem:', err);
       }
+
+      // Redundância direta em nuvem (Bucket Supabase): garante persistência imediata mesmo se tabela SQL não tiver sido criada
+      const cloudSettings = await readCloudStorageJson<NotificationSettings>('system/app_settings.json');
+      if (cloudSettings) return cloudSettings;
     }
     return readJson(settingsPath, { managementEmail: '', coordinationEmail: '', technicalEmail: '' });
   },
@@ -73,11 +107,14 @@ export const collaborationService = {
           updated_at: new Date().toISOString()
         }, { onConflict: 'setting_key' });
         if (error) {
-          console.warn('[Supabase] Falha ao gravar em app_settings no banco:', error.message);
+          console.warn('[Supabase] Aviso ao gravar em app_settings (tabela SQL):', error.message);
         }
       } catch (err) {
-        console.warn('[Supabase] Exceção ao salvar app_settings:', err);
+        console.warn('[Supabase] Exceção ao salvar app_settings na tabela:', err);
       }
+
+      // Salva de forma garantida no Supabase Cloud Storage bucket (permanente e compartilhado)
+      await writeCloudStorageJson('system/app_settings.json', value);
     }
 
     await ensureLocal();
@@ -106,7 +143,13 @@ export const collaborationService = {
           }));
         }
       } catch (err) {
-        console.warn('[Supabase] Erro ao listar feedbacks específicos, usando fallback:', err);
+        console.warn('[Supabase] Erro ao listar feedbacks da tabela SQL, verificando nuvem:', err);
+      }
+
+      // Nuvem fallback (Bucket Supabase)
+      const cloudFeedbacks = await readCloudStorageJson<Feedback[]>('system/feedbacks.json');
+      if (cloudFeedbacks && Array.isArray(cloudFeedbacks)) {
+        return cloudFeedbacks.filter(item => item.targetKind === targetKind && item.targetId === targetId);
       }
     }
     const items = await readJson<Feedback[]>(feedbackPath, []);
@@ -134,7 +177,13 @@ export const collaborationService = {
           return dbItems;
         }
       } catch (err) {
-        console.warn('[Supabase] Erro ao listar todos os feedbacks, usando fallback:', err);
+        console.warn('[Supabase] Erro ao listar feedbacks da tabela SQL, verificando nuvem:', err);
+      }
+
+      const cloudFeedbacks = await readCloudStorageJson<Feedback[]>('system/feedbacks.json');
+      if (cloudFeedbacks && Array.isArray(cloudFeedbacks)) {
+        const filtered = targetKind ? cloudFeedbacks.filter(item => item.targetKind === targetKind) : cloudFeedbacks;
+        return filtered.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
       }
     }
     const items = await readJson<Feedback[]>(feedbackPath, []);
@@ -146,7 +195,6 @@ export const collaborationService = {
     let savedInDb = false;
     if (isSupabaseEnabled && supabase) {
       try {
-        // Tenta salvar com a tag original; se falhar por constraint de 'TÉCNICO', tenta com fallback
         const payload = {
           id: item.id,
           target_kind: item.targetKind,
@@ -160,10 +208,21 @@ export const collaborationService = {
         if (!error) {
           savedInDb = true;
         } else {
-          console.warn('[Supabase] Falha ao inserir feedback:', error.message);
+          console.warn('[Supabase] Falha ao inserir feedback na tabela:', error.message);
         }
       } catch (err) {
         console.warn('[Supabase] Exceção ao gravar feedback no banco:', err);
+      }
+
+      // Nuvem fallback
+      try {
+        const cloudFeedbacks = (await readCloudStorageJson<Feedback[]>('system/feedbacks.json')) || [];
+        if (!cloudFeedbacks.some(x => x.id === item.id)) {
+          cloudFeedbacks.push(item);
+          await writeCloudStorageJson('system/feedbacks.json', cloudFeedbacks);
+        }
+      } catch (err) {
+        console.warn('[Supabase Storage] Falha ao sincronizar feedback com nuvem:', err);
       }
     }
 
@@ -171,7 +230,6 @@ export const collaborationService = {
     try {
       await ensureLocal();
       const items = await readJson<Feedback[]>(feedbackPath, []);
-      // Evita duplicidade se o mesmo ID já existir
       if (!items.some(x => x.id === item.id)) {
         items.push(item);
         await writeFile(feedbackPath, JSON.stringify(items, null, 2), 'utf8');

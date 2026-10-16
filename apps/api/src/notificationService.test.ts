@@ -27,7 +27,8 @@ describe('important event email', () => {
     expect(html).toContain('name="viewport"');
     expect(html).toContain('max-width:640px');
     expect(html).toContain('Revisar as missões compartilhadas.');
-    expect(html).toContain('VISUALIZAR E DECIDIR SOBRE O EVENTO');
+    expect(html).toContain('Um novo evento foi enviado!');
+    expect(html).toContain('VISUALIZAR EVENTO NA PLATAFORMA');
   });
 
   it('does not call Gmail when one of the three Mentor recipients is missing', async () => {
