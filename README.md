@@ -6,12 +6,12 @@ O projeto opera como um monorepo modular em TypeScript. O backend em Node.js com
 
 ## Versões
 
-- **WebApp Android 1.0 Beta (`v1.0-beta`):** Portabilidade oficial da plataforma para aplicativo Android (`.apk`) e WebApp progressivo (PWA) com arquitetura **Offline-First**. O app mantém cache local inteligente de todas as informações do banco de dados (eventos, registros, testes e feedbacks), permitindo navegação fluida mesmo sem acesso à internet. Inclui indicador de conexão no topo da tela, sessão persistente no dispositivo, proteção contra edições acidentais offline e compilação automatizada do `.apk` via GitHub Actions com publicação direta nas Releases.
-- **2.2.0 — Persistência Total no Banco e E-mail Refinado:** Todos os dados (eventos, registros, testes, feedbacks e configurações) passam a ser salvos e lidos diretamente do Supabase, eliminando a perda de informações ao recarregar a página. Autenticação de sessão migrada para tokens HMAC assinados (`createHmac`), com acesso seamless ao Painel Administrativo para o Mentor já autenticado sem exigir segunda senha. Template de e-mail de notificação redesenhado com paleta verde/calma e texto *"Um novo evento foi enviado!"*, sem uso de vermelho ou linguagem alarmante. Entregabilidade anti-spam aprimorada com formato MIME `multipart/alternative` (texto puro + HTML), headers RFC-compliant (`Date`, `Message-ID`, `X-Priority: 3`, `Auto-Submitted`, `Reply-To`) e remetente exibido como **"Hortobots Planning"** em todos os clientes de e-mail.
-- **2.1.0 — Painel Administrativo, Menu Lateral e Groq AI:** Menu lateral (Drawer) na Home com as cores das equipes na hierarquia solicitada, Painel Administrativo unificado com autenticação a cada recarga (F5), backup completo em `.zip`, limpeza de banco, alteração de senhas dos perfis, botão de salvar com alto contraste e suporte à Groq API no Estúdio de Banner.
-- **2.0.0 — Notificações e Visualização Universal:** Alertas por e-mail via API do Gmail, Lei Geral de Visualização Irrestrita de registros para todos os perfis, temporada FLL BIOGLOW 2026/2027 e OBR Resgate 2026 nos diários, e exportação de Banner Científico compatível com Canva.com.
-- **1.1.0 — Colaboração e desempenho:** pontuação oficial BIOGLOW, aproveitamento por teste, banners editáveis no Canva, avisos de eventos importantes e feedbacks da Gestão.
-- **[1.0.0 — Lançamento estável](CHANGELOG.md#100--2026-10-10):** reúne autenticação e permissões, três cadernos de equipe, registros, testes, gráficos, calendário, pesquisa geral, mídias, PDFs, persistência local/nuvem e a primeira auditoria responsiva completa.
+- **[WebApp Android 1.0 Beta (`v1.0-beta`)](https://github.com/TiagoFG-DEV/Hortobots-Planning/releases/tag/v1.0-beta):** Portabilidade oficial da plataforma para aplicativo Android (`.apk`) e WebApp progressivo (PWA) com arquitetura **Offline-First**. O app mantém cache local inteligente de todas as informações do banco de dados (eventos, registros, testes e feedbacks), permitindo navegação fluida mesmo sem acesso à internet. Inclui indicador de status de conexão no topo da tela, sessão persistente no dispositivo, proteção contra edições acidentais offline e compilação automatizada do `.apk` via GitHub Actions com publicação direta nas [Releases](https://github.com/TiagoFG-DEV/Hortobots-Planning/releases).
+- **[2.2.0 — Persistência Total no Banco e E-mail Refinado](https://github.com/TiagoFG-DEV/Hortobots-Planning/releases/tag/2.2.0):** Todos os dados (eventos, registros, testes, feedbacks e configurações) passam a ser salvos e lidos diretamente do Supabase, eliminando a perda de informações ao recarregar a página. Autenticação de sessão migrada para tokens HMAC assinados (`createHmac`), com acesso seamless ao Painel Administrativo para o Mentor já autenticado sem exigir segunda senha. Template de e-mail de notificação redesenhado com paleta verde/calma e texto *"Um novo evento foi enviado!"*, sem uso de vermelho ou linguagem alarmante. Entregabilidade anti-spam aprimorada com formato MIME `multipart/alternative` (texto puro + HTML), headers RFC-compliant (`Date`, `Message-ID`, `X-Priority: 3`, `Auto-Submitted`, `Reply-To`) e remetente exibido como **"Hortobots Planning"** em todos os clientes de e-mail.
+- **[2.1.0 — Painel Administrativo, Menu Lateral e Groq AI](CHANGELOG.md#210--2026-10-15):** Menu lateral (Drawer) na Home com as cores das equipes na hierarquia solicitada, Painel Administrativo unificado com autenticação a cada recarga (F5), backup completo em `.zip`, limpeza de banco, alteração de senhas dos perfis, botão de salvar com alto contraste e suporte à Groq API no Estúdio de Banner.
+- **[2.0.0 — Notificações e Visualização Universal](CHANGELOG.md#200--2026-10-14):** Alertas por e-mail via API do Gmail, Lei Geral de Visualização Irrestrita de registros para todos os perfis, temporada FLL BIOGLOW 2026/2027 e OBR Resgate 2026 nos diários, e exportação de Banner Científico compatível com Canva.com.
+- **[1.1.0 — Colaboração e Desempenho](CHANGELOG.md#110--2026-10-14):** pontuação oficial BIOGLOW, aproveitamento por teste, banners editáveis no Canva, avisos de eventos importantes e feedbacks da Gestão.
+- **[1.0.0 — Lançamento Estável](https://github.com/TiagoFG-DEV/Hortobots-Planning/releases/tag/v1.0.0):** reúne autenticação e permissões, três cadernos de equipe, registros, testes, gráficos, calendário, pesquisa geral, mídias, PDFs, persistência local/nuvem e a primeira auditoria responsiva completa.
 - O histórico completo e detalhado com todos os prompts na íntegra está disponível em [CHANGELOG.md](CHANGELOG.md).
 
 ---
@@ -389,27 +389,31 @@ Antes do primeiro deploy da versão 1.1.0 no Supabase, aplique `supabase/migrati
 
 ## 8. WebApp Móvel e Aplicativo Android (.apk)
 
-A plataforma conta com suporte nativo a dispositivos móveis através de empacotamento com **Capacitor** e arquitetura **Offline-First**.
+A plataforma conta com suporte nativo a dispositivos móveis através de empacotamento com **Capacitor** e arquitetura **Offline-First**. O código fonte da versão móvel reside na branch dedicada [`WebApp`](https://github.com/TiagoFG-DEV/Hortobots-Planning/tree/WebApp), equipada com workflow de Integração Contínua (CI/CD) para compilação automatizada do `.apk`.
 
 ### 📱 Como Baixar e Instalar o APK (Release v1.0-beta)
-1. Acesse a aba de **Releases** do repositório no GitHub (`https://github.com/TiagoFG-DEV/Hortobots-Planning/releases`).
-2. Localize a versão **`Hortobots Planning WebApp v1.0-beta`**.
-3. Baixe o arquivo **`Hortobots-Planning-v1.0-beta.apk`** diretamente no seu dispositivo Android.
-4. Abra o arquivo baixado e confirme a instalação (habilite "Instalar aplicativos de fontes desconhecidas" caso solicitado).
+1. Acesse diretamente a [Release Oficial v1.0-beta](https://github.com/TiagoFG-DEV/Hortobots-Planning/releases/tag/v1.0-beta) no GitHub.
+2. Na seção de anexos (*Assets*), baixe o arquivo **`Hortobots-Planning-v1.0-beta.apk`** diretamente no seu dispositivo Android.
+3. Abra o arquivo baixado e confirme a instalação (habilite *"Instalar aplicativos de fontes desconhecidas"* nas configurações de segurança do aparelho, caso solicitado).
+4. Abra o **Hortobots Planning** e faça login com seu perfil habitual!
 
-### ⚡ Arquitetura Offline-First
-- **Visualização sem Internet:** Todas as informações obtidas online (registros, eventos do calendário, testes de desempenho e feedbacks) são mantidas em um cache local resiliente no dispositivo. Caso o aluno ou mentor fique sem sinal de rede, o aplicativo continua operando e exibindo a última versão sincronizada.
-- **Indicador Flutuante:** Uma discreta pílula no topo da tela informa quando o aplicativo está operando em `Modo Offline` ou quando a `Conexão foi restabelecida`.
-- **Proteção de Dados:** Operações de criação ou exclusão são bloqueadas no modo offline para evitar perda de dados ou inconsistências antes da confirmação pelo servidor.
-- **Service Worker (PWA):** Todo o shell visual, fontes e imagens estáticas são pré-carregados pelo Service Worker (`sw.js`), permitindo abertura instantânea mesmo em modo avião.
+### ⚡ Arquitetura Offline-First e Sincronização Inteligente
+- **Visualização Completa sem Internet:** Todas as informações obtidas online (registros, eventos da agenda técnica, testes de robô e feedbacks da Gestão) são mantidas em um cache local criptografado/estruturado no dispositivo (`IndexedDB` + snapshot local). Ao ficar sem sinal de rede (por exemplo, em torneios, viagens ou áreas sem Wi-Fi), o aplicativo continua operando de forma imediata e exibe com total clareza a última versão sincronizada do banco de dados.
+- **Indicador Flutuante de Status:** Uma elegante pílula no topo da tela informa quando o aplicativo está operando em `Modo Offline` ou quando a `Conexão foi restabelecida`.
+- **Proteção de Integridade dos Dados:** Operações destrutivas ou de criação de registros são bloqueadas com aviso amigável quando desconectado, prevenindo perdas ou conflitos antes da confirmação pelo servidor.
+- **Sessão Persistente:** O token de autenticação permanece ativo localmente, permitindo fechar o aplicativo e reabri-lo sem necessidade de digitar credenciais novamente.
+- **Service Worker (PWA):** O shell visual, ícones, fontes Google Fonts e imagens estáticas são pré-carregados pelo Service Worker (`sw.js`), permitindo abertura instantânea mesmo em modo avião.
 
-### 🛠️ Comandos de Desenvolvimento Mobile
+### 🛠️ Comandos de Desenvolvimento e Build Mobile
 ```bash
 # Compila os pacotes e sincroniza os assets com o projeto Android nativo
 npm run mobile:build
 
 # Sincroniza apenas as alterações do webapp para o Android
 npm run cap:sync -w @hortobots/web
+
+# Abrir o projeto no Android Studio (caso instalado na máquina)
+npx -w @hortobots/web cap open android
 ```
 
 ---

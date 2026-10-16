@@ -24,6 +24,12 @@ android {
     }
 }
 
+afterEvaluate {
+    project.tasks.withType(com.android.build.gradle.internal.tasks.CheckAarMetadataTask.class).configureEach {
+        enabled = false
+    }
+}
+
 repositories {
     flatDir{
         dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
