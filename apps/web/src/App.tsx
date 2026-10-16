@@ -130,7 +130,7 @@ type DialogCtx = {
 };
 const DialogContext = createContext<DialogCtx>({
   confirm: () => Promise.resolve(false),
-  showError: () => {}
+  showError: () => { }
 });
 export const useDialog = () => useContext(DialogContext);
 
@@ -547,7 +547,7 @@ function Home() {
         </div>
 
         <Link className="global-calendar" to="/calendario">
-          <CalendarDays /> VER CALENDÁRIO <b>URGENTES</b>
+          <CalendarDays />
         </Link>
       </section>
     </main>
@@ -1194,12 +1194,12 @@ function DataAnalysis({ attempts, maximumScore = 0 }: { attempts: Attempt[]; max
   const xOf = (i: number) => PAD.l + (n > 1 ? (i / (n - 1)) * plotW : plotW / 2);
 
   const chartMaxScore = Math.max(1, maximumScore, ...attempts.map(a => a.score));
-  const maxTime    = Math.max(1, ...attempts.map(a => a.time));
-  const maxFail    = Math.max(1, ...attempts.map(a => a.failures));
+  const maxTime = Math.max(1, ...attempts.map(a => a.time));
+  const maxFail = Math.max(1, ...attempts.map(a => a.failures));
 
-  const yScore  = (v: number) => PAD.t + plotH - (v / chartMaxScore) * plotH;
-  const yTime   = (v: number) => PAD.t + plotH - (v / maxTime)  * plotH;
-  const yFail   = (v: number) => PAD.t + plotH - (v / maxFail)  * plotH;
+  const yScore = (v: number) => PAD.t + plotH - (v / chartMaxScore) * plotH;
+  const yTime = (v: number) => PAD.t + plotH - (v / maxTime) * plotH;
+  const yFail = (v: number) => PAD.t + plotH - (v / maxFail) * plotH;
 
   const linePath = (vals: number[], yFn: (v: number) => number) =>
     vals.map((v, i) => `${i === 0 ? 'M' : 'L'}${xOf(i).toFixed(1)},${yFn(v).toFixed(1)}`).join(' ');
@@ -1210,14 +1210,14 @@ function DataAnalysis({ attempts, maximumScore = 0 }: { attempts: Attempt[]; max
   // ── Statistics summary ───────────────────────────────────────────────────
   const avg = (arr: number[]) => arr.reduce((s, v) => s + v, 0) / arr.length;
   const scores = attempts.map(a => a.score);
-  const times  = attempts.map(a => a.time);
-  const fails  = attempts.map(a => a.failures);
+  const times = attempts.map(a => a.time);
+  const fails = attempts.map(a => a.failures);
 
   const avgScore = avg(scores);
-  const avgTime  = avg(times);
-  const avgFail  = avg(fails);
+  const avgTime = avg(times);
+  const avgFail = avg(fails);
   const maxScoreVal = Math.max(...scores);
-  const minTimeVal  = Math.min(...times);
+  const minTimeVal = Math.min(...times);
 
   // Trend: slope of linear regression on scores
   const trendSlope = (() => {
@@ -1272,7 +1272,7 @@ function DataAnalysis({ attempts, maximumScore = 0 }: { attempts: Attempt[]; max
 
           {/* Area fills */}
           <path d={areaPath(scores, yScore)} fill="url(#gscore)" />
-          <path d={areaPath(times, yTime)}  fill="url(#gtime)" />
+          <path d={areaPath(times, yTime)} fill="url(#gtime)" />
 
           {/* Failure bars (subtle) */}
           {attempts.map((a, i) => {
@@ -1689,7 +1689,7 @@ function SavedTests() {
   const loadTests = () => {
     void api('/api/testes')
       .then((all: any[]) => setItems(all.filter(x => getTeamKey(x) === notebook.key)))
-      .catch(() => {});
+      .catch(() => { });
   };
 
   useEffect(() => {
@@ -1757,7 +1757,7 @@ function SavedTests() {
                   </div>
                 </div>
                 <div className="item-actions-row">
-                    <Link to={`/${mod}/teste/${x.id}`} className="btn-action-edit">Visualizar</Link>
+                  <Link to={`/${mod}/teste/${x.id}`} className="btn-action-edit">Visualizar</Link>
                   {canMutateTeamContent(user, x) && <>
                     <Link to={`/${mod}/testes/editar/${x.id}`} className="btn-action-edit">
                       <Edit3 size={13} /> Editar
