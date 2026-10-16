@@ -6,6 +6,7 @@ O projeto opera como um monorepo modular em TypeScript. O backend em Node.js com
 
 ## Versões
 
+- **2.2.0 — Persistência Total no Banco e E-mail Refinado:** Todos os dados (eventos, registros, testes, feedbacks e configurações) passam a ser salvos e lidos diretamente do Supabase, eliminando a perda de informações ao recarregar a página. Autenticação de sessão migrada para tokens HMAC assinados (`createHmac`), com acesso seamless ao Painel Administrativo para o Mentor já autenticado sem exigir segunda senha. Template de e-mail de notificação redesenhado com paleta verde/calma e texto *"Um novo evento foi enviado!"*, sem uso de vermelho ou linguagem alarmante. Entregabilidade anti-spam aprimorada com formato MIME `multipart/alternative` (texto puro + HTML), headers RFC-compliant (`Date`, `Message-ID`, `X-Priority: 3`, `Auto-Submitted`, `Reply-To`) e remetente exibido como **"Hortobots Planning"** em todos os clientes de e-mail.
 - **2.1.0 — Painel Administrativo, Menu Lateral e Groq AI:** Menu lateral (Drawer) na Home com as cores das equipes na hierarquia solicitada, Painel Administrativo unificado com autenticação a cada recarga (F5), backup completo em `.zip`, limpeza de banco, alteração de senhas dos perfis, botão de salvar com alto contraste e suporte à Groq API no Estúdio de Banner.
 - **2.0.0 — Notificações e Visualização Universal:** Alertas por e-mail via API do Gmail, Lei Geral de Visualização Irrestrita de registros para todos os perfis, temporada FLL BIOGLOW 2026/2027 e OBR Resgate 2026 nos diários, e exportação de Banner Científico compatível com Canva.com.
 - **1.1.0 — Colaboração e desempenho:** pontuação oficial BIOGLOW, aproveitamento por teste, banners editáveis no Canva, avisos de eventos importantes e feedbacks da Gestão.
@@ -20,8 +21,10 @@ O sistema adota o padrao de persistencia hibrida com desacoplamento de infraestr
 
 - **Modo Nuvem (Render + Supabase):**
   - Hospedagem no Render via Blueprint (`render.yaml`).
-  - Persistencia relacional no PostgreSQL do Supabase (`records`, `events`, `tests`).
+  - Persistencia relacional no PostgreSQL do Supabase (`records`, `events`, `tests`, `feedbacks`, `app_settings`).
   - Armazenamento de arquivos e midias em Supabase Storage.
+  - Todos os dados (eventos, registros, testes, feedbacks, configurações de e-mail) são lidos e gravados diretamente no Supabase a cada operação, garantindo que nenhum dado seja perdido ao recarregar a página.
+  - Auto-sincronização: ao detectar que o banco está vazio mas existem dados locais na pasta `Logs/`, o servidor migra automaticamente os registros para o Supabase.
   - Ativado automaticamente com `STORAGE_DRIVER=supabase`.
 
 - **Modo Local (Simulacao de Desenvolvimento):**
@@ -94,6 +97,9 @@ hortobots-planning/
 - **Colaboração da Gestão:**
   - Feedbacks em formato de comentários para registros, testes e eventos, publicados exclusivamente pela Gestão com as tags Direção, Coordenação ou Técnico.
   - Eventos importantes disparam um e-mail responsivo pela API Gmail para os três destinatários cadastrados exclusivamente pelo Mentor.
+  - O template do e-mail usa a paleta verde institucional do Hortobots Planning, com título *"Um novo evento foi enviado!"* e tom tranquilo — sem vermelho, sem linguagem de alerta urgente. Eventos prioritários recebem apenas a tag discreta *"Tag: Prioritário"*.
+  - O remetente aparece como **"Hortobots Planning"** em todos os clientes de e-mail, independentemente da conta OAuth configurada.
+  - As mensagens usam formato MIME `multipart/alternative` (texto puro + HTML) e headers RFC-compliant para maximizar a entrega na caixa de entrada principal, evitando spam.
   - O botão do e-mail abre o login já selecionado como Gestão e, após autenticar, conduz ao calendário com o evento aberto para confirmação ou recusa opcional.
 
 - **Exportacao para PDF:**
@@ -164,11 +170,12 @@ Toda a navegação da plataforma foi organizada em um **Menu Lateral (Drawer)** 
 
 Acesso exclusivo para manutenção e administração de dados (`/admin` e `/mentor/configuracoes`):
 
-- **Autenticação em Memória (Exigida a cada F5):** A sessão administrativa não utiliza armazenamento persistente; qualquer recarga de página exige nova validação de senha (`Horto#Mentor26`).
+- **Acesso Seamless para Mentor:** O Mentor já autenticado na plataforma acessa o Painel Administrativo diretamente, sem necessidade de segunda autenticação — a sessão HMAC assinada é reutilizada para autorizar o acesso.
+- **Tokens de Sessão HMAC:** A autenticação usa tokens assinados criptograficamente com `createHmac` (`sha256`), verificados em cada requisição protegida pelo servidor sem depender de armazenamento de sessão em banco.
 - **Status do Banco de Dados:** Medição em tempo real do volume de armazenamento ocupado (`storageMb`), quantidade de eventos, registros de diários, testes de simulação e total de itens.
-- **Backup Completo (.zip):** Download instantâneo de um arquivo compactado `.zip` contendo os dados do SQLite, arquivos exportados e índice de mídias.
+- **Backup Completo (.zip):** Download instantâneo de um arquivo compactado `.zip` contendo os dados exportados e índice de mídias.
 - **Esvaziamento Seguro do Banco:** Limpeza integral com confirmação por digitação (`CONFIRMAR`).
-- **Destinatários de Alertas por E-mail:** Gerenciamento dos endereços da Gestão/Direção, Coordenação e Técnico, com botão de salvamento de alto contraste visual verde sólido `#16794b` com texto branco.
+- **Destinatários de Alertas por E-mail:** Gerenciamento dos endereços da Gestão/Direção, Coordenação e Técnico, persistidos no Supabase, com botão de salvamento de alto contraste visual verde sólido `#16794b` com texto branco.
 - **Alteração de Senhas:** Redefinição de senha para qualquer perfil (`gestao`, `mentor`, `aluno_fll`, `aluno_obr`) e da própria senha mestra administrativa.
 - **Botão Voltar ao Início:** Retorno rápido à Home em qualquer estado do painel.
 
@@ -361,6 +368,7 @@ SUPABASE_SERVICE_ROLE_KEY=<sua-service-role-key>
 SUPABASE_BUCKET=hortobots-planning
 PORT=3000
 PUBLIC_APP_URL=https://seu-dominio.example
+SESSION_SECRET=<segredo para assinatura HMAC dos tokens de sessão>
 OPENAI_API_KEY=<opcional; ativa a síntese por IA>
 OPENAI_BANNER_MODEL=gpt-5-nano
 GOOGLE_CLIENT_ID=<cliente OAuth do Google>
