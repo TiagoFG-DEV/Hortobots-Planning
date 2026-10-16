@@ -2,7 +2,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
+import { createHmac, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import { mkdir, writeFile, readFile, readdir, rm } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
@@ -37,6 +37,27 @@ const webRoot = path.resolve(apiRoot, '../web/dist');
 const accountsPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), 'accounts.json');
 const adminPasswordPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), 'admin-password.json');
 
+const TOKEN_SECRET = process.env.SESSION_SECRET || 'hortobots-auth-secret-key-2026';
+
+function createSignedToken(payload: { username: string; role: string; isAdmin?: boolean }): string {
+  const data = Buffer.from(JSON.stringify({ ...payload, ts: Date.now() })).toString('base64url');
+  const sig = createHmac('sha256', TOKEN_SECRET).update(data).digest('base64url');
+  return `${data}.${sig}`;
+}
+
+function verifySignedToken(token: string): { username: string; role: string; isAdmin?: boolean } | null {
+  if (!token || typeof token !== 'string' || !token.includes('.')) return null;
+  const [data, sig] = token.split('.');
+  if (!data || !sig) return null;
+  const expectedSig = createHmac('sha256', TOKEN_SECRET).update(data).digest('base64url');
+  if (sig !== expectedSig) return null;
+  try {
+    return JSON.parse(Buffer.from(data, 'base64url').toString('utf8'));
+  } catch {
+    return null;
+  }
+}
+
 const app = express();
 
 // Middlewares essenciais
@@ -61,8 +82,15 @@ export interface AuthRequest extends Request {
 }
 
 const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction): void => {
-  const token = String(req.headers.authorization || '').replace('Bearer ', '');
-  const user = sessions.get(token);
+  const token = String(req.headers.authorization || '').replace('Bearer ', '').trim();
+  let user = sessions.get(token);
+  if (!user) {
+    const decoded = verifySignedToken(token);
+    if (decoded) {
+      user = { username: decoded.username, role: decoded.role as Role };
+      sessions.set(token, user);
+    }
+  }
   if (!user) {
     res.status(401).json({ error: { message: 'Faça login para continuar.' } });
     return;
@@ -72,11 +100,34 @@ const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction): vo
 };
 
 const adminAuthMiddleware = (req: AuthRequest, res: Response, next: NextFunction): void => {
-  const token = String(req.headers.authorization || '').replace('Bearer ', '');
-  if (!adminSessions.has(token)) {
+  const token = String(req.headers.authorization || '').replace('Bearer ', '').trim();
+  
+  // 1. Token na lista de sessões de administrador
+  let isAdmin = adminSessions.has(token);
+
+  // 2. Token assinado HMAC
+  const decoded = verifySignedToken(token);
+  if (decoded && (decoded.isAdmin || decoded.role === 'mentor' || decoded.role === 'admin')) {
+    isAdmin = true;
+  }
+
+  // 3. Usuário autenticado como Mentor na sessão
+  let user = sessions.get(token);
+  if (!user && decoded) {
+    user = { username: decoded.username, role: decoded.role as Role };
+  }
+  if (user && (user.role === 'mentor' || (user as any).role === 'admin')) {
+    isAdmin = true;
+  }
+
+  if (!isAdmin) {
     res.status(401).json({ error: { message: 'Acesso administrativo negado.' } });
     return;
   }
+
+  if (user) req.user = user;
+  else if (decoded) req.user = { username: decoded.username, role: decoded.role as Role };
+
   next();
 };
 
@@ -154,7 +205,7 @@ app.post('/api/auth/login', (req, res) => {
     return;
   }
 
-  const token = randomBytes(32).toString('hex');
+  const token = createSignedToken({ username: account.username, role: account.role });
   sessions.set(token, { username: account.username, role: account.role as Role });
   res.json({ token, user: { username: account.username, role: account.role } });
 });
@@ -175,7 +226,7 @@ app.post('/api/admin/login', async (req, res) => {
     res.status(401).json({ error: { message: 'Senha administrativa incorreta.' } });
     return;
   }
-  const token = randomBytes(32).toString('hex');
+  const token = createSignedToken({ username: 'admin', role: 'admin', isAdmin: true });
   adminSessions.add(token);
   res.json({ token });
 });
@@ -338,8 +389,9 @@ app.get('/api/admin/profiles', adminAuthMiddleware, async (_req: AuthRequest, re
 // ATENÇÃO: estas rotas DEVEM ficar ANTES das rotas genéricas /api/:kind
 app.get('/api/configuracoes/notificacoes', async (req: AuthRequest, res: Response) => {
   const token = String(req.headers.authorization || '').replace('Bearer ', '').trim();
-  const isAdmin = adminSessions.has(token);
-  const user = sessions.get(token);
+  const decoded = verifySignedToken(token);
+  const user = sessions.get(token) || (decoded ? { username: decoded.username, role: decoded.role as Role } : null);
+  const isAdmin = adminSessions.has(token) || Boolean(decoded?.isAdmin) || user?.role === 'mentor' || (user as any)?.role === 'admin';
   if (!isAdmin && (!user || !canManageNotificationSettings(user))) {
     res.status(403).json({ error: { message: 'Somente o Mentor ou Administrador pode visualizar estes endereços.' } });
     return;
@@ -349,8 +401,9 @@ app.get('/api/configuracoes/notificacoes', async (req: AuthRequest, res: Respons
 
 app.put('/api/configuracoes/notificacoes', async (req: AuthRequest, res: Response) => {
   const token = String(req.headers.authorization || '').replace('Bearer ', '').trim();
-  const isAdmin = adminSessions.has(token);
-  const user = sessions.get(token);
+  const decoded = verifySignedToken(token);
+  const user = sessions.get(token) || (decoded ? { username: decoded.username, role: decoded.role as Role } : null);
+  const isAdmin = adminSessions.has(token) || Boolean(decoded?.isAdmin) || user?.role === 'mentor' || (user as any)?.role === 'admin';
   if (!isAdmin && (!user || !canManageNotificationSettings(user))) {
     res.status(403).json({ error: { message: 'Somente o Mentor ou Administrador pode alterar estes endereços.' } });
     return;

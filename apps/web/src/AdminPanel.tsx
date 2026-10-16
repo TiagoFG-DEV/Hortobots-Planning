@@ -17,20 +17,24 @@ import {
 } from 'lucide-react';
 import { useDialog } from './App';
 
-// Armazenamento em memória volátil: ao recarregar a página (F5),
-// a memória do JavaScript é reinicializada do zero, forçando nova autenticação.
 let inMemoryAdminToken: string | null = null;
 
 function getAdminToken() {
-  return inMemoryAdminToken;
+  return inMemoryAdminToken || sessionStorage.getItem('hortobots-admin-token') || sessionStorage.getItem('hortobots-token') || '';
 }
 
 function setAdminToken(token: string) {
   inMemoryAdminToken = token;
+  try {
+    sessionStorage.setItem('hortobots-admin-token', token);
+  } catch { /* ignore */ }
 }
 
 function clearAdminToken() {
   inMemoryAdminToken = null;
+  try {
+    sessionStorage.removeItem('hortobots-admin-token');
+  } catch { /* ignore */ }
 }
 
 async function adminFetch(path: string, init: RequestInit = {}) {
@@ -569,9 +573,15 @@ export function AdminPanel() {
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
 
   useEffect(() => {
-    // A sessão admin é sempre apagada ao recarregar (sessionStorage)
     const token = getAdminToken();
-    setAuthenticated(Boolean(token));
+    let isMentor = false;
+    try {
+      const storedUser = JSON.parse(sessionStorage.getItem('hortobots-user') || '{}');
+      if (storedUser?.role === 'mentor') isMentor = true;
+    } catch { /* ignore */ }
+
+    // Se o usuário já está autenticado como Mentor ou possui token de sessão/admin, libera o painel imediatamente
+    setAuthenticated(Boolean(token) || isMentor);
   }, []);
 
   const handleLoginSuccess = () => setAuthenticated(true);
