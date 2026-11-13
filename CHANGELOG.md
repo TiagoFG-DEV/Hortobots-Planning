@@ -1,3 +1,77 @@
+﻿# Histórico de versões
+
+As versões futuras devem ser acrescentadas no topo deste arquivo, preservando o histórico já publicado.
+
+## [3.0.0] — 2026-11-13
+
+### Visão Geral da Versão 3.0.0
+
+A versão 3.0.0 consolida a evolução estrutural do Hortobots Planning através da execução dos Marcos 1 ao 11 do plano mestre de desenvolvimento. Esta entrega expande o sistema com Homepage Pública como rota inicial, Central Oficial de Documentos de Competição, feed de Atualizações Oficiais em tempo real com monitoramento de fontes, arquitetura de redundância e contingência de bancos de dados com failover, e gestão documental integrada no Painel Mentor.
+
+---
+
+### Novas Funcionalidades e Implementações (Marcos 4 a 11)
+
+#### 1. Homepage Pública como Padrão e Acesso Universal (Marco 4)
+- **Rota Raiz Pública (/):** Acesso inicial padrão sem necessidade de autenticação, exibindo os três cadernos (SESI Hortobots FLL, Under Construction FLL e Hortobots OBR) e ações rápidas.
+- **Isolamento da Tela de Login (/login):** Tela de autenticação movida para /login, com link contextualizado "Explorar cadernos, documentos e calendário".
+- **Controle de Sessão Contextual:** Menu lateral (Drawer) exibe botão "FAZER LOGIN" para visitantes e "SAIR DA CONTA ({USUÁRIO})" para usuários autenticados.
+- **Limpeza Visual:** Ocultação do botão flutuante de logout na Homepage (#root:has(.cover) .logout), eliminando redundância de controles.
+- **Ações Inferiores na Home:** Inclusão de botões em destaque para "CALENDÁRIO" e "DOCUMENTOS DE COMPETIÇÃO".
+
+#### 2. Central Oficial de Documentos de Competição (Marco 5)
+- **Interface Dedicada (/documentos):** Consulta pública e autenticada a rubricas, manuais e regras oficiais da FIRST LEGO League e da Olimpíada Brasileira de Robótica.
+- **Visualizador Integrado e Downloads:** Visualização direta de PDFs via iframe nativo e download direto sem depender de ferramentas externas.
+- **Filtros Combinados:** Filtragem instantânea por competição (FLL / OBR) e tipo documental (Rubricas, Regras e Manuais Complementares).
+- **Carga Inicial de Documentos:** 13 documentos oficiais catalogados, auditados e persistidos no banco de dados com metadados de temporada e modalidades (Challenge, Explore, Resgate, Artística, Simulação e Teórica).
+
+#### 3. Feed de Atualizações Oficiais e Monitoramento de Fontes (Marco 6)
+- **Linha do Tempo Cronológica (/documentos/atualizacoes):** Feed público ordenado da publicação mais recente para a mais antiga (published_at DESC).
+- **Serviço de Monitoramento (MonitoringService):** Checagem periódica e sob demanda de cabeçalhos HTTP, Last-Modified e integridade de fontes oficiais com controle estrito de duplicidade e idempotência.
+- **Destaque de Criticidade:** Identificação visual e filtro dedicado para comunicados urgentes/críticos e erratas oficiais.
+
+#### 4. Redundância, Contingência e Diagnóstico de Bancos (Marco 7)
+- **Arquitetura Ativo/Passivo com Failover:** Suporte configurado no backend entre a nova instância principal Supabase (gpqqqnhpadbgiolfyplx) e a secundária de backup (xfdjwdfinhqdwllzmcc).
+- **Serviço de Redundância (RedundancyService):** Métricas em tempo real de latência, disponibilidade e replicação tolerante a falhas (eplicateMutation).
+- **Segurança de Segredos:** Mascaramento obrigatório de credenciais e URLs de banco de dados nos endpoints da API e nas visualizações de diagnóstico.
+
+#### 5. Gestão de Documentos no Painel Mentor (Marco 8)
+- **Ferramenta Administrativa:** Seção exclusiva no Painel Mentor (/mentor/configuracoes) para cadastro manual de novos documentos (seleção de competição, modalidade, temporada, tipo documental, título, descrição e URL).
+- **Manutenção Segura:** Listagem de documentos ativos com abertura direta e exclusão auditada mediante confirmação modal.
+- **Autorização Servidor:** Blindagem de endpoints de escrita (POST /api/documentos, DELETE /api/documentos/:id, /sync) com HMAC e perfil mentor.
+
+#### 6. Segurança, Testes de Regressão e Permissões (Marco 9)
+- **Suíte de Testes Automatizados:** Criação de securityAndDocuments.test.ts, elevando a cobertura para 26 testes automatizados aprovados com 100% de sucesso em @hortobots/shared, @hortobots/api e @hortobots/web.
+- **Validação de Acesso:** Garantia de leitura pública para documentos/atualizações e isolamento estrito das contas privadas (gestao, mentor, obr, ll).
+
+#### 7. Responsividade Universal (Marco 10)
+- **Auditoria de Breakpoints:** Media queries refinadas em esponsive.css para smartphones (<=640px e <=768px), tablets (769px a 1024px) e monitores ultrawide (>=1800px).
+- **Zero Overflow:** Eliminação completa de rolagem horizontal indevida ou corte de texto na grade de documentos, formulários administrativos e visualizadores.
+
+---
+
+### Guia para Continuidade do Projeto
+
+Para futuros desenvolvedores e sessões de IA continuarem o projeto:
+
+1. **Variáveis de Ambiente (.env):**
+   - Configure SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY para o banco de dados principal.
+   - Configure SUPABASE_BACKUP_URL e BACKUP_DATABASE_ENABLED=true para ativar redundância.
+   - Consulte .env.example para referências de variáveis completas e seguras.
+2. **Execução Local:**
+   - Instalação de dependências: 
+pm install
+   - Desenvolvimento: 
+pm run dev (API na porta 3333 e Web na porta 5173).
+   - Testes automatizados: 
+pm test
+   - Build de produção: 
+pm run build
+3. **Padrão de Autenticação e Perfis:**
+   - 4 contas de equipe em pps/api/data/accounts.json com senhas em scrypt.
+   - Tokens de sessão utilizam assinatura HMAC com segredo de ambiente.
+
+---
 # Histórico de versões
 
 As versões futuras devem ser acrescentadas no topo deste arquivo, preservando o histórico já publicado.

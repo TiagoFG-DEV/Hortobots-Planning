@@ -16,8 +16,3 @@ Logs/**
 apps/api/Logs/
 backups/
 *.zip
-
-.agents/
-skills-lock.json
-
-supabase/.temp/
