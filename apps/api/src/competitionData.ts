@@ -30,7 +30,7 @@ export interface CompetitionUpdate {
 export const INITIAL_OFFICIAL_DOCUMENTS: CompetitionDoc[] = [
   // ── FLL – Rúbricas e Avaliação em Português Brasileiro (SESI Brasil) ───────
   {
-    id: 'fll-challenge-bioglow-rubrics-color',
+    id: 'fll-bioglow-rubricas-oficiais-ptbr',
     competition: 'FLL',
     modality: 'Challenge',
     season_year: '2026/2027',
@@ -43,7 +43,7 @@ export const INITIAL_OFFICIAL_DOCUMENTS: CompetitionDoc[] = [
     region: 'NACIONAL'
   },
   {
-    id: 'fll-challenge-bioglow-fluxograma-avaliacao',
+    id: 'fll-bioglow-fluxograma-ptbr',
     competition: 'FLL',
     modality: 'Challenge',
     season_year: '2026/2027',
@@ -58,7 +58,7 @@ export const INITIAL_OFFICIAL_DOCUMENTS: CompetitionDoc[] = [
 
   // ── FLL – Regras e Manuais em Português Brasileiro (SESI Brasil) ───────────
   {
-    id: 'fll-challenge-bioglow-game-manual',
+    id: 'fll-bioglow-livro-regras-desafio-ptbr',
     competition: 'FLL',
     modality: 'Challenge',
     season_year: '2026/2027',
@@ -71,7 +71,7 @@ export const INITIAL_OFFICIAL_DOCUMENTS: CompetitionDoc[] = [
     region: 'NACIONAL'
   },
   {
-    id: 'fll-challenge-bioglow-regras-participacao',
+    id: 'fll-bioglow-regras-participacao-ptbr',
     competition: 'FLL',
     modality: 'Challenge',
     season_year: '2026/2027',
@@ -84,7 +84,7 @@ export const INITIAL_OFFICIAL_DOCUMENTS: CompetitionDoc[] = [
     region: 'NACIONAL'
   },
   {
-    id: 'fll-sp-regional-manual-2026',
+    id: 'fll-sp-regional-diretrizes-ptbr',
     competition: 'FLL',
     modality: 'Challenge',
     season_year: '2026/2027',
@@ -97,7 +97,7 @@ export const INITIAL_OFFICIAL_DOCUMENTS: CompetitionDoc[] = [
     region: 'SP'
   },
   {
-    id: 'fll-challenge-bioglow-catalogo-pecas',
+    id: 'fll-bioglow-catalogo-pecas-ptbr',
     competition: 'FLL',
     modality: 'Challenge',
     season_year: '2026/2027',

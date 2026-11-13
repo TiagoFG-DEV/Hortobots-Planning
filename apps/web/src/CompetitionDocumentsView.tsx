@@ -72,9 +72,8 @@ export function CompetitionDocumentsView({ user }: CompetitionDocumentsViewProps
   };
 
   const getDocViewerUrl = (doc: CompetitionDoc) => {
-    // Se o backend suportar proxy de download, usa o endpoint local /api/documentos/download/:id
-    // Caso contrário, usa a url_oficial que é testada e garantida
-    return `/api/documentos/download/${doc.id}`;
+    // Adiciona timestamp/versão para garantir que o navegador nunca use cache de arquivos antigos
+    return `/api/documentos/download/${doc.id}?v=ptbr_sesi_v3`;
   };
 
   const filteredDocs = documents.filter((doc) => {

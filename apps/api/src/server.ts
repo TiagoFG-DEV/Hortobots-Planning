@@ -1026,23 +1026,12 @@ app.get('/api/documentos/download/:id', async (req, res) => {
     if (existsSync(localCachedFile)) {
       res.set('Content-Type', 'application/pdf');
       res.set('Content-Disposition', `inline; filename="${id}.pdf"`);
-      res.set('Cache-Control', 'public, max-age=86400');
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.sendFile(localCachedFile);
       return;
     }
 
-    // 2. Se já tiver arquivo salvo no storage do Supabase, redireciona
-    if (supabase && targetDoc.file_path) {
-      const { data: publicUrl } = supabase.storage
-        .from(supabaseBucket)
-        .getPublicUrl(targetDoc.file_path);
-      if (publicUrl?.publicUrl) {
-        res.redirect(publicUrl.publicUrl);
-        return;
-      }
-    }
-
-    // 3. Baixa automaticamente do site oficial e salva no banco / cache local / storage
+    // 2. Baixa diretamente do site oficial brasileiro e salva no cache / banco
     try {
       const pdfResp = await fetch(targetDoc.url_oficial, {
         signal: AbortSignal.timeout(20_000),
@@ -1088,7 +1077,7 @@ app.get('/api/documentos/download/:id', async (req, res) => {
 
         res.set('Content-Type', contentType);
         res.set('Content-Disposition', `inline; filename="${id}.pdf"`);
-        res.set('Cache-Control', 'public, max-age=86400');
+        res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
         res.send(buffer);
         return;
       }
