@@ -159,7 +159,9 @@ O usuário escolhe diretamente um dos quatro perfis fixos e informa a senha corr
 
 ### 4.3 Escolha do diário e Menu Lateral da Home
 
-A tela Home apresenta os três cadernos de forma limpa, espaçada e respirável, sem botões soltos na base.
+![Homepage pública e seletor de cadernos](docs/telas/home-v3.jpg)
+
+A tela Home apresenta os três cadernos de forma limpa, espaçada e respirável, com acesso direto público e botões circulares responsivos para Calendário e Central de Documentos.
 Toda a navegação da plataforma foi organizada em um **Menu Lateral (Drawer)** acionado pelo botão `MENU` no topo:
 
 - **Hierarquia Estrita do Menu:**
@@ -173,7 +175,25 @@ Toda a navegação da plataforma foi organizada em um **Menu Lateral (Drawer)** 
   5. **PORTAL BIOGLOW:** Acesso ao portal oficial da equipe.
   6. **PAINEL ADMINISTRATIVO:** Botão exclusivo para a conta **Mentor**, destacado com ícone `<Shield />`.
 
-### 4.4 Painel Administrativo do Sistema
+### 4.4 Central Oficial de Documentos de Competição
+
+![Central Oficial de Documentos de Competição](docs/telas/documentos-competicao-v3.jpg)
+
+Ambiente unificado para consulta de regras, rubricas e manuais técnicos de competições (FIRST LEGO League e Olimpíada Brasileira de Robótica). Inclui download direto, visualizador nativo de PDFs com suporte a tela inteira, filtros rápidos por competição (FLL / OBR), categoria (Rubricas, Regras, Manuais) e abrangência regional (Nacional / Estado de SP). O servidor realiza auto-download e cache local resiliente de todos os documentos oficiais em português brasileiro (SESI Brasil).
+
+### 4.5 Visualizador de Rúbricas Oficiais PT-BR (SESI)
+
+![Visualizador de Rúbricas Oficiais PT-BR em Tela Inteira](docs/telas/rubricas-avaliacao-ptbr-v3.png)
+
+Exibição e download em tela cheia das folhas oficiais de avaliação da FIRST LEGO League em português brasileiro (*Feedback da Sessão de Avaliação* - temporada BIOGLOW 2026/2027), com verificação e sincronização automática com o banco e cache local garantindo disponibilidade contínua sem depender de serviços externos.
+
+### 4.6 Feed Oficial de Atualizações das Competições
+
+![Feed Oficial de Atualizações das Competições](docs/telas/atualizacoes-competicoes-v3.jpg)
+
+Linha do tempo cronológica com monitoramento contínuo de novidades, comunicados e atualizações das organizações oficiais (SESI / FIRST e OBR), categorizadas com badges de prioridade e links para as fontes originais com contingência e alta disponibilidade.
+
+### 4.7 Painel Administrativo do Sistema
 
 Acesso exclusivo para manutenção e administração de dados (`/admin` e `/mentor/configuracoes`):
 
@@ -186,13 +206,13 @@ Acesso exclusivo para manutenção e administração de dados (`/admin` e `/ment
 - **Alteração de Senhas:** Redefinição de senha para qualquer perfil (`gestao`, `mentor`, `aluno_fll`, `aluno_obr`) e da própria senha mestra administrativa.
 - **Botão Voltar ao Início:** Retorno rápido à Home em qualquer estado do painel.
 
-### 4.5 Portal independente Hortobots BIOGLOW
+### 4.8 Portal independente Hortobots BIOGLOW
 
 O botão **Hortobots BIOGLOW** abre o site oficial da equipe SESI Hortobots FLL dentro de um host isolado e responsivo, renderizado pelo próprio Planner. Uma barra permanece disponível para voltar à plataforma. A integração aguarda o sinal de carregamento do site e fornece apenas os endereços necessários para o retorno e para o acervo público da equipe.
 
 O código-fonte continua pertencendo ao repositório oficial [Hortobots/BIOGLOW-site](https://github.com/Hortobots/BIOGLOW-site) e não importa componentes do Planner. Uma nova versão pode ser incorporada executando `npm run sync:bioglow` após atualizar o repositório irmão. O arquivo `source.json` incluído no bundle registra exatamente qual commit foi integrado.
 
-### 4.5 SESI Hortobots FLL
+### 4.9 SESI Hortobots FLL
 
 #### Navegação do caderno
 
@@ -212,7 +232,7 @@ O painel oferece três ações centrais: criar um registro, consultar registros 
 
 O formulário FLL registra de 3 a 15 tentativas, tempo, pontuação, falhas e missões oficiais realizadas. O painel complementar recebe até quatro imagens ou vídeos e gera análise gráfica em linha, barras ou formato circular antes do salvamento. Cada teste pode ser associado a registros do diário.
 
-### 4.6 Under Construction FLL
+### 4.10 Under Construction FLL
 
 #### Navegação do caderno
 
@@ -232,7 +252,7 @@ O hub da equipe disponibiliza novo registro, registros salvos e simulações e t
 
 A listagem oferece pesquisa por texto ou tag e filtro por data. Cada cartão resume data, título, conteúdo e identidade da equipe; usuários autorizados recebem também ações de edição e exclusão.
 
-### 4.7 Hortobots OBR
+### 4.11 Hortobots OBR
 
 #### Navegação do caderno
 
@@ -252,7 +272,7 @@ O painel centraliza novo registro, consulta do histórico e testes do robô. Log
 
 O teste OBR registra data, nome, objetivo e de 3 a 15 tentativas com tempo, valor observado e falhas. A análise mostra evolução, melhor tempo, média, falhas e tendência, além de aceitar fotos e vídeos. O gráfico pode ser ocultado para ampliar a área de preenchimento ou aberto em foco para inspeção.
 
-### 4.8 Recursos compartilhados
+### 4.12 Recursos compartilhados
 
 #### Editor de registro
 
