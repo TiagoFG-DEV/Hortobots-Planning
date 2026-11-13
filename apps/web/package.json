@@ -1,6 +1,6 @@
 {
   "name": "@hortobots/web",
-  "version": "2.2.0",
+  "version": "3.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,7 +13,7 @@
     "@fontsource/barlow-condensed": "5.1.1",
     "@fontsource/caveat": "5.1.1",
     "@fontsource/open-sans": "5.1.1",
-    "@hortobots/shared": "1.1.0",
+    "@hortobots/shared": "*",
     "@react-pdf/renderer": "^4.9.0",
     "@supabase/supabase-js": "2.117.2",
     "@tanstack/react-query": "5.62.8",

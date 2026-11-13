@@ -8,11 +8,13 @@ import {
   ChevronUp,
   Edit3,
   Eye,
+  FileText,
   Home as HomeIcon,
   Image as ImageIcon,
   Leaf,
   LayoutTemplate,
   List,
+  LogIn,
   LogOut,
   Mail,
   Menu,
@@ -40,6 +42,8 @@ import fundoObr1920 from './assets/generated/fundo-obr-1920.webp';
 import fundoUnder from './assets/originals/fundo_underconstruction.png';
 import fundoNeutro from './assets/originals/fundo_neutro.png';
 import { CalendarView } from './CalendarView';
+import { CompetitionDocumentsView } from './CompetitionDocumentsView';
+import { CompetitionUpdatesView } from './CompetitionUpdatesView';
 import { PdfDownloadButton } from './PdfDownloadButton';
 import { TeamPortalFrame } from './TeamPortalFrame';
 import { useOverlayAccessibility } from './useOverlayAccessibility';
@@ -261,7 +265,7 @@ function Login({ onLogin }: { onLogin: (u: User) => void }) {
             <img src={underBook} alt="Caderno Under Construction" />
             <img src={obrBook} alt="Caderno OBR" />
           </div>
-          <span className="login-version-tag" title="Hortobots Planning v2.2.0">v2.2.0</span>
+          <span className="login-version-tag" title="Hortobots Planning v3.0.0">v3.0.0</span>
         </div>
         <form onSubmit={submit}>
           <div className="login-team-icons">
@@ -317,9 +321,9 @@ function Login({ onLogin }: { onLogin: (u: User) => void }) {
             ENTRAR NA PLATAFORMA
           </button>
           <div className="login-public-links">
-            <Link className="visitor-calendar-link" to="/calendario">
+            <Link className="visitor-calendar-link" to="/">
               <Eye size={19} />
-              <span><strong>Somente visualizar</strong><small>Calendário e pesquisar registros</small></span>
+              <span><strong>Somente visualizar</strong><small>Explorar cadernos, documentos e calendário</small></span>
             </Link>
             <Link className="visitor-calendar-link bioglow-access-link" to={SESI_BIOGLOW_PORTAL.route}>
               <Leaf size={19} />
@@ -336,7 +340,7 @@ function Login({ onLogin }: { onLogin: (u: User) => void }) {
   );
 }
 
-function Home() {
+function Home({ onLogout }: { onLogout: () => void }) {
   const user = useCurrentUser();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [showRecordsTeams, setShowRecordsTeams] = useState(false);
@@ -386,7 +390,17 @@ function Home() {
           </header>
 
           <nav className="home-drawer-nav">
-            {/* 1. Calendário */}
+            {/* 1. Documentos de Competição */}
+            <Link
+              to="/documentos"
+              className="home-drawer-link"
+              onClick={() => setDrawerOpen(false)}
+            >
+              <FileText size={20} />
+              <span>DOCUMENTOS DE COMPETIÇÃO</span>
+            </Link>
+
+            {/* 2. Calendário */}
             <Link
               to="/calendario"
               className="home-drawer-link"
@@ -396,7 +410,7 @@ function Home() {
               <span>CALENDÁRIO</span>
             </Link>
 
-            {/* 2. Pesquisar Registros */}
+            {/* 3. Pesquisar Registros */}
             <Link
               to="/calendario?view=list"
               className="home-drawer-link"
@@ -406,7 +420,7 @@ function Home() {
               <span>PESQUISAR REGISTROS</span>
             </Link>
 
-            {/* 3. Ver Registros (simplificado em 1 botão com expansão para as 3 equipes) */}
+            {/* 4. Ver Registros (simplificado em 1 botão com expansão para as 3 equipes) */}
             <div className="home-drawer-group">
               <button
                 type="button"
@@ -524,6 +538,32 @@ function Home() {
                 </Link>
               </div>
             )}
+
+            <div className="home-drawer-divider" style={{ marginTop: '0.8rem' }} />
+
+            {/* Acesso / Saída Contextual */}
+            {user ? (
+              <button
+                type="button"
+                className="home-drawer-link drawer-auth-btn logout-variant"
+                onClick={() => {
+                  setDrawerOpen(false);
+                  onLogout();
+                }}
+              >
+                <LogOut size={20} />
+                <span>SAIR DA CONTA ({user.username.toUpperCase()})</span>
+              </button>
+            ) : (
+              <Link
+                to="/login"
+                className="home-drawer-link drawer-auth-btn login-variant"
+                onClick={() => setDrawerOpen(false)}
+              >
+                <LogIn size={20} />
+                <span>FAZER LOGIN</span>
+              </Link>
+            )}
           </nav>
         </aside>
       </div>
@@ -547,9 +587,17 @@ function Home() {
           })}
         </div>
 
-        <Link className="global-calendar" to="/calendario">
-          <CalendarDays />
-        </Link>
+        {/* Botões inferiores da Home: Calendário e Documentos de Competição */}
+        <div className="home-bottom-actions">
+          <Link className="home-bottom-btn global-calendar-btn" to="/calendario" aria-label="Acessar Calendário">
+            <CalendarDays size={20} />
+            <span>CALENDÁRIO</span>
+          </Link>
+          <Link className="home-bottom-btn competition-docs-btn" to="/documentos" aria-label="Acessar Documentos de Competição">
+            <FileText size={20} />
+            <span>DOCUMENTOS DE COMPETIÇÃO</span>
+          </Link>
+        </div>
       </section>
     </main>
   );
@@ -579,6 +627,7 @@ function SideMenu({ mod }: { mod: string }) {
           </header>
           <nav>
             <Link to="/"><HomeIcon />{user ? 'HOME' : 'VOLTAR AO LOGIN'}</Link>
+            <Link to="/documentos"><FileText />DOCUMENTOS DE COMPETIÇÃO</Link>
             <Link to="/calendario"><CalendarDays />CALENDÁRIO GERAL</Link>
             {user && <Link to={`/${mod}/registros`}><List />REGISTROS</Link>}
             {user && canWrite && <Link to={`/${mod}/testes`}><ChartNoAxesCombined />SIMULAÇÕES E TESTES</Link>}
@@ -2277,9 +2326,11 @@ export function App() {
         <DialogProvider>
           <TransitionScreen active={isOverlayActive} />
           <Routes>
-            <Route path="/" element={<Login onLogin={handleLoginSuccess} />} />
+            <Route path="/" element={<Home onLogout={() => { }} />} />
             <Route path="/login" element={<Login onLogin={handleLoginSuccess} />} />
             <Route path="/calendario" element={<CalendarView api={api} user={null} />} />
+            <Route path="/documentos" element={<CompetitionDocumentsView user={null} />} />
+            <Route path="/documentos/atualizacoes" element={<CompetitionUpdatesView user={null} />} />
             <Route path={SESI_BIOGLOW_PORTAL.route} element={<TeamPortalFrame />} />
             <Route path="/:mod/teste/:id" element={<TestView key={location.pathname} />} />
             <Route path="/:mod/registro/:id" element={<RecordView key={location.pathname} />} />
@@ -2306,10 +2357,12 @@ export function App() {
         </button>
 
         <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/home" element={<Home />} />
+          <Route path="/" element={<Home onLogout={handleLogout} />} />
+          <Route path="/home" element={<Home onLogout={handleLogout} />} />
           <Route path="/login" element={<Navigate to={safeReturnTo} replace />} />
           <Route path="/calendario" element={<CalendarView api={api} user={user} />} />
+          <Route path="/documentos" element={<CompetitionDocumentsView user={user} />} />
+          <Route path="/documentos/atualizacoes" element={<CompetitionUpdatesView user={user} />} />
           <Route path="/mentor/configuracoes" element={user.role === 'mentor' ? <AdminPanel /> : <Navigate to="/" replace />} />
           <Route path="/admin" element={<AdminPanel />} />
           <Route path={SESI_BIOGLOW_PORTAL.route} element={<TeamPortalFrame />} />
@@ -2323,7 +2376,7 @@ export function App() {
           <Route path="/:mod/banner" element={<BannerPage key={location.pathname} />} />
           <Route path="/:mod/teste/:id" element={<TestView key={location.pathname} />} />
           <Route path="/:mod/registro/:id" element={<RecordView key={location.pathname} />} />
-          <Route path="*" element={<Home />} />
+          <Route path="*" element={<Home onLogout={handleLogout} />} />
         </Routes>
       </DialogProvider>
     </UserContext.Provider>

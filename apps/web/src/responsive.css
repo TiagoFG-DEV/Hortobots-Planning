@@ -627,3 +627,141 @@ html:has(.menu-layer.open, .dialog-layer, .focus-layer, .hb-dialog-overlay) .log
   }
 }
 
+/* Responsividade dos controles inferiores e Central de Documentos */
+@media (max-width: 640px) {
+  .home-bottom-actions {
+    position: static;
+    transform: none;
+    margin-top: 1rem;
+    flex-direction: column;
+    width: 100%;
+    gap: 0.6rem;
+  }
+  .home-bottom-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 0.65rem 1rem;
+    font-size: 0.8rem;
+  }
+  .documents-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .documents-nav-tabs {
+    flex-direction: column;
+    width: 100%;
+  }
+  .doc-tab-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Auditoria Geral de Responsividade Mobile / Tablet / Desktop (Marco 10)
+   ───────────────────────────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .documents-container {
+    padding: 1rem 0.8rem;
+  }
+
+  .documents-header-left {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.8rem;
+  }
+
+  .documents-filters-bar {
+    padding: 0.8rem;
+  }
+
+  .filter-group {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .filter-buttons {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 0.3rem;
+  }
+
+  .doc-filter-pill {
+    white-space: nowrap;
+  }
+
+  .documents-grid-container {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .preview-card-sticky {
+    position: static;
+  }
+
+  .preview-frame-container {
+    height: 300px;
+  }
+
+  .updates-timeline-container {
+    padding: 0;
+  }
+
+  .update-card {
+    padding: 1rem;
+  }
+
+  .update-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .update-card-footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .btn-update-source {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Admin docs table responsive */
+  .admin-doc-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.6rem;
+  }
+
+  .admin-doc-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .documents-grid-container {
+    grid-template-columns: 1fr;
+  }
+  .preview-card-sticky {
+    position: static;
+  }
+  .preview-frame-container {
+    height: 380px;
+  }
+}
+
+/* Telas ultrawide ou telas com alta resolucao */
+@media (min-width: 1800px) {
+  .documents-container {
+    max-width: 1700px;
+    margin: 0 auto;
+  }
+  .updates-timeline-container {
+    max-width: 1200px;
+  }
+}

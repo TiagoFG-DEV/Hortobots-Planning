@@ -13,6 +13,8 @@ import { belongsToSesiHortobotsFll } from './teamContent.js';
 import { collaborationService, type BannerRecord } from './collaborationService.js';
 import { createBannerPptx, extractBannerFiles, synthesizeBanner, type BannerContent, type BannerFile } from './bannerService.js';
 import { sendImportantEventEmail, sendComumEventEmail } from './notificationService.js';
+import { monitoringService } from './monitoringService.js';
+import { redundancyService } from './redundancyService.js';
 import {
   canCreateFeedback,
   canConfirmEvent,
@@ -254,6 +256,8 @@ app.get('/api/admin/db-status', adminAuthMiddleware, async (_req: AuthRequest, r
       storageBytes = (files || []).reduce((acc, f) => acc + (f.metadata?.size || 0), 0);
     }
 
+    const redundancy = await redundancyService.getStatus();
+
     res.json({
       storage: isSupabaseEnabled ? 'supabase' : 'local',
       counts: {
@@ -263,7 +267,8 @@ app.get('/api/admin/db-status', adminAuthMiddleware, async (_req: AuthRequest, r
         total: eventos.length + registros.length + testes.length
       },
       storageBytes,
-      storageMb: (storageBytes / 1024 / 1024).toFixed(2)
+      storageMb: (storageBytes / 1024 / 1024).toFixed(2),
+      redundancy
     });
   } catch (err: any) {
     res.status(500).json({ error: { message: 'Erro ao consultar status do banco.' } });
@@ -747,6 +752,248 @@ app.get('/api/public/biology-feed/:feed', async (req, res) => {
       return;
     }
     res.status(502).json({ error: { message: 'Não foi possível consultar este feed agora.' } });
+  }
+});
+
+// ============================================================================
+// CENTRAL DE DOCUMENTOS DE COMPETICAO (MARCO 5)
+// ============================================================================
+
+app.get('/api/documentos', async (req, res) => {
+  try {
+    const comp = req.query.competition ? String(req.query.competition).toUpperCase() : undefined;
+    const mod = req.query.modality ? String(req.query.modality) : undefined;
+    const season = req.query.season ? String(req.query.season) : undefined;
+    const type = req.query.type ? String(req.query.type).toLowerCase() : undefined;
+
+    if (!supabase) {
+      res.status(503).json({ error: { message: 'Banco de dados nao configurado.' } });
+      return;
+    }
+
+    let query = supabase
+      .from('competition_documents')
+      .select('*')
+      .order('competition', { ascending: true })
+      .order('doc_type', { ascending: true })
+      .order('title', { ascending: true });
+
+    if (comp && ['FLL', 'OBR'].includes(comp)) {
+      query = query.eq('competition', comp);
+    }
+    if (mod) {
+      query = query.eq('modality', mod);
+    }
+    if (season) {
+      query = query.eq('season_year', season);
+    }
+    if (type && ['rubrica', 'regras', 'complementar'].includes(type)) {
+      query = query.eq('doc_type', type);
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      res.status(500).json({ error: { message: 'Erro ao buscar documentos.', details: error.message } });
+      return;
+    }
+
+    res.json(data || []);
+  } catch (err) {
+    res.status(500).json({ error: { message: 'Falha interna ao carregar documentos.', details: err instanceof Error ? err.message : String(err) } });
+  }
+});
+
+app.get('/api/documentos/atualizacoes', async (req, res) => {
+  try {
+    const comp = req.query.competition ? String(req.query.competition).toUpperCase() : undefined;
+    if (!supabase) {
+      res.status(503).json({ error: { message: 'Banco de dados nao configurado.' } });
+      return;
+    }
+
+    let query = supabase
+      .from('competition_updates')
+      .select('*')
+      .order('published_at', { ascending: false });
+
+    if (comp && ['FLL', 'OBR'].includes(comp)) {
+      query = query.eq('competition', comp);
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      res.status(500).json({ error: { message: 'Erro ao buscar atualizacoes.', details: error.message } });
+      return;
+    }
+
+    res.json(data || []);
+  } catch (err) {
+    res.status(500).json({ error: { message: 'Falha interna ao carregar atualizacoes.', details: err instanceof Error ? err.message : String(err) } });
+  }
+});
+
+app.post('/api/documentos/atualizacoes/sync', adminAuthMiddleware, async (_req: AuthRequest, res: Response) => {
+  try {
+    const result = await monitoringService.syncOfficialUpdates();
+    res.json({ success: true, ...result });
+  } catch (err) {
+    res.status(500).json({ error: { message: 'Erro ao sincronizar atualizacoes.', details: err instanceof Error ? err.message : String(err) } });
+  }
+});
+
+app.post('/api/documentos/atualizacoes', adminAuthMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!supabase) {
+      res.status(503).json({ error: { message: 'Banco de dados nao configurado.' } });
+      return;
+    }
+
+    const { id, competition, modality, title, summary, source_url, published_at, is_critical } = req.body;
+    if (!id || !competition || !modality || !title || !summary || !source_url || !published_at) {
+      res.status(400).json({ error: { message: 'Campos obrigatorios ausentes.' } });
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('competition_updates')
+      .upsert({
+        id,
+        competition,
+        modality,
+        title,
+        summary,
+        source_url,
+        published_at,
+        is_critical: is_critical ?? false,
+        captured_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (error) {
+      res.status(500).json({ error: { message: 'Erro ao registrar atualizacao.', details: error.message } });
+      return;
+    }
+
+    res.status(201).json(data);
+  } catch (err) {
+    res.status(500).json({ error: { message: 'Falha ao salvar atualizacao.', details: err instanceof Error ? err.message : String(err) } });
+  }
+});
+
+app.delete('/api/documentos/atualizacoes/:id', adminAuthMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!supabase) {
+      res.status(503).json({ error: { message: 'Banco de dados nao configurado.' } });
+      return;
+    }
+
+    const id = req.params.id;
+    const { error } = await supabase
+      .from('competition_updates')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      res.status(500).json({ error: { message: 'Erro ao remover atualizacao.', details: error.message } });
+      return;
+    }
+
+    res.json({ success: true, message: 'Atualizacao removida com sucesso.' });
+  } catch (err) {
+    res.status(500).json({ error: { message: 'Falha interna ao excluir atualizacao.', details: err instanceof Error ? err.message : String(err) } });
+  }
+});
+
+app.get('/api/documentos/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    if (!supabase) {
+      res.status(503).json({ error: { message: 'Banco de dados nao configurado.' } });
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('competition_documents')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error || !data) {
+      res.status(404).json({ error: { message: 'Documento nao encontrado.' } });
+      return;
+    }
+
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: { message: 'Falha interna ao obter documento.', details: err instanceof Error ? err.message : String(err) } });
+  }
+});
+
+app.post('/api/documentos', adminAuthMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!supabase) {
+      res.status(503).json({ error: { message: 'Banco de dados nao configurado.' } });
+      return;
+    }
+
+    const { id, competition, modality, season_year, doc_type, title, description, url_oficial, is_current, is_fallback } = req.body;
+    if (!id || !competition || !modality || !season_year || !doc_type || !title || !url_oficial) {
+      res.status(400).json({ error: { message: 'Campos obrigatorios ausentes.' } });
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('competition_documents')
+      .upsert({
+        id,
+        competition,
+        modality,
+        season_year,
+        doc_type,
+        title,
+        description: description || '',
+        url_oficial,
+        is_current: is_current ?? true,
+        is_fallback: is_fallback ?? false,
+        created_by: req.user?.username || 'mentor',
+        updated_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (error) {
+      res.status(500).json({ error: { message: 'Erro ao salvar documento.', details: error.message } });
+      return;
+    }
+
+    res.status(201).json(data);
+  } catch (err) {
+    res.status(500).json({ error: { message: 'Falha interna ao cadastrar documento.', details: err instanceof Error ? err.message : String(err) } });
+  }
+});
+
+app.delete('/api/documentos/:id', adminAuthMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!supabase) {
+      res.status(503).json({ error: { message: 'Banco de dados nao configurado.' } });
+      return;
+    }
+
+    const id = req.params.id;
+    const { error } = await supabase
+      .from('competition_documents')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      res.status(500).json({ error: { message: 'Erro ao remover documento.', details: error.message } });
+      return;
+    }
+
+    res.json({ success: true, message: 'Documento removido com sucesso.' });
+  } catch (err) {
+    res.status(500).json({ error: { message: 'Falha interna ao excluir documento.', details: err instanceof Error ? err.message : String(err) } });
   }
 });
 
