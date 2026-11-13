@@ -1,86 +1,107 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, ArrowLeft, RefreshCw, Download, ExternalLink, Filter, BookOpen, AlertCircle, Sparkles } from 'lucide-react';
+import {
+  FileText,
+  ArrowLeft,
+  RefreshCw,
+  Download,
+  ExternalLink,
+  Filter,
+  BookOpen,
+  AlertCircle,
+  Maximize2,
+  Minimize2,
+  MapPin,
+  Sparkles,
+  X
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
-
-interface CompetitionDoc {
-  id: string;
-  competition: 'FLL' | 'OBR';
-  modality: string;
-  season_year: string;
-  doc_type: 'rubrica' | 'regras' | 'complementar';
-  title: string;
-  description: string;
-  url_oficial: string;
-  file_path?: string;
-  is_current: boolean;
-  is_fallback: boolean;
-  updated_at?: string;
-}
+import {
+  type CompetitionDoc,
+  INITIAL_OFFICIAL_DOCUMENTS
+} from './competitionData';
 
 interface CompetitionDocumentsViewProps {
   user: any;
 }
 
 export function CompetitionDocumentsView({ user }: CompetitionDocumentsViewProps) {
-  const [documents, setDocuments] = useState<CompetitionDoc[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [documents, setDocuments] = useState<CompetitionDoc[]>(INITIAL_OFFICIAL_DOCUMENTS);
+  const [loading, setLoading] = useState(false);
   const [selectedComp, setSelectedComp] = useState<'TODAS' | 'FLL' | 'OBR'>('TODAS');
   const [selectedType, setSelectedType] = useState<'todos' | 'rubrica' | 'regras' | 'complementar'>('todos');
-  const [selectedDoc, setSelectedDoc] = useState<CompetitionDoc | null>(null);
+  const [selectedRegion, setSelectedRegion] = useState<'TODAS' | 'SP'>('TODAS');
+  const [selectedDoc, setSelectedDoc] = useState<CompetitionDoc | null>(INITIAL_OFFICIAL_DOCUMENTS[0] || null);
+  const [isFullScreen, setIsFullScreen] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
     async function loadDocs() {
       try {
         setLoading(true);
         const res = await fetch('/api/documentos');
         if (res.ok) {
           const data = await res.json();
-          setDocuments(data);
-          if (data.length > 0 && !selectedDoc) {
-            setSelectedDoc(data[0]);
+          if (isMounted && Array.isArray(data) && data.length > 0) {
+            setDocuments(data);
+            if (!selectedDoc) {
+              setSelectedDoc(data[0]);
+            }
+            return;
           }
         }
       } catch (err) {
-        console.error('Erro ao carregar documentos:', err);
+        console.warn('Usando catálogo nativo oficial de documentos como fonte confiável:', err);
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     }
     loadDocs();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const filteredDocs = documents.filter((doc) => {
     const matchComp = selectedComp === 'TODAS' || doc.competition === selectedComp;
     const matchType = selectedType === 'todos' || doc.doc_type === selectedType;
-    return matchComp && matchType;
+    const matchRegion =
+      selectedRegion === 'TODAS' ||
+      doc.region === 'SP' ||
+      doc.title.toLowerCase().includes('são paulo') ||
+      doc.title.toLowerCase().includes('sesi-sp') ||
+      doc.description.toLowerCase().includes('são paulo') ||
+      doc.description.toLowerCase().includes('estadual');
+    return matchComp && matchType && matchRegion;
   });
 
   return (
     <div className="documents-container page-transition">
       <header className="documents-header">
         <div className="documents-header-left">
-          <Link to="/" className="documents-back-link" aria-label="Voltar para a pagina inicial">
+          <Link to="/" className="documents-back-link" aria-label="Voltar para a página inicial">
             <ArrowLeft size={20} />
-            <span>Inicio</span>
+            <span>Início</span>
           </Link>
           <div className="documents-title-group">
             <span className="documents-badge">Central Oficial de Temporadas</span>
-            <h1>Documentos de Competicao</h1>
+            <h1>Documentos de Competição</h1>
           </div>
         </div>
 
         <div className="documents-header-actions">
           <Link to="/documentos/atualizacoes" className="btn-documents-updates">
             <RefreshCw size={16} />
-            <span>Feed de Atualizacoes</span>
+            <span>Feed de Atualizações</span>
           </Link>
         </div>
       </header>
 
-      {/* Barra de Filtros */}
+      {/* Barra de Filtros com Estilo Consolidado */}
       <section className="documents-filters-bar">
         <div className="filter-group">
-          <span className="filter-label"><Filter size={15} /> Competicao:</span>
+          <span className="filter-label"><Filter size={15} /> Competição:</span>
           <div className="filter-buttons">
             <button
               type="button"
@@ -101,7 +122,7 @@ export function CompetitionDocumentsView({ user }: CompetitionDocumentsViewProps
               className={`doc-filter-pill ${selectedComp === 'OBR' ? 'active' : ''}`}
               onClick={() => setSelectedComp('OBR')}
             >
-              Olimpiada Brasileira de Robotica (OBR)
+              Olimpíada Brasileira de Robótica (OBR)
             </button>
           </div>
         </div>
@@ -121,14 +142,14 @@ export function CompetitionDocumentsView({ user }: CompetitionDocumentsViewProps
               className={`doc-filter-pill ${selectedType === 'rubrica' ? 'active' : ''}`}
               onClick={() => setSelectedType('rubrica')}
             >
-              Rubricas de Avaliacao
+              Rubricas de Avaliação
             </button>
             <button
               type="button"
               className={`doc-filter-pill ${selectedType === 'regras' ? 'active' : ''}`}
               onClick={() => setSelectedType('regras')}
             >
-              Regras e Instrucoes
+              Regras e Instruções
             </button>
             <button
               type="button"
@@ -139,11 +160,31 @@ export function CompetitionDocumentsView({ user }: CompetitionDocumentsViewProps
             </button>
           </div>
         </div>
+
+        <div className="filter-group">
+          <span className="filter-label"><MapPin size={15} /> Região:</span>
+          <div className="filter-buttons">
+            <button
+              type="button"
+              className={`doc-filter-pill ${selectedRegion === 'TODAS' ? 'active' : ''}`}
+              onClick={() => setSelectedRegion('TODAS')}
+            >
+              Geral / Nacional
+            </button>
+            <button
+              type="button"
+              className={`doc-filter-pill ${selectedRegion === 'SP' ? 'active highlight-sp' : ''}`}
+              onClick={() => setSelectedRegion('SP')}
+            >
+              Estado de São Paulo
+            </button>
+          </div>
+        </div>
       </section>
 
-      {/* Conteudo Principal: Grade de Documentos + Painel de Detalhes / Visualizador */}
+      {/* Conteúdo Principal: Grade de Documentos + Painel de Detalhes / Visualizador */}
       <main className="documents-layout">
-        {loading ? (
+        {loading && filteredDocs.length === 0 ? (
           <div className="documents-loading">
             <RefreshCw className="spin" size={28} />
             <p>Sincronizando acervo oficial de documentos...</p>
@@ -173,6 +214,9 @@ export function CompetitionDocumentsView({ user }: CompetitionDocumentsViewProps
                           {doc.competition}
                         </span>
                         <span className="doc-season-tag">{doc.season_year}</span>
+                        {doc.region === 'SP' && (
+                          <span className="doc-sp-tag">Estado de SP</span>
+                        )}
                         {doc.is_fallback && (
                           <span className="doc-fallback-tag">Ano Anterior</span>
                         )}
@@ -187,13 +231,14 @@ export function CompetitionDocumentsView({ user }: CompetitionDocumentsViewProps
                         <div className="doc-card-actions" onClick={(e) => e.stopPropagation()}>
                           <a
                             href={doc.url_oficial}
+                            download
                             target="_blank"
                             rel="noopener noreferrer"
                             className="btn-doc-action"
-                            title="Abrir URL oficial em nova aba"
+                            title="Baixar ou abrir URL oficial"
                           >
-                            <ExternalLink size={15} />
-                            <span>Abrir</span>
+                            <Download size={15} />
+                            <span>Baixar</span>
                           </a>
                         </div>
                       </div>
@@ -203,19 +248,19 @@ export function CompetitionDocumentsView({ user }: CompetitionDocumentsViewProps
               </div>
             </div>
 
-            {/* Painel Lateral de Pre-visualizacao / Acoes do Documento Selecionado */}
+            {/* Painel Lateral de Pré-visualização / Ações do Documento Selecionado */}
             {selectedDoc && (
               <aside className="documents-preview-column">
                 <div className="preview-card-sticky">
                   <div className="preview-header">
-                    <span className="preview-label">Visualizacao e Acesso</span>
+                    <span className="preview-label">Visualização e Acesso</span>
                     <h2>{selectedDoc.title}</h2>
                     <p className="preview-desc">{selectedDoc.description}</p>
                   </div>
 
                   <div className="preview-meta-grid">
                     <div>
-                      <strong>Competicao:</strong>
+                      <strong>Competição:</strong>
                       <span>{selectedDoc.competition}</span>
                     </div>
                     <div>
@@ -235,13 +280,23 @@ export function CompetitionDocumentsView({ user }: CompetitionDocumentsViewProps
                   <div className="preview-action-buttons">
                     <a
                       href={selectedDoc.url_oficial}
+                      download
                       target="_blank"
                       rel="noopener noreferrer"
                       className="preview-btn-primary"
                     >
                       <Download size={18} />
-                      <span>Baixar Documento Oficial (PDF)</span>
+                      <span>Baixar Folha de Avaliação (PDF)</span>
                     </a>
+                    <button
+                      type="button"
+                      onClick={() => setIsFullScreen(true)}
+                      className="preview-btn-fullscreen"
+                      title="Visualizar documento em tela inteira"
+                    >
+                      <Maximize2 size={16} />
+                      <span>Tela Inteira</span>
+                    </button>
                     <a
                       href={selectedDoc.url_oficial}
                       target="_blank"
@@ -249,13 +304,13 @@ export function CompetitionDocumentsView({ user }: CompetitionDocumentsViewProps
                       className="preview-btn-secondary"
                     >
                       <ExternalLink size={16} />
-                      <span>Ver no Navegador</span>
+                      <span>Aba Externa</span>
                     </a>
                   </div>
 
                   <div className="preview-frame-container">
                     <iframe
-                      src={`${selectedDoc.url_oficial}#toolbar=0`}
+                      src={`${selectedDoc.url_oficial}#toolbar=1&navpanes=0`}
                       title={selectedDoc.title}
                       className="preview-iframe"
                     />
@@ -266,6 +321,44 @@ export function CompetitionDocumentsView({ user }: CompetitionDocumentsViewProps
           </div>
         )}
       </main>
+
+      {/* Modal de Visualização em Tela Inteira */}
+      {isFullScreen && selectedDoc && (
+        <div className="doc-fullscreen-overlay" role="dialog" aria-modal="true">
+          <div className="doc-fullscreen-bar">
+            <div className="doc-fullscreen-info">
+              <span className="doc-fullscreen-badge">{selectedDoc.competition} • {selectedDoc.modality}</span>
+              <h2>{selectedDoc.title}</h2>
+            </div>
+            <div className="doc-fullscreen-actions">
+              <a
+                href={selectedDoc.url_oficial}
+                download
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-fullscreen-download"
+              >
+                <Download size={18} />
+                <span>Baixar PDF</span>
+              </a>
+              <button
+                type="button"
+                className="btn-fullscreen-close"
+                onClick={() => setIsFullScreen(false)}
+                aria-label="Fechar tela inteira"
+              >
+                <Minimize2 size={20} />
+                <span>Sair da Tela Inteira</span>
+              </button>
+            </div>
+          </div>
+          <iframe
+            src={`${selectedDoc.url_oficial}#toolbar=1`}
+            title={selectedDoc.title}
+            className="doc-fullscreen-iframe"
+          />
+        </div>
+      )}
     </div>
   );
 }

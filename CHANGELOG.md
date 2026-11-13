@@ -2,6 +2,49 @@
 
 As versões futuras devem ser acrescentadas no topo deste arquivo, preservando o histórico já publicado.
 
+## [3.0.1] — 2026-11-13 — Manutenção e Melhorias de UX / Dados
+
+### Novas Funcionalidades
+
+#### Botões Inferiores da Home — Apenas Ícones
+- Removidos os labels de texto ("CALENDÁRIO" e "DOCUMENTOS DE COMPETIÇÃO") dos botões centralizados na tela inicial.
+- Substituídos por botões circulares ícone-only (`CalendarDays` e `FileText`) com tooltip via `title` e `aria-label`, visual em cinza e branco com sombra preta.
+
+#### Acesso Público aos Diários de Bordo
+- Usuários não autenticados agora podem visualizar diários de bordo no modo leitura clicando em qualquer um dos três cadernos na Home.
+- Adicionadas rotas `/:mod`, `/:mod/registros` e `/:mod/testes-salvos` no bloco público de rotas (sem autenticação).
+- Menu lateral (SideMenu) exibe "REGISTROS" e link de login para visitantes sem conta.
+
+#### Dados Sempre Disponíveis — Fallback Estático
+- Criado `apps/web/src/competitionData.ts` com catálogo estático local de 14 documentos oficiais e 9 atualizações reais.
+- `CompetitionDocumentsView` e `CompetitionUpdatesView` agora carregam a partir desse catálogo por padrão e, quando o servidor `/api` responde com dados, substituem com os dados mais atuais.
+- Elimina o bug crítico onde a tela de Documentos exibia "Nenhum documento encontrado" mesmo havendo documentos reais.
+
+#### Filtro "Estado de São Paulo"
+- Nova pill de filtro "Estado de São Paulo" na tela de Documentos e na tela de Atualizações.
+- Filtra documentos e comunicados de etapas regionais e estaduais de São Paulo (SESI-SP e OBR SP).
+- Exibição visual diferenciada com tag amarela "Estado de SP" nos cards.
+
+#### Visualizador em Tela Inteira para PDFs
+- Botão "Tela Inteira" no painel lateral de pré-visualização de documentos.
+- Abre modal fullscreen com iframe do PDF em 100vw / 100vh, barra de ações com download e botão de fechar.
+
+#### Correção de Títulos com Acentuação Correta
+- "Documentos de Competicao" → "Documentos de Competição"
+- "Atualizacoes das Competicoes" → "Atualizações das Competições"
+- "Feed de Atualizacoes" → "Feed de Atualizações"
+- "Olimpiada Brasileira de Robotica (OBR)" → "Olimpíada Brasileira de Robótica (OBR)"
+
+#### Contraste Visual Aprimorado
+- Adicionadas sombras pretas mais intensas em títulos de tela (`text-shadow: 0 2px 10px rgba(0,0,0,0.95)`).
+- Pills de filtro com `box-shadow: 0 2px 8px rgba(0,0,0,0.5)` e `text-shadow`.
+- Botão "Feed de Atualizações" com sombra reforçada para legibilidade sobre o fundo animado.
+
+#### Proxy de API Configurado no Vite
+- Adicionado proxy `/api` → `http://localhost:3333` no `vite.config.ts`, garantindo que o frontend no modo desenvolvimento consiga comunicar com o backend Express sem erros de CORS ou 404.
+
+---
+
 ## [3.0.0] — 2026-11-13
 
 ### Visão Geral da Versão 3.0.0

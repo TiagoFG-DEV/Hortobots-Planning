@@ -7094,41 +7094,42 @@ textarea,
   max-width: 90vw;
 }
 
+/* Botões da Home: apenas ícones circulares em cinza e branco */
 .home-bottom-btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.6rem;
-  padding: 0.7rem 1.15rem;
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.5);
-  color: #fff;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #e2e8f0;
   text-decoration: none;
-  font-size: 0.85rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-  transition: all 0.2s ease;
-  white-space: nowrap;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.5);
+  transition: all 0.22s ease;
 }
 
 .home-bottom-btn:hover {
-  background: rgba(0, 0, 0, 0.8);
-  border-color: rgba(255, 255, 255, 0.85);
-  transform: translateY(-2px);
+  background: rgba(30, 30, 30, 0.85);
+  border-color: rgba(255, 255, 255, 0.95);
+  transform: translateY(-3px);
   color: #fff;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.75);
 }
 
 .home-bottom-btn.competition-docs-btn {
-  border-color: rgba(74, 222, 128, 0.6);
+  border-color: rgba(74, 222, 128, 0.7);
   background: rgba(20, 83, 45, 0.55);
+  color: #86efac;
 }
 
 .home-bottom-btn.competition-docs-btn:hover {
   background: rgba(22, 101, 52, 0.85);
   border-color: #4ade80;
+  color: #fff;
 }
 
 .drawer-auth-btn {
@@ -7200,7 +7201,7 @@ textarea,
   letter-spacing: 0.04em;
   margin: 0;
   line-height: 1.1;
-  text-shadow: 0 3px 10px rgba(0, 0, 0, 0.7);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.95), 0 1px 4px rgba(0, 0, 0, 0.9);
 }
 
 .documents-badge {
@@ -7217,13 +7218,15 @@ textarea,
   gap: 0.5rem;
   padding: 0.6rem 1.1rem;
   border-radius: 10px;
-  background: rgba(59, 130, 246, 0.2);
-  border: 1px solid rgba(59, 130, 246, 0.45);
+  background: rgba(59, 130, 246, 0.25);
+  border: 1px solid rgba(59, 130, 246, 0.55);
   color: #93c5fd;
   text-decoration: none;
   font-weight: 700;
   font-size: 0.88rem;
   transition: all 0.2s;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
 }
 
 .btn-documents-updates:hover {
@@ -7319,8 +7322,8 @@ textarea,
 }
 
 .doc-filter-pill {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   color: #cbd5e1;
   padding: 0.4rem 0.85rem;
   border-radius: 999px;
@@ -7328,18 +7331,29 @@ textarea,
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
 }
 
 .doc-filter-pill:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.18);
   color: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
 }
 
 .doc-filter-pill.active {
-  background: rgba(34, 197, 94, 0.25);
+  background: rgba(34, 197, 94, 0.28);
   border-color: #22c55e;
   color: #86efac;
-  box-shadow: 0 0 12px rgba(34, 197, 94, 0.2);
+  box-shadow: 0 0 14px rgba(34, 197, 94, 0.25), 0 2px 8px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+}
+
+.doc-filter-pill.highlight-sp.active {
+  background: rgba(250, 204, 21, 0.25);
+  border-color: #facc15;
+  color: #fef08a;
+  box-shadow: 0 0 14px rgba(250, 204, 21, 0.25), 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 
 .documents-layout {
@@ -7437,6 +7451,17 @@ textarea,
   padding: 0.2rem 0.5rem;
   border-radius: 6px;
   border: 1px solid rgba(234, 179, 8, 0.35);
+}
+
+.doc-sp-tag {
+  font-size: 0.7rem;
+  font-weight: 800;
+  background: rgba(250, 204, 21, 0.18);
+  color: #fef08a;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid rgba(250, 204, 21, 0.4);
+  letter-spacing: 0.03em;
 }
 
 .doc-type-badge {
@@ -7607,6 +7632,125 @@ textarea,
   color: #fff;
 }
 
+.preview-btn-fullscreen {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1rem;
+  border-radius: 10px;
+  background: rgba(99, 102, 241, 0.2);
+  border: 1px solid rgba(99, 102, 241, 0.45);
+  color: #a5b4fc;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.preview-btn-fullscreen:hover {
+  background: rgba(99, 102, 241, 0.35);
+  color: #fff;
+}
+
+/* ─── Modal de Tela Inteira para Visualização de PDFs ─── */
+.doc-fullscreen-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: #0a0c0b;
+  display: flex;
+  flex-direction: column;
+  animation: fadeIn 0.18s ease;
+}
+
+.doc-fullscreen-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1.5rem;
+  background: rgba(18, 24, 20, 0.98);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.doc-fullscreen-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.doc-fullscreen-badge {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #22c55e;
+  text-transform: uppercase;
+}
+
+.doc-fullscreen-info h2 {
+  font-size: clamp(0.95rem, 2vw, 1.25rem);
+  font-weight: 800;
+  margin: 0;
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+.doc-fullscreen-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.btn-fullscreen-download {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1rem;
+  border-radius: 8px;
+  background: #16a34a;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+
+.btn-fullscreen-download:hover {
+  background: #15803d;
+}
+
+.btn-fullscreen-close {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #e2e8f0;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-fullscreen-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.doc-fullscreen-iframe {
+  flex: 1;
+  width: 100%;
+  border: none;
+  background: #111;
+}
+
 .preview-frame-container {
   width: 100%;
   height: 380px;
@@ -7751,6 +7895,7 @@ textarea,
   color: #fff;
   margin: 0 0 0.6rem 0;
   line-height: 1.35;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.85);
 }
 
 .update-summary {

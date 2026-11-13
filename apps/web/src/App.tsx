@@ -587,15 +587,13 @@ function Home({ onLogout }: { onLogout: () => void }) {
           })}
         </div>
 
-        {/* Botões inferiores da Home: Calendário e Documentos de Competição */}
+        {/* Botões inferiores da Home: Calendário e Documentos de Competição (apenas ícones em cinza e branco) */}
         <div className="home-bottom-actions">
-          <Link className="home-bottom-btn global-calendar-btn" to="/calendario" aria-label="Acessar Calendário">
-            <CalendarDays size={20} />
-            <span>CALENDÁRIO</span>
+          <Link className="home-bottom-btn global-calendar-btn" to="/calendario" aria-label="Acessar Calendário" title="Calendário Geral">
+            <CalendarDays size={22} />
           </Link>
-          <Link className="home-bottom-btn competition-docs-btn" to="/documentos" aria-label="Acessar Documentos de Competição">
-            <FileText size={20} />
-            <span>DOCUMENTOS DE COMPETIÇÃO</span>
+          <Link className="home-bottom-btn competition-docs-btn" to="/documentos" aria-label="Acessar Documentos de Competição" title="Documentos de Competição">
+            <FileText size={22} />
           </Link>
         </div>
       </section>
@@ -626,17 +624,18 @@ function SideMenu({ mod }: { mod: string }) {
             </button>
           </header>
           <nav>
-            <Link to="/"><HomeIcon />{user ? 'HOME' : 'VOLTAR AO LOGIN'}</Link>
+            <Link to="/"><HomeIcon />{user ? 'HOME' : 'HOME'}</Link>
             <Link to="/documentos"><FileText />DOCUMENTOS DE COMPETIÇÃO</Link>
             <Link to="/calendario"><CalendarDays />CALENDÁRIO GERAL</Link>
-            {user && <Link to={`/${mod}/registros`}><List />REGISTROS</Link>}
+            <Link to={`/${mod}/registros`}><List />REGISTROS</Link>
             {user && canWrite && <Link to={`/${mod}/testes`}><ChartNoAxesCombined />SIMULAÇÕES E TESTES</Link>}
-            {user && <Link to={`/${mod}/testes-salvos`}><List />TESTES SALVOS</Link>}
+            <Link to={`/${mod}/testes-salvos`}><List />TESTES SALVOS</Link>
             {user && <Link to={`/${mod}/banner`}><LayoutTemplate />BANNER A × B</Link>}
             {notebook.key === 'fll' && <Link to={SESI_BIOGLOW_PORTAL.route}><Leaf />PORTAL BIOGLOW</Link>}
+            {!user && <Link to="/login"><LogIn />ENTRAR / LOGIN</Link>}
           </nav>
           <footer>
-            <Link to={user ? '/' : '/calendario?view=list'}>{user ? 'Trocar de caderno' : 'Voltar a pesquisar registros'}</Link>
+            <Link to={user ? '/' : '/login'}>{user ? 'Trocar de caderno' : 'Fazer login como Membro/Mentor'}</Link>
           </footer>
         </aside>
       </div>
@@ -671,7 +670,7 @@ function Hub() {
         <div className="stamp">{notebook.modality}</div>
         <h1>Diário de Bordo</h1>
         <NotebookIdentity hub />
-        <div className={`action-grid ${canWrite ? 'three' : 'two'}`}>
+        <div className={`action-grid ${canWrite ? 'three' : 'one'}`}>
           {canWrite && (
             <Link to={`/${mod}/novo`} aria-label="Novo registro">
               <img src={novo} alt="Novo Registro" />
@@ -680,11 +679,13 @@ function Hub() {
           <Link to={`/${mod}/registros`} aria-label="Registros salvos">
             <img src={salvos} alt="Registros Salvos" />
           </Link>
-          <Link to={canWrite ? `/${mod}/testes` : `/${mod}/testes-salvos`} aria-label={canWrite ? "Simulações e testes" : "Testes salvos"}>
-            <img src={testsButton} alt={canWrite ? "Simulações e Testes" : "Testes Salvos"} />
-          </Link>
+          {canWrite && (
+            <Link to={`/${mod}/testes`} aria-label="Simulações e testes">
+              <img src={testsButton} alt="Simulações e Testes" />
+            </Link>
+          )}
         </div>
-        <Link className="hub-banner-link" to={`/${mod}/banner`}><LayoutTemplate /> Criar ou consultar Banner A × B</Link>
+        {user && <Link className="hub-banner-link" to={`/${mod}/banner`}><LayoutTemplate /> Criar ou consultar Banner A × B</Link>}
       </section>
     </Shell>
   );
@@ -2334,6 +2335,9 @@ export function App() {
             <Route path={SESI_BIOGLOW_PORTAL.route} element={<TeamPortalFrame />} />
             <Route path="/:mod/teste/:id" element={<TestView key={location.pathname} />} />
             <Route path="/:mod/registro/:id" element={<RecordView key={location.pathname} />} />
+            <Route path="/:mod" element={<Hub />} />
+            <Route path="/:mod/registros" element={<Records key={location.pathname} />} />
+            <Route path="/:mod/testes-salvos" element={<SavedTests key={location.pathname} />} />
             <Route path="/admin" element={<AdminPanel />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
