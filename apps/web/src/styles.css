@@ -3847,6 +3847,19 @@ body {
   font-size: 0.9rem;
 }
 
+.back-home-button.back-home-icon-only {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  max-width: 44px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  aspect-ratio: 1 / 1;
+}
+
 .back-home-button:hover {
   background: rgba(255, 255, 255, 0.25);
   transform: translateX(-3px);
@@ -5229,6 +5242,19 @@ textarea,
   text-transform: uppercase;
   backdrop-filter: blur(12px);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+.back-home-button.back-home-icon-only {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  max-width: 44px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  aspect-ratio: 1 / 1;
 }
 
 .back-home-button:hover {
@@ -6812,6 +6838,19 @@ textarea,
   cursor: pointer;
   text-decoration: none;
   transition: all 0.15s ease;
+}
+
+.back-home-button.back-home-icon-only {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  max-width: 44px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  aspect-ratio: 1 / 1;
 }
 
 .back-home-button:hover {
