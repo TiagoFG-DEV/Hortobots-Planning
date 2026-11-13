@@ -7267,34 +7267,37 @@ textarea,
 }
 
 .documents-title-group {
-  background: rgba(0, 0, 0, 0.55);
-  padding: 0.5rem 1rem;
-  border-radius: 10px;
-  backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  padding: 0.65rem 1.25rem;
+  border-radius: 12px;
+  backdrop-filter: blur(14px);
   display: inline-block;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.9), 0 2px 6px rgba(0, 0, 0, 0.8);
 }
 
 .documents-title-group h1 {
   font: 800 clamp(1.6rem, 3.2vw, 2.4rem) 'Barlow Condensed';
   letter-spacing: 0.04em;
-  margin: 0;
+  margin: 0.2rem 0 0 0;
   line-height: 1.1;
-  text-shadow: 0 2px 14px rgba(0, 0, 0, 1), 0 1px 4px rgba(0, 0, 0, 0.95);
+  color: #ffffff;
+  text-shadow: 0 2px 14px #000000, 0 1px 4px #000000;
 }
 
 .documents-badge {
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.15em;
-  color: #86efac;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  color: #4ade80;
   text-transform: uppercase;
-  background: rgba(0, 0, 0, 0.65);
-  padding: 0.22rem 0.65rem;
-  border-radius: 5px;
-  backdrop-filter: blur(6px);
+  background: #09090b;
+  border: 1px solid rgba(74, 222, 128, 0.5);
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
   display: inline-block;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.95);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.7);
 }
 
 .btn-documents-updates {
@@ -7908,19 +7911,46 @@ textarea,
 
 @media (max-width: 1024px) {
   .documents-grid-container {
-    grid-template-columns: 1fr;
-    /* Painel de visualizacao aparece primeiro no mobile */
-    display: flex;
-    flex-direction: column;
+    display: flex !important;
+    flex-direction: column !important;
   }
   .documents-preview-column {
-    order: -1;
+    order: -1 !important;
+    width: 100% !important;
+    margin-bottom: 2rem !important;
   }
   .documents-list-column {
-    order: 1;
+    order: 1 !important;
+    width: 100% !important;
   }
   .preview-card-sticky {
-    position: static;
+    position: static !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .home-bottom-actions {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 1.2rem !important;
+    width: auto !important;
+    bottom: 1.5rem !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+  }
+  .home-bottom-btn {
+    width: 52px !important;
+    height: 52px !important;
+    min-width: 52px !important;
+    min-height: 52px !important;
+    max-width: 52px !important;
+    max-height: 52px !important;
+    flex: 0 0 52px !important;
+    border-radius: 50% !important;
+    aspect-ratio: 1 / 1 !important;
   }
 }
 

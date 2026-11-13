@@ -58,10 +58,18 @@ export function CompetitionDocumentsView({ user }: CompetitionDocumentsViewProps
       }
     }
     loadDocs();
+    // Verificação e download automático de todos os PDFs oficiais da temporada
+    fetch('/api/documentos/sync-storage', { method: 'POST' }).catch(() => {});
     return () => {
       isMounted = false;
     };
   }, []);
+
+  const handleSelectDoc = (doc: CompetitionDoc) => {
+    setSelectedDoc(doc);
+    // Verificação ativa de download sob demanda ao selecionar a rubrica/documento
+    fetch(`/api/documentos/download/${doc.id}`, { method: 'HEAD' }).catch(() => {});
+  };
 
   const getDocViewerUrl = (doc: CompetitionDoc) => {
     // Se o backend suportar proxy de download, usa o endpoint local /api/documentos/download/:id
@@ -214,7 +222,7 @@ export function CompetitionDocumentsView({ user }: CompetitionDocumentsViewProps
                       key={doc.id}
                       className={`doc-card ${isSelected ? 'selected' : ''}`}
                       data-comp={doc.competition.toLowerCase()}
-                      onClick={() => setSelectedDoc(doc)}
+                      onClick={() => handleSelectDoc(doc)}
                     >
                       <div className="doc-card-top">
                         <span className={`doc-comp-tag ${doc.competition.toLowerCase()}`}>

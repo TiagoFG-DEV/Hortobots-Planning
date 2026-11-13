@@ -28,61 +28,61 @@ export interface CompetitionUpdate {
 }
 
 export const INITIAL_OFFICIAL_DOCUMENTS: CompetitionDoc[] = [
-  // ── FLL – Rubricas ────────────────────────────────────────────────────────
+  // ── FLL – Rúbricas e Avaliação em Português Brasileiro (SESI Brasil) ───────
   {
     id: 'fll-challenge-bioglow-rubrics-color',
     competition: 'FLL',
     modality: 'Challenge',
     season_year: '2026/2027',
     doc_type: 'rubrica',
-    title: 'FLL Challenge BIOGLOW – Rubricas Oficiais de Avaliação (Colorido)',
-    description: 'Rubricas completas oficiais para Design do Robô, Projeto de Inovação e Core Values – Temporada BIOGLOW.',
-    url_oficial: 'https://assets.education.lego.com/v3/assets/blt293eea581807678a/blt45dc1a63e501317c/6a6afa45e5cfc84cfeba0b41/fll-challenge-bioglow-rubrics-color.pdf?locale=en-us',
+    title: 'FLL Challenge BIOGLOW – Rúbricas Oficiais de Avaliação (SESI Brasil)',
+    description: 'Rúbricas completas oficiais em português brasileiro para Design do Robô, Projeto de Inovação e Core Values – Temporada BIOGLOW.',
+    url_oficial: 'https://cni.portaldaindustria.com.br/documents/492877/4724595/02+R%C3%BAbricas.pdf',
     is_current: true,
     is_fallback: false,
     region: 'NACIONAL'
   },
   {
-    id: 'fll-challenge-bioglow-rubrics-gray',
+    id: 'fll-challenge-bioglow-fluxograma-avaliacao',
     competition: 'FLL',
     modality: 'Challenge',
     season_year: '2026/2027',
     doc_type: 'rubrica',
-    title: 'FLL Challenge BIOGLOW – Rubricas de Avaliação (Escala de Cinza)',
-    description: 'Versão monocromática otimizada para impressão das rubricas de avaliação da temporada.',
-    url_oficial: 'https://assets.education.lego.com/v3/assets/blt293eea581807678a/blt8748f36c38c979d0/6a6afa45aacc0d9ecb0b1dd7/fll-challenge-bioglow-rubrics-grayscale.pdf?locale=en-us',
-    is_current: true,
-    is_fallback: false,
-    region: 'NACIONAL'
-  },
-  {
-    id: 'fll-future-rubric',
-    competition: 'FLL',
-    modality: 'Future',
-    season_year: '2026/2027',
-    doc_type: 'rubrica',
-    title: 'FLL Future Edition – Rubricas de Julgamento',
-    description: 'Guia de julgamento e rubricas oficiais para categorias e faixas etárias complementares FLL Future.',
-    url_oficial: 'https://assets.education.lego.com/v3/assets/blt293eea581807678a/blt1b8554fe4725d8ab/6a69a0038e0e241a1a7177cd/fll-future-3-8-judging-rubric.pdf?locale=en-us',
-    is_current: true,
-    is_fallback: false,
-    region: 'NACIONAL'
-  },
-  {
-    id: 'fll-explore-reviewing-doc',
-    competition: 'FLL',
-    modality: 'Explore',
-    season_year: '2026/2027',
-    doc_type: 'rubrica',
-    title: 'FLL Explore BIOGLOW – Documentos de Revisão e Avaliação',
-    description: 'Formulário oficial para sessão de revisão da temporada FLL Explore BIOGLOW.',
-    url_oficial: 'https://assets.education.lego.com/v3/assets/blt293eea581807678a/blta679aa3b57f62751/6a6c6fd7e5cfc8e90cba13d6/fll-explore-bioglow-reviewing-documents-fillable.pdf?locale=en-us',
+    title: 'FLL Challenge BIOGLOW – Fluxograma da Seção de Avaliação',
+    description: 'Fluxograma oficial em português brasileiro dos tempos e dinâmica da sessão de avaliação com a banca de juízes.',
+    url_oficial: 'https://cni.portaldaindustria.com.br/documents/492877/4724595/03+Fluxograma+da+se%C3%A7%C3%A3o+de+avalia%C3%A7%C3%A3o.pdf',
     is_current: true,
     is_fallback: false,
     region: 'NACIONAL'
   },
 
-  // ── FLL – Regras e Manuais ────────────────────────────────────────────────
+  // ── FLL – Regras e Manuais em Português Brasileiro (SESI Brasil) ───────────
+  {
+    id: 'fll-challenge-bioglow-game-manual',
+    competition: 'FLL',
+    modality: 'Challenge',
+    season_year: '2026/2027',
+    doc_type: 'regras',
+    title: 'FLL Challenge BIOGLOW – Livro de Regras do Desafio do Robô',
+    description: 'Manual oficial em português com as missões da mesa, regras de navegação, lançamentos e pontuação da temporada BIOGLOW.',
+    url_oficial: 'https://cni.portaldaindustria.com.br/documents/492877/4724595/04+Livro+de+regras+do+desafio+do+rob%C3%B4.pdf',
+    is_current: true,
+    is_fallback: false,
+    region: 'NACIONAL'
+  },
+  {
+    id: 'fll-challenge-bioglow-regras-participacao',
+    competition: 'FLL',
+    modality: 'Challenge',
+    season_year: '2026/2027',
+    doc_type: 'regras',
+    title: 'FLL Challenge BIOGLOW – Regras Oficiais de Participação',
+    description: 'Regulamento de participação, formação de equipes e diretrizes dos torneios regionais e festival nacional do SESI.',
+    url_oficial: 'https://cni.portaldaindustria.com.br/documents/492877/4724595/01+Regras+de+participa%C3%A7%C3%A3o.pdf',
+    is_current: true,
+    is_fallback: false,
+    region: 'NACIONAL'
+  },
   {
     id: 'fll-sp-regional-manual-2026',
     competition: 'FLL',
@@ -91,20 +91,20 @@ export const INITIAL_OFFICIAL_DOCUMENTS: CompetitionDoc[] = [
     doc_type: 'regras',
     title: 'Torneio Regional SESI-SP de Robótica – Diretrizes Estado de São Paulo',
     description: 'Diretrizes oficiais, calendário das seletivas regionais do Estado de São Paulo e critérios de classificação.',
-    url_oficial: 'https://www.sesisp.org.br/educacao/torneio-de-robotica',
+    url_oficial: 'https://cni.portaldaindustria.com.br/documents/492877/4724595/01+Regras+de+participa%C3%A7%C3%A3o.pdf',
     is_current: true,
     is_fallback: false,
     region: 'SP'
   },
   {
-    id: 'fll-challenge-bioglow-game-manual',
+    id: 'fll-challenge-bioglow-catalogo-pecas',
     competition: 'FLL',
     modality: 'Challenge',
     season_year: '2026/2027',
-    doc_type: 'regras',
-    title: 'FLL Challenge BIOGLOW – Manual Oficial do Desafio do Robô',
-    description: 'Regulamento das missões da mesa, regras de navegação e critérios de pontuação da temporada.',
-    url_oficial: 'https://assets.education.lego.com/v3/assets/blt293eea581807678a/blt45dc1a63e501317c/6a6afa45e5cfc84cfeba0b41/fll-challenge-bioglow-rubrics-color.pdf?locale=en-us',
+    doc_type: 'complementar',
+    title: 'FLL Challenge BIOGLOW – Catálogo Oficial de Peças do Desafio',
+    description: 'Catálogo de conferência de peças, elementos de missão da mesa e montagem dos conjuntos da temporada BIOGLOW.',
+    url_oficial: 'https://cni.portaldaindustria.com.br/documents/492877/4724642/01+Cat%C3%A1logo+de+pe%C3%A7as.pdf',
     is_current: true,
     is_fallback: false,
     region: 'NACIONAL'
@@ -186,7 +186,7 @@ export const INITIAL_OFFICIAL_UPDATES: CompetitionUpdate[] = [
     modality: 'Challenge',
     title: 'Publicação do Cronograma Oficial das Etapas Regionais SESI-SP',
     summary: 'A coordenação de robótica do SESI São Paulo divulgou as datas, polos regionais de competição e diretrizes para as equipes de São Paulo na temporada BIOGLOW.',
-    source_url: 'https://www.sesisp.org.br/educacao/torneio-de-robotica',
+    source_url: 'https://cni.portaldaindustria.com.br/documents/492877/4724595/01+Regras+de+participa%C3%A7%C3%A3o.pdf',
     published_at: '2026-09-05T14:30:00Z',
     is_critical: true,
     region: 'SP'
@@ -196,8 +196,8 @@ export const INITIAL_OFFICIAL_UPDATES: CompetitionUpdate[] = [
     competition: 'FLL',
     modality: 'Challenge',
     title: 'Lançamento Oficial da Temporada FLL BIOGLOW 2026/2027',
-    summary: 'A FIRST LEGO League e a LEGO Education divulgaram os materiais oficiais da temporada BIOGLOW, incluindo rubricas de avaliação e cadernos de engenharia.',
-    source_url: 'https://education.lego.com/pt-br/first-lego-league/season-materials/',
+    summary: 'O SESI Nacional publicou o pacote oficial de documentos da temporada BIOGLOW no Brasil, incluindo as Rúbricas de Avaliação e o Livro de Regras do Desafio do Robô em português.',
+    source_url: 'https://cni.portaldaindustria.com.br/documents/492877/4724595/02+R%C3%BAbricas.pdf',
     published_at: '2026-08-01T12:00:00Z',
     is_critical: true,
     region: 'NACIONAL'
@@ -207,8 +207,8 @@ export const INITIAL_OFFICIAL_UPDATES: CompetitionUpdate[] = [
     competition: 'FLL',
     modality: 'Challenge',
     title: 'Calendário das Etapas Regionais e Festival Nacional SESI de Robótica',
-    summary: 'Publicação do cronograma de etapas classificatórias regionais e nacionais para equipes brasileiras participantes da temporada.',
-    source_url: 'https://www.firstlegoleague.com.br/nacional',
+    summary: 'Publicação do cronograma de etapas classificatórias regionais e festival nacional para equipes brasileiras participantes da temporada.',
+    source_url: 'https://www.firstlegoleague.com.br',
     published_at: '2026-08-20T10:00:00Z',
     is_critical: false,
     region: 'NACIONAL'
@@ -221,7 +221,7 @@ export const INITIAL_OFFICIAL_UPDATES: CompetitionUpdate[] = [
     modality: 'Resgate',
     title: 'Definição da Sede e Datas da Etapa Estadual de São Paulo OBR 2026',
     summary: 'Comitê organizador da OBR São Paulo confirmou o local, logística de montagem de pistas e cronograma da fase estadual paulista.',
-    source_url: 'https://obr.robocup.org.br/documentos-e-manuais/',
+    source_url: 'https://obr.robocup.org.br/wp-content/uploads/2026/07/OBR2026_REGIONAL_ESTADUAL_MANUAL-DE-REGRAS-E-INSTRUCOES_v1.2.pdf',
     published_at: '2026-08-10T11:00:00Z',
     is_critical: true,
     region: 'SP'

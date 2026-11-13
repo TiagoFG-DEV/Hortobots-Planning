@@ -814,7 +814,22 @@ app.get('/api/documentos', async (req, res) => {
       return;
     }
 
-    res.json(data);
+    // Garante que qualquer registro oficial cadastrado anteriormente no banco seja atualizado com os links e títulos oficiais canônicos em PT-BR
+    const mergedData = data.map((dbDoc: any) => {
+      const canonical = INITIAL_OFFICIAL_DOCUMENTS.find(c => c.id === dbDoc.id);
+      if (canonical) {
+        return {
+          ...dbDoc,
+          title: canonical.title,
+          description: canonical.description,
+          url_oficial: canonical.url_oficial,
+          region: canonical.region || dbDoc.region
+        };
+      }
+      return dbDoc;
+    });
+
+    res.json(mergedData);
   } catch (err) {
     console.warn('[Documentos] Exceção na rota, respondendo com catálogo resiliente:', err);
     res.json(INITIAL_OFFICIAL_DOCUMENTS);
@@ -974,11 +989,13 @@ app.get('/api/documentos/:id', async (req, res) => {
   }
 });
 
-// Proxy / Cache de download de PDFs para garantir visualização direta
+// Proxy / Cache de download de PDFs para garantir visualização direta e salvamento automático
 app.get('/api/documentos/download/:id', async (req, res) => {
   try {
     const id = req.params.id;
     let targetDoc: any = null;
+
+    const canonicalDoc = INITIAL_OFFICIAL_DOCUMENTS.find(d => d.id === id);
 
     if (supabase) {
       const { data } = await supabase
@@ -989,7 +1006,11 @@ app.get('/api/documentos/download/:id', async (req, res) => {
       targetDoc = data;
     }
     if (!targetDoc) {
-      targetDoc = INITIAL_OFFICIAL_DOCUMENTS.find(d => d.id === id);
+      targetDoc = canonicalDoc;
+    } else if (canonicalDoc) {
+      // Sempre priorizar a url_oficial em PT-BR canônica
+      targetDoc.url_oficial = canonicalDoc.url_oficial;
+      targetDoc.title = canonicalDoc.title;
     }
 
     if (!targetDoc || !targetDoc.url_oficial) {
@@ -997,7 +1018,20 @@ app.get('/api/documentos/download/:id', async (req, res) => {
       return;
     }
 
-    // Se já tiver arquivo salvo no storage do Supabase, redireciona ou faz stream
+    // 1. Verifica cache local em disco (data/pdf_cache)
+    const localPdfDir = path.resolve(apiRoot, 'data/pdf_cache');
+    await mkdir(localPdfDir, { recursive: true }).catch(() => {});
+    const localCachedFile = path.join(localPdfDir, `${id}.pdf`);
+
+    if (existsSync(localCachedFile)) {
+      res.set('Content-Type', 'application/pdf');
+      res.set('Content-Disposition', `inline; filename="${id}.pdf"`);
+      res.set('Cache-Control', 'public, max-age=86400');
+      res.sendFile(localCachedFile);
+      return;
+    }
+
+    // 2. Se já tiver arquivo salvo no storage do Supabase, redireciona
     if (supabase && targetDoc.file_path) {
       const { data: publicUrl } = supabase.storage
         .from(supabaseBucket)
@@ -1008,10 +1042,10 @@ app.get('/api/documentos/download/:id', async (req, res) => {
       }
     }
 
-    // Baixa automaticamente do site oficial
+    // 3. Baixa automaticamente do site oficial e salva no banco / cache local / storage
     try {
       const pdfResp = await fetch(targetDoc.url_oficial, {
-        signal: AbortSignal.timeout(15_000),
+        signal: AbortSignal.timeout(20_000),
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         }
@@ -1020,6 +1054,9 @@ app.get('/api/documentos/download/:id', async (req, res) => {
       if (pdfResp.ok) {
         const buffer = Buffer.from(await pdfResp.arrayBuffer());
         const contentType = pdfResp.headers.get('content-type') || 'application/pdf';
+
+        // Salva no disco local para acessos instantâneos subsequentes
+        await writeFile(localCachedFile, buffer).catch(() => {});
 
         // Tenta salvar em background no Supabase Storage se configurado
         if (supabase) {
@@ -1030,7 +1067,20 @@ app.get('/api/documentos/download/:id', async (req, res) => {
             .upload(storagePath, buffer, { contentType: 'application/pdf', upsert: true })
             .then(async ({ error: upErr }) => {
               if (!upErr) {
-                await client.from('competition_documents').update({ file_path: storagePath }).eq('id', id);
+                await client.from('competition_documents').upsert({
+                  id: targetDoc.id,
+                  competition: targetDoc.competition,
+                  modality: targetDoc.modality,
+                  season_year: targetDoc.season_year,
+                  doc_type: targetDoc.doc_type,
+                  title: targetDoc.title,
+                  description: targetDoc.description,
+                  url_oficial: targetDoc.url_oficial,
+                  file_path: storagePath,
+                  is_current: targetDoc.is_current,
+                  is_fallback: targetDoc.is_fallback,
+                  updated_at: new Date().toISOString()
+                });
               }
             })
             .catch(() => {});
@@ -1056,55 +1106,59 @@ app.get('/api/documentos/download/:id', async (req, res) => {
 // Sincronização e verificação automática de PDFs no banco e storage
 app.post('/api/documentos/sync-storage', async (_req, res) => {
   try {
-    if (!supabase) {
-      res.json({ success: true, count: 0, message: 'Supabase não habilitado, usando armazenamento em memória/local.' });
-      return;
-    }
+    const localPdfDir = path.resolve(apiRoot, 'data/pdf_cache');
+    await mkdir(localPdfDir, { recursive: true }).catch(() => {});
 
     let synced = 0;
     for (const doc of INITIAL_OFFICIAL_DOCUMENTS) {
-      if (!doc.url_oficial.toLowerCase().endsWith('.pdf') && !doc.url_oficial.includes('.pdf?')) {
+      if (!doc.url_oficial.toLowerCase().includes('.pdf')) {
         continue;
       }
 
       const storagePath = `documentos-oficiais/${doc.id}.pdf`;
-      try {
-        const { data: fileData } = await supabase.storage.from(supabaseBucket).list('documentos-oficiais', {
-          search: `${doc.id}.pdf`,
-          limit: 1
-        });
+      const localCachedFile = path.join(localPdfDir, `${doc.id}.pdf`);
 
-        if (!fileData || fileData.length === 0) {
+      try {
+        const localExists = existsSync(localCachedFile);
+        let buf: Buffer | null = null;
+
+        if (!localExists) {
           const fetchRes = await fetch(doc.url_oficial, {
-            signal: AbortSignal.timeout(10_000),
+            signal: AbortSignal.timeout(15_000),
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
             }
           });
 
           if (fetchRes.ok) {
-            const buf = Buffer.from(await fetchRes.arrayBuffer());
-            const { error: upErr } = await supabase.storage
-              .from(supabaseBucket)
-              .upload(storagePath, buf, { contentType: 'application/pdf', upsert: true });
+            buf = Buffer.from(await fetchRes.arrayBuffer());
+            await writeFile(localCachedFile, buf).catch(() => {});
+            synced++;
+          }
+        } else {
+          buf = await readFile(localCachedFile).catch(() => null);
+        }
 
-            if (!upErr) {
-              await supabase.from('competition_documents').upsert({
-                id: doc.id,
-                competition: doc.competition,
-                modality: doc.modality,
-                season_year: doc.season_year,
-                doc_type: doc.doc_type,
-                title: doc.title,
-                description: doc.description,
-                url_oficial: doc.url_oficial,
-                file_path: storagePath,
-                is_current: doc.is_current,
-                is_fallback: doc.is_fallback,
-                updated_at: new Date().toISOString()
-              });
-              synced++;
-            }
+        if (supabase && buf) {
+          const { error: upErr } = await supabase.storage
+            .from(supabaseBucket)
+            .upload(storagePath, buf, { contentType: 'application/pdf', upsert: true });
+
+          if (!upErr) {
+            await supabase.from('competition_documents').upsert({
+              id: doc.id,
+              competition: doc.competition,
+              modality: doc.modality,
+              season_year: doc.season_year,
+              doc_type: doc.doc_type,
+              title: doc.title,
+              description: doc.description,
+              url_oficial: doc.url_oficial,
+              file_path: storagePath,
+              is_current: doc.is_current,
+              is_fallback: doc.is_fallback,
+              updated_at: new Date().toISOString()
+            });
           }
         }
       } catch (err) {
@@ -1112,7 +1166,7 @@ app.post('/api/documentos/sync-storage', async (_req, res) => {
       }
     }
 
-    res.json({ success: true, synced, message: `Sincronizados ${synced} PDFs no banco e storage com sucesso.` });
+    res.json({ success: true, synced, message: `Sincronizados ${synced} PDFs com sucesso.` });
   } catch (err) {
     res.status(500).json({ error: { message: 'Erro ao sincronizar PDFs no storage.', details: err instanceof Error ? err.message : String(err) } });
   }
