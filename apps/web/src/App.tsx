@@ -364,7 +364,7 @@ function Home({ onLogout }: { onLogout: () => void }) {
       <div
         className={`home-drawer-layer ${drawerOpen ? 'open' : ''}`}
         onClick={() => setDrawerOpen(false)}
-        aria-hidden={!drawerOpen}
+        {...(!drawerOpen ? { inert: '' } : {})}
       >
         <aside
           className="home-drawer-panel"
@@ -578,7 +578,7 @@ function Home({ onLogout }: { onLogout: () => void }) {
             const team = TEAMS[key];
             const canWrite = canCreateTeamContent(user, team.modality);
             return (
-              <Link className="notebook-logo" data-team={key} to={`/${team.route}`} key={key}>
+              <Link className="notebook-logo" data-team={key} to={canWrite ? `/${team.route}` : `/${team.route}/registros`} key={key}>
                 <img src={teamBooks[key]} alt={`Caderno ${team.short}`} />
                 <strong>{team.short}</strong>
                 <small>{team.modality}{canWrite ? '' : ' • VISUALIZAR'}</small>
@@ -635,7 +635,10 @@ function SideMenu({ mod }: { mod: string }) {
             {!user && <Link to="/login"><LogIn />ENTRAR / LOGIN</Link>}
           </nav>
           <footer>
-            <Link to={user ? '/' : '/login'}>{user ? 'Trocar de caderno' : 'Fazer login como Membro/Mentor'}</Link>
+            {user
+              ? <Link to="/">Trocar de caderno</Link>
+              : <Link to="/" className="side-menu-home-icon-only" aria-label="Ir para pagina inicial"><HomeIcon size={22} /></Link>
+            }
           </footer>
         </aside>
       </div>

@@ -200,6 +200,7 @@ export function CompetitionUpdatesView({ user }: CompetitionUpdatesViewProps) {
                 <article
                   key={item.id}
                   className={`update-card ${item.is_critical ? 'critical' : ''}`}
+                  data-comp={item.competition.toLowerCase()}
                 >
                   <div className="update-card-header">
                     <div className="update-meta-row">
@@ -246,3 +247,4 @@ export function CompetitionUpdatesView({ user }: CompetitionUpdatesViewProps) {
     </div>
   );
 }
+

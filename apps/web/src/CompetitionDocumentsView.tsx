@@ -207,6 +207,7 @@ export function CompetitionDocumentsView({ user }: CompetitionDocumentsViewProps
                     <article
                       key={doc.id}
                       className={`doc-card ${isSelected ? 'selected' : ''}`}
+                      data-comp={doc.competition.toLowerCase()}
                       onClick={() => setSelectedDoc(doc)}
                     >
                       <div className="doc-card-top">
@@ -362,3 +363,4 @@ export function CompetitionDocumentsView({ user }: CompetitionDocumentsViewProps
     </div>
   );
 }
+

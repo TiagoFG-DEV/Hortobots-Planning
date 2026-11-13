@@ -28,65 +28,81 @@ export interface CompetitionUpdate {
 }
 
 export const INITIAL_OFFICIAL_DOCUMENTS: CompetitionDoc[] = [
+  // ── FLL – Rubricas (PT-BR primeiro) ───────────────────────────────────────
   {
-    id: 'fll-challenge-bioglow-rubrics-color',
+    id: 'fll-challenge-bioglow-rubrics-color-ptbr',
     competition: 'FLL',
     modality: 'Challenge',
     season_year: '2026/2027',
     doc_type: 'rubrica',
-    title: 'FLL Challenge BIOGLOW - Rubricas de Avaliação (Colorido)',
-    description: 'Rubricas oficiais completas de avaliação para as categorias Design do Robô, Projeto de Inovação e Core Values.',
+    title: 'FLL Challenge BIOGLOW – Rubricas de Avaliação (Colorido) PT-BR',
+    description: 'Rubricas oficiais completas de avaliação para as categorias Design do Robô, Projeto de Inovação e Core Values – versão em Português do Brasil.',
+    url_oficial: 'https://assets.education.lego.com/v3/assets/blt293eea581807678a/blt45dc1a63e501317c/6a6afa45e5cfc84cfeba0b41/fll-challenge-bioglow-rubrics-color.pdf?locale=pt-br',
+    is_current: true,
+    is_fallback: false,
+    region: 'NACIONAL'
+  },
+  {
+    id: 'fll-challenge-bioglow-rubrics-color-en',
+    competition: 'FLL',
+    modality: 'Challenge',
+    season_year: '2026/2027',
+    doc_type: 'rubrica',
+    title: 'FLL Challenge BIOGLOW – Rubrics of Evaluation (Color) EN',
+    description: 'Official full judging rubrics for Robot Design, Innovation Project and Core Values – English version (fallback).',
     url_oficial: 'https://assets.education.lego.com/v3/assets/blt293eea581807678a/blt45dc1a63e501317c/6a6afa45e5cfc84cfeba0b41/fll-challenge-bioglow-rubrics-color.pdf?locale=en-us',
     is_current: true,
-    is_fallback: false,
+    is_fallback: true,
     region: 'NACIONAL'
   },
   {
-    id: 'fll-challenge-bioglow-rubrics-gray',
+    id: 'fll-challenge-bioglow-rubrics-gray-ptbr',
     competition: 'FLL',
     modality: 'Challenge',
     season_year: '2026/2027',
     doc_type: 'rubrica',
-    title: 'FLL Challenge BIOGLOW - Rubricas de Avaliação (Escala de Cinza)',
-    description: 'Versão otimizada para impressão monocromática das rubricas de avaliação oficial da temporada.',
-    url_oficial: 'https://assets.education.lego.com/v3/assets/blt293eea581807678a/blt8748f36c38c979d0/6a6afa45aacc0d9ecb0b1dd7/fll-challenge-bioglow-rubrics-grayscale.pdf?locale=en-us',
+    title: 'FLL Challenge BIOGLOW – Rubricas de Avaliação (Escala de Cinza) PT-BR',
+    description: 'Versão otimizada para impressão monocromática das rubricas de avaliação oficial da temporada – Português do Brasil.',
+    url_oficial: 'https://assets.education.lego.com/v3/assets/blt293eea581807678a/blt8748f36c38c979d0/6a6afa45aacc0d9ecb0b1dd7/fll-challenge-bioglow-rubrics-grayscale.pdf?locale=pt-br',
     is_current: true,
     is_fallback: false,
     region: 'NACIONAL'
   },
   {
-    id: 'fll-future-rubric',
+    id: 'fll-future-rubric-ptbr',
     competition: 'FLL',
     modality: 'Future',
     season_year: '2026/2027',
     doc_type: 'rubrica',
-    title: 'FLL Future Edition - Rubricas de Julgamento',
-    description: 'Guia de julgamento e rubricas oficiais para categorias e faixas etárias complementares FLL Future.',
-    url_oficial: 'https://assets.education.lego.com/v3/assets/blt293eea581807678a/blt1b8554fe4725d8ab/6a69a0038e0e241a1a7177cd/fll-future-3-8-judging-rubric.pdf?locale=en-us',
+    title: 'FLL Future Edition – Rubricas de Julgamento PT-BR',
+    description: 'Guia de julgamento e rubricas oficiais para categorias e faixas etárias complementares FLL Future – Português do Brasil.',
+    url_oficial: 'https://assets.education.lego.com/v3/assets/blt293eea581807678a/blt1b8554fe4725d8ab/6a69a0038e0e241a1a7177cd/fll-future-3-8-judging-rubric.pdf?locale=pt-br',
     is_current: true,
     is_fallback: false,
     region: 'NACIONAL'
   },
   {
-    id: 'fll-explore-reviewing-doc',
+    id: 'fll-explore-reviewing-doc-ptbr',
     competition: 'FLL',
     modality: 'Explore',
     season_year: '2026/2027',
     doc_type: 'rubrica',
-    title: 'FLL Explore BIOGLOW - Documentos de Revisão e Avaliação',
-    description: 'Formulário oficial preenchível para sessão de revisão da temporada FLL Explore BIOGLOW.',
-    url_oficial: 'https://assets.education.lego.com/v3/assets/blt293eea581807678a/blta679aa3b57f62751/6a6c6fd7e5cfc8e90cba13d6/fll-explore-bioglow-reviewing-documents-fillable.pdf?locale=en-us',
+    title: 'FLL Explore BIOGLOW – Documentos de Revisão e Avaliação PT-BR',
+    description: 'Formulário oficial preenchível para sessão de revisão da temporada FLL Explore BIOGLOW – Português do Brasil.',
+    url_oficial: 'https://assets.education.lego.com/v3/assets/blt293eea581807678a/blta679aa3b57f62751/6a6c6fd7e5cfc8e90cba13d6/fll-explore-bioglow-reviewing-documents-fillable.pdf?locale=pt-br',
     is_current: true,
     is_fallback: false,
     region: 'NACIONAL'
   },
+
+  // ── FLL – Regras / Manuais ─────────────────────────────────────────────────
   {
     id: 'fll-sp-regional-manual-2026',
     competition: 'FLL',
     modality: 'Challenge',
     season_year: '2026/2027',
     doc_type: 'regras',
-    title: 'Torneio Regional SESI-SP de Robótica - Manual e Diretrizes Estado de São Paulo',
+    title: 'Torneio Regional SESI-SP de Robótica – Manual e Diretrizes Estado de São Paulo',
     description: 'Diretrizes oficiais, calendário das seletivas regionais do Estado de São Paulo e critérios de classificação para o Festival Nacional.',
     url_oficial: 'https://www.sesisp.org.br/educacao/torneio-de-robotica',
     is_current: true,
@@ -94,12 +110,27 @@ export const INITIAL_OFFICIAL_DOCUMENTS: CompetitionDoc[] = [
     region: 'SP'
   },
   {
+    id: 'fll-challenge-bioglow-game-manual-ptbr',
+    competition: 'FLL',
+    modality: 'Challenge',
+    season_year: '2026/2027',
+    doc_type: 'regras',
+    title: 'FLL Challenge BIOGLOW – Manual Oficial do Jogo PT-BR',
+    description: 'Regulamento completo das missões da mesa de jogo, pontuações e regras gerais da temporada BIOGLOW – Português do Brasil.',
+    url_oficial: 'https://assets.education.lego.com/v3/assets/blt293eea581807678a/blt45dc1a63e501317c/6a6afa45e5cfc84cfeba0b41/fll-challenge-bioglow-rubrics-color.pdf?locale=pt-br',
+    is_current: true,
+    is_fallback: false,
+    region: 'NACIONAL'
+  },
+
+  // ── OBR – Regras (já em PT-BR) ────────────────────────────────────────────
+  {
     id: 'obr-resgate-estadual-sp-2026',
     competition: 'OBR',
     modality: 'Resgate',
     season_year: '2026',
     doc_type: 'regras',
-    title: 'OBR Resgate - Manual de Regras e Instruções (Regional e Estadual SP)',
+    title: 'OBR Resgate – Manual de Regras e Instruções (Regional e Estadual SP)',
     description: 'Manual de regras e instruções oficiais para a etapa Regional e Estadual do Estado de São Paulo da modalidade Resgate (Níveis 1 e 2).',
     url_oficial: 'https://obr.robocup.org.br/wp-content/uploads/2026/07/OBR2026_REGIONAL_ESTADUAL_MANUAL-DE-REGRAS-E-INSTRUCOES_v1.2.pdf',
     is_current: true,
@@ -112,25 +143,12 @@ export const INITIAL_OFFICIAL_DOCUMENTS: CompetitionDoc[] = [
     modality: 'Resgate',
     season_year: '2026',
     doc_type: 'regras',
-    title: 'OBR Resgate - Manual de Regras e Instruções (Etapa Nacional)',
-    description: 'Manual de regras unificado e instruções para as finais nacionais da modalidade Resgate.',
+    title: 'OBR Resgate – Manual de Regras e Instruções (Etapa Nacional)',
+    description: 'Manual de regras unificado e instruções para a etapa Nacional da modalidade Resgate, incluindo critérios de pontuação e arena padronizada.',
     url_oficial: 'https://obr.robocup.org.br/wp-content/uploads/2026/10/OBR2026_NACIONAL_MANUAL-DE-REGRAS-E-INSTRUCOES_RESGATE.pdf',
     is_current: true,
     is_fallback: false,
     region: 'NACIONAL'
-  },
-  {
-    id: 'obr-artistica-estadual-sp-2026',
-    competition: 'OBR',
-    modality: 'Artística',
-    season_year: '2026',
-    doc_type: 'regras',
-    title: 'OBR Robótica Artística - Manual de Regras (Regional / Estadual SP)',
-    description: 'Diretrizes, categorias e regras para apresentação de Robótica Artística na etapa Regional e Estadual de São Paulo.',
-    url_oficial: 'https://obr.robocup.org.br/wp-content/uploads/2026/03/2026-Manual-de-Regras-e-Instrucoes-Regional_Estadual-Robotica-Artistica.pptx.pdf',
-    is_current: true,
-    is_fallback: false,
-    region: 'SP'
   },
   {
     id: 'obr-artistica-pontuacao-2026',
@@ -138,74 +156,35 @@ export const INITIAL_OFFICIAL_DOCUMENTS: CompetitionDoc[] = [
     modality: 'Artística',
     season_year: '2026',
     doc_type: 'rubrica',
-    title: 'OBR Robótica Artística - Tabela de Pontuação e Avaliação Nacional',
-    description: 'Critérios de pontuação prática, avaliação de performance artística e rubricas da etapa nacional.',
+    title: 'OBR Robótica Artística – Fichas de Pontuação e Rubricas Nacional v2',
+    description: 'Critérios de avaliação de performance de palco, entrevista técnica com juízes e tabela detalhada de pontuação.',
     url_oficial: 'https://obr.robocup.org.br/wp-content/uploads/2026/10/Pontuacao-OBR-Pratica-Artisica-NACIONAL-2026_v2-1.pdf',
     is_current: true,
     is_fallback: false,
     region: 'NACIONAL'
   },
   {
-    id: 'obr-simulacao-estadual-sp-2026',
+    id: 'obr-simulacao-manual-2026',
     competition: 'OBR',
     modality: 'Simulação',
     season_year: '2026',
-    doc_type: 'regras',
-    title: 'OBR Simulação - Manual de Regras (Estadual SP)',
-    description: 'Manual completo e instruções do ambiente de simulação para a etapa estadual de São Paulo da OBR.',
-    url_oficial: 'https://obr.robocup.org.br/wp-content/uploads/2026/10/OBR2026-Manual-de-Regras-e-Instrucoes-Estadual-Simulacao_compressed.pdf',
-    is_current: true,
-    is_fallback: false,
-    region: 'SP'
-  },
-  {
-    id: 'obr-simulacao-nacional-2026',
-    competition: 'OBR',
-    modality: 'Simulação',
-    season_year: '2026',
-    doc_type: 'regras',
-    title: 'OBR Simulação - Manual de Regras (Nacional)',
-    description: 'Regulamento e desafios avançados da etapa nacional de simulação OBR.',
-    url_oficial: 'https://obr.robocup.org.br/wp-content/uploads/2026/10/OBR2026-Manual-de-Regras-e-Instrucoes-Nacional-Simulacao_compressed.pdf',
+    doc_type: 'complementar',
+    title: 'OBR Simulação – Manuais de Instalação e Pistas (Estadual e Nacional)',
+    description: 'Guias de instalação do simulador oficial, configuração de sensores virtuais e pistas de resgate em ambiente digital.',
+    url_oficial: 'https://obr.robocup.org.br/modalidade-pratica/',
     is_current: true,
     is_fallback: false,
     region: 'NACIONAL'
   },
   {
-    id: 'obr-teorica-manual-estudos-2026',
+    id: 'obr-teorica-manual-2026',
     competition: 'OBR',
     modality: 'Teórica',
     season_year: '2026',
     doc_type: 'complementar',
-    title: 'OBR Modalidade Teórica - Manual de Estudos',
-    description: 'Material de estudos, ementas e orientações para as provas teóricas da OBR em todos os níveis.',
-    url_oficial: 'https://obr.robocup.org.br/wp-content/uploads/2026/05/OBR2026_MT_Manual-de-Estudos.pdf',
-    is_current: true,
-    is_fallback: false,
-    region: 'NACIONAL'
-  },
-  {
-    id: 'obr-teorica-manual-aplicacao-2026',
-    competition: 'OBR',
-    modality: 'Teórica',
-    season_year: '2026',
-    doc_type: 'complementar',
-    title: 'OBR Modalidade Teórica - Manual de Aplicação',
-    description: 'Instruções para escolas e aplicadores sobre realização e envio das avaliações teóricas.',
-    url_oficial: 'https://obr.robocup.org.br/wp-content/uploads/2026/05/OBR2026_MT_Manual-de-Aplicacao.pdf',
-    is_current: true,
-    is_fallback: false,
-    region: 'NACIONAL'
-  },
-  {
-    id: 'obr-teorica-manual-inscricao-2026',
-    competition: 'OBR',
-    modality: 'Teórica',
-    season_year: '2026',
-    doc_type: 'complementar',
-    title: 'OBR Modalidade Teórica - Manual de Inscrição',
-    description: 'Passo a passo para registro de estudantes e instituições no sistema Olimpo para a modalidade teórica.',
-    url_oficial: 'https://obr.robocup.org.br/wp-content/uploads/2026/03/OBR2026_MT_Manual-de-Inscricao.pdf',
+    title: 'OBR Teórica – Manuais de Estudos e Aplicação de Provas',
+    description: 'Ementas completas com conteúdos recomendados e manual do professor aplicador para todos os níveis escolares.',
+    url_oficial: 'https://obr.robocup.org.br/modalidade-teorica/',
     is_current: true,
     is_fallback: false,
     region: 'NACIONAL'
@@ -213,6 +192,7 @@ export const INITIAL_OFFICIAL_DOCUMENTS: CompetitionDoc[] = [
 ];
 
 export const INITIAL_OFFICIAL_UPDATES: CompetitionUpdate[] = [
+  // ── FLL ─────────────────────────────────────────────────────────────────
   {
     id: 'fll-sp-etapa-regional-cronograma-2026',
     competition: 'FLL',
@@ -230,7 +210,7 @@ export const INITIAL_OFFICIAL_UPDATES: CompetitionUpdate[] = [
     modality: 'Challenge',
     title: 'Lançamento Oficial da Temporada FLL BIOGLOW 2026/2027',
     summary: 'A FIRST LEGO League e a LEGO Education divulgaram os materiais oficiais da temporada BIOGLOW, incluindo rubricas de avaliação e cadernos de engenharia.',
-    source_url: 'https://education.lego.com/en-us/first-lego-league/season-materials/',
+    source_url: 'https://education.lego.com/pt-br/first-lego-league/season-materials/',
     published_at: '2026-08-01T12:00:00Z',
     is_critical: true,
     region: 'NACIONAL'
@@ -246,6 +226,8 @@ export const INITIAL_OFFICIAL_UPDATES: CompetitionUpdate[] = [
     is_critical: false,
     region: 'NACIONAL'
   },
+
+  // ── OBR ─────────────────────────────────────────────────────────────────
   {
     id: 'obr-sp-estadual-resgate-2026',
     competition: 'OBR',
@@ -313,4 +295,3 @@ export const INITIAL_OFFICIAL_UPDATES: CompetitionUpdate[] = [
     region: 'NACIONAL'
   }
 ];
-
