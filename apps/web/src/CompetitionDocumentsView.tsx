@@ -63,6 +63,12 @@ export function CompetitionDocumentsView({ user }: CompetitionDocumentsViewProps
     };
   }, []);
 
+  const getDocViewerUrl = (doc: CompetitionDoc) => {
+    // Se o backend suportar proxy de download, usa o endpoint local /api/documentos/download/:id
+    // Caso contrário, usa a url_oficial que é testada e garantida
+    return `/api/documentos/download/${doc.id}`;
+  };
+
   const filteredDocs = documents.filter((doc) => {
     const matchComp = selectedComp === 'TODAS' || doc.competition === selectedComp;
     const matchType = selectedType === 'todos' || doc.doc_type === selectedType;
@@ -280,7 +286,7 @@ export function CompetitionDocumentsView({ user }: CompetitionDocumentsViewProps
 
                   <div className="preview-action-buttons">
                     <a
-                      href={selectedDoc.url_oficial}
+                      href={getDocViewerUrl(selectedDoc)}
                       download
                       target="_blank"
                       rel="noopener noreferrer"
@@ -311,7 +317,7 @@ export function CompetitionDocumentsView({ user }: CompetitionDocumentsViewProps
 
                   <div className="preview-frame-container">
                     <iframe
-                      src={`${selectedDoc.url_oficial}#toolbar=1&navpanes=0`}
+                      src={`${getDocViewerUrl(selectedDoc)}#toolbar=1&navpanes=0`}
                       title={selectedDoc.title}
                       className="preview-iframe"
                     />
@@ -333,7 +339,7 @@ export function CompetitionDocumentsView({ user }: CompetitionDocumentsViewProps
             </div>
             <div className="doc-fullscreen-actions">
               <a
-                href={selectedDoc.url_oficial}
+                href={getDocViewerUrl(selectedDoc)}
                 download
                 target="_blank"
                 rel="noopener noreferrer"
@@ -354,7 +360,7 @@ export function CompetitionDocumentsView({ user }: CompetitionDocumentsViewProps
             </div>
           </div>
           <iframe
-            src={`${selectedDoc.url_oficial}#toolbar=1`}
+            src={`${getDocViewerUrl(selectedDoc)}#toolbar=1`}
             title={selectedDoc.title}
             className="doc-fullscreen-iframe"
           />

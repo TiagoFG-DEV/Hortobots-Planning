@@ -7106,40 +7106,41 @@ textarea,
   bottom: 1.5rem;
   left: 50%;
   transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.9rem;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 1.2rem !important;
   z-index: 10;
-  /* Nao usar max-width aqui para nao comprimir os botoes */
-  flex-wrap: nowrap;
+  flex-wrap: nowrap !important;
+  width: auto !important;
 }
 
-/* Botões da Home: apenas ícones circulares em cinza e branco */
+/* Botões da Home: círculos perfeitos lado a lado em qualquer dispositivo */
 .home-bottom-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  /* Garantir circulo perfeito em qualquer viewport */
-  width: 52px;
-  min-width: 52px;
-  max-width: 52px;
-  height: 52px;
-  min-height: 52px;
-  max-height: 52px;
-  flex: 0 0 52px;
-  padding: 0;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 52px !important;
+  min-width: 52px !important;
+  max-width: 52px !important;
+  height: 52px !important;
+  min-height: 52px !important;
+  max-height: 52px !important;
+  flex: 0 0 52px !important;
+  flex-shrink: 0 !important;
+  padding: 0 !important;
   border: 2px solid rgba(255, 255, 255, 0.55);
-  border-radius: 50%;
+  border-radius: 50% !important;
   background: rgba(0, 0, 0, 0.55);
   color: #e2e8f0;
   text-decoration: none;
   backdrop-filter: blur(10px);
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.5);
   transition: all 0.22s ease;
-  box-sizing: border-box;
+  box-sizing: border-box !important;
   overflow: hidden;
-  aspect-ratio: 1 / 1;
+  aspect-ratio: 1 / 1 !important;
 }
 
 .home-bottom-btn:hover {

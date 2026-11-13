@@ -8,7 +8,8 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import accounts from './accounts.json' with { type: 'json' };
-import { storageService, logsRoot, isSupabaseEnabled, supabase } from './storageService.js';
+import { storageService, logsRoot, isSupabaseEnabled, supabase, supabaseBucket } from './storageService.js';
+import { INITIAL_OFFICIAL_DOCUMENTS, INITIAL_OFFICIAL_UPDATES } from './competitionData.js';
 import { belongsToSesiHortobotsFll } from './teamContent.js';
 import { collaborationService, type BannerRecord } from './collaborationService.js';
 import { createBannerPptx, extractBannerFiles, synthesizeBanner, type BannerContent, type BannerFile } from './bannerService.js';
@@ -767,7 +768,12 @@ app.get('/api/documentos', async (req, res) => {
     const type = req.query.type ? String(req.query.type).toLowerCase() : undefined;
 
     if (!supabase) {
-      res.status(503).json({ error: { message: 'Banco de dados nao configurado.' } });
+      let filtered = [...INITIAL_OFFICIAL_DOCUMENTS];
+      if (comp && ['FLL', 'OBR'].includes(comp)) filtered = filtered.filter(d => d.competition === comp);
+      if (mod) filtered = filtered.filter(d => d.modality === mod);
+      if (season) filtered = filtered.filter(d => d.season_year === season);
+      if (type && ['rubrica', 'regras', 'complementar'].includes(type)) filtered = filtered.filter(d => d.doc_type === type);
+      res.json(filtered);
       return;
     }
 
@@ -793,13 +799,25 @@ app.get('/api/documentos', async (req, res) => {
 
     const { data, error } = await query;
     if (error) {
-      res.status(500).json({ error: { message: 'Erro ao buscar documentos.', details: error.message } });
+      console.warn('[Supabase Documentos] Falha ao consultar tabela, respondendo com catálogo oficial resiliente:', error.message);
+      let filtered = [...INITIAL_OFFICIAL_DOCUMENTS];
+      if (comp && ['FLL', 'OBR'].includes(comp)) filtered = filtered.filter(d => d.competition === comp);
+      if (mod) filtered = filtered.filter(d => d.modality === mod);
+      if (season) filtered = filtered.filter(d => d.season_year === season);
+      if (type && ['rubrica', 'regras', 'complementar'].includes(type)) filtered = filtered.filter(d => d.doc_type === type);
+      res.json(filtered);
       return;
     }
 
-    res.json(data || []);
+    if (!data || data.length === 0) {
+      res.json(INITIAL_OFFICIAL_DOCUMENTS);
+      return;
+    }
+
+    res.json(data);
   } catch (err) {
-    res.status(500).json({ error: { message: 'Falha interna ao carregar documentos.', details: err instanceof Error ? err.message : String(err) } });
+    console.warn('[Documentos] Exceção na rota, respondendo com catálogo resiliente:', err);
+    res.json(INITIAL_OFFICIAL_DOCUMENTS);
   }
 });
 
@@ -807,7 +825,9 @@ app.get('/api/documentos/atualizacoes', async (req, res) => {
   try {
     const comp = req.query.competition ? String(req.query.competition).toUpperCase() : undefined;
     if (!supabase) {
-      res.status(503).json({ error: { message: 'Banco de dados nao configurado.' } });
+      let filtered = [...INITIAL_OFFICIAL_UPDATES];
+      if (comp && ['FLL', 'OBR'].includes(comp)) filtered = filtered.filter(u => u.competition === comp);
+      res.json(filtered);
       return;
     }
 
@@ -822,13 +842,22 @@ app.get('/api/documentos/atualizacoes', async (req, res) => {
 
     const { data, error } = await query;
     if (error) {
-      res.status(500).json({ error: { message: 'Erro ao buscar atualizacoes.', details: error.message } });
+      console.warn('[Supabase Atualizações] Falha ao consultar tabela, respondendo com catálogo oficial resiliente:', error.message);
+      let filtered = [...INITIAL_OFFICIAL_UPDATES];
+      if (comp && ['FLL', 'OBR'].includes(comp)) filtered = filtered.filter(u => u.competition === comp);
+      res.json(filtered);
       return;
     }
 
-    res.json(data || []);
+    if (!data || data.length === 0) {
+      res.json(INITIAL_OFFICIAL_UPDATES);
+      return;
+    }
+
+    res.json(data);
   } catch (err) {
-    res.status(500).json({ error: { message: 'Falha interna ao carregar atualizacoes.', details: err instanceof Error ? err.message : String(err) } });
+    console.warn('[Atualizações] Exceção na rota, respondendo com catálogo resiliente:', err);
+    res.json(INITIAL_OFFICIAL_UPDATES);
   }
 });
 
@@ -909,7 +938,12 @@ app.get('/api/documentos/:id', async (req, res) => {
   try {
     const id = req.params.id;
     if (!supabase) {
-      res.status(503).json({ error: { message: 'Banco de dados nao configurado.' } });
+      const fallback = INITIAL_OFFICIAL_DOCUMENTS.find(d => d.id === id);
+      if (fallback) {
+        res.json(fallback);
+        return;
+      }
+      res.status(404).json({ error: { message: 'Documento nao encontrado.' } });
       return;
     }
 
@@ -920,13 +954,167 @@ app.get('/api/documentos/:id', async (req, res) => {
       .single();
 
     if (error || !data) {
+      const fallback = INITIAL_OFFICIAL_DOCUMENTS.find(d => d.id === id);
+      if (fallback) {
+        res.json(fallback);
+        return;
+      }
       res.status(404).json({ error: { message: 'Documento nao encontrado.' } });
       return;
     }
 
     res.json(data);
   } catch (err) {
+    const fallback = INITIAL_OFFICIAL_DOCUMENTS.find(d => d.id === req.params.id);
+    if (fallback) {
+      res.json(fallback);
+      return;
+    }
     res.status(500).json({ error: { message: 'Falha interna ao obter documento.', details: err instanceof Error ? err.message : String(err) } });
+  }
+});
+
+// Proxy / Cache de download de PDFs para garantir visualização direta
+app.get('/api/documentos/download/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    let targetDoc: any = null;
+
+    if (supabase) {
+      const { data } = await supabase
+        .from('competition_documents')
+        .select('*')
+        .eq('id', id)
+        .single();
+      targetDoc = data;
+    }
+    if (!targetDoc) {
+      targetDoc = INITIAL_OFFICIAL_DOCUMENTS.find(d => d.id === id);
+    }
+
+    if (!targetDoc || !targetDoc.url_oficial) {
+      res.status(404).json({ error: { message: 'Documento oficial não encontrado para download.' } });
+      return;
+    }
+
+    // Se já tiver arquivo salvo no storage do Supabase, redireciona ou faz stream
+    if (supabase && targetDoc.file_path) {
+      const { data: publicUrl } = supabase.storage
+        .from(supabaseBucket)
+        .getPublicUrl(targetDoc.file_path);
+      if (publicUrl?.publicUrl) {
+        res.redirect(publicUrl.publicUrl);
+        return;
+      }
+    }
+
+    // Baixa automaticamente do site oficial
+    try {
+      const pdfResp = await fetch(targetDoc.url_oficial, {
+        signal: AbortSignal.timeout(15_000),
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+      });
+
+      if (pdfResp.ok) {
+        const buffer = Buffer.from(await pdfResp.arrayBuffer());
+        const contentType = pdfResp.headers.get('content-type') || 'application/pdf';
+
+        // Tenta salvar em background no Supabase Storage se configurado
+        if (supabase) {
+          const client = supabase;
+          const storagePath = `documentos-oficiais/${id}.pdf`;
+          client.storage
+            .from(supabaseBucket)
+            .upload(storagePath, buffer, { contentType: 'application/pdf', upsert: true })
+            .then(async ({ error: upErr }) => {
+              if (!upErr) {
+                await client.from('competition_documents').update({ file_path: storagePath }).eq('id', id);
+              }
+            })
+            .catch(() => {});
+        }
+
+        res.set('Content-Type', contentType);
+        res.set('Content-Disposition', `inline; filename="${id}.pdf"`);
+        res.set('Cache-Control', 'public, max-age=86400');
+        res.send(buffer);
+        return;
+      }
+    } catch (fetchErr) {
+      console.warn(`[Proxy PDF] Erro ao baixar diretamente de ${targetDoc.url_oficial}:`, fetchErr);
+    }
+
+    // Se o download via proxy falhar, redireciona para a URL oficial original
+    res.redirect(targetDoc.url_oficial);
+  } catch (err) {
+    res.status(500).json({ error: { message: 'Falha no download do documento.', details: err instanceof Error ? err.message : String(err) } });
+  }
+});
+
+// Sincronização e verificação automática de PDFs no banco e storage
+app.post('/api/documentos/sync-storage', async (_req, res) => {
+  try {
+    if (!supabase) {
+      res.json({ success: true, count: 0, message: 'Supabase não habilitado, usando armazenamento em memória/local.' });
+      return;
+    }
+
+    let synced = 0;
+    for (const doc of INITIAL_OFFICIAL_DOCUMENTS) {
+      if (!doc.url_oficial.toLowerCase().endsWith('.pdf') && !doc.url_oficial.includes('.pdf?')) {
+        continue;
+      }
+
+      const storagePath = `documentos-oficiais/${doc.id}.pdf`;
+      try {
+        const { data: fileData } = await supabase.storage.from(supabaseBucket).list('documentos-oficiais', {
+          search: `${doc.id}.pdf`,
+          limit: 1
+        });
+
+        if (!fileData || fileData.length === 0) {
+          const fetchRes = await fetch(doc.url_oficial, {
+            signal: AbortSignal.timeout(10_000),
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+          });
+
+          if (fetchRes.ok) {
+            const buf = Buffer.from(await fetchRes.arrayBuffer());
+            const { error: upErr } = await supabase.storage
+              .from(supabaseBucket)
+              .upload(storagePath, buf, { contentType: 'application/pdf', upsert: true });
+
+            if (!upErr) {
+              await supabase.from('competition_documents').upsert({
+                id: doc.id,
+                competition: doc.competition,
+                modality: doc.modality,
+                season_year: doc.season_year,
+                doc_type: doc.doc_type,
+                title: doc.title,
+                description: doc.description,
+                url_oficial: doc.url_oficial,
+                file_path: storagePath,
+                is_current: doc.is_current,
+                is_fallback: doc.is_fallback,
+                updated_at: new Date().toISOString()
+              });
+              synced++;
+            }
+          }
+        }
+      } catch (err) {
+        console.warn(`[Sync Doc PDF] Erro ao sincronizar documento ${doc.id}:`, err);
+      }
+    }
+
+    res.json({ success: true, synced, message: `Sincronizados ${synced} PDFs no banco e storage com sucesso.` });
+  } catch (err) {
+    res.status(500).json({ error: { message: 'Erro ao sincronizar PDFs no storage.', details: err instanceof Error ? err.message : String(err) } });
   }
 });
 
