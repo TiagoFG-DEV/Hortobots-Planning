@@ -3080,7 +3080,8 @@ body {
 .shell,
 .cover,
 .calendar-page,
-.login {
+.login,
+.documents-container {
   isolation: isolate;
   background: none !important
 }
@@ -3088,11 +3089,14 @@ body {
 .shell:before,
 .cover:before,
 .calendar-page:before,
-.login:before {
+.login:before,
+.documents-container:before {
   content: '';
   position: fixed;
   z-index: -2;
   inset: 0;
+  width: 100vw;
+  height: 100vh;
   background: #101311 url('./assets/generated/fundo-1280.webp') center/cover no-repeat;
   pointer-events: none
 }
@@ -3101,15 +3105,17 @@ body {
   background-image: url('./assets/generated/fundo-obr-1280.webp')
 }
 
-/* A Home dos trÃªs cadernos usa a identidade neutra em todos os perfis. */
-.cover:before {
+/* A Home dos três cadernos e as Centrais de Documentos usam a identidade neutra em todos os perfis */
+.cover:before,
+.documents-container:before {
   background: #160d18 url('./assets/originals/fundo_neutro.png') center/cover no-repeat
 }
 
 .shell>main,
 .shell>section,
 .calendar-page>*,
-.login>* {
+.login>*,
+.documents-container>* {
   position: relative;
   z-index: 1
 }
@@ -7222,10 +7228,23 @@ textarea,
 
 /* Central de Documentos Geral */
 .documents-container {
+  min-height: 100vh;
   min-height: 100svh;
-  background: #101311 url('./assets/originals/fundo_neutro.png') center/cover fixed;
   color: #fff;
   padding: clamp(1rem, 3vw, 2.5rem);
+  box-sizing: border-box;
+  position: relative;
+  width: 100%;
+}
+
+.documents-header,
+.documents-filters-bar,
+.documents-layout,
+.updates-timeline-container {
+  max-width: 1680px;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
   box-sizing: border-box;
 }
 
@@ -7450,9 +7469,10 @@ textarea,
 
 .documents-grid-container {
   display: grid;
-  grid-template-columns: 1fr 480px;
+  grid-template-columns: minmax(0, 1fr) 480px;
   gap: 2rem;
   align-items: start;
+  width: 100%;
 }
 
 .documents-count-label {
