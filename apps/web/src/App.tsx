@@ -587,13 +587,26 @@ function Home({ onLogout }: { onLogout: () => void }) {
           })}
         </div>
 
-        {/* Botões inferiores da Home: Calendário e Documentos de Competição (apenas ícones em cinza e branco) */}
+        {/* Botões inferiores da Home: Calendário, Documentos de Competição e Login/Logoff (círculos idênticos em cinza e branco) */}
         <div className="home-bottom-actions">
           <Link className="home-bottom-btn global-calendar-btn" to="/calendario" aria-label="Acessar Calendário" title="Calendário Geral">
             <CalendarDays size={22} />
           </Link>
           <Link className="home-bottom-btn competition-docs-btn" to="/documentos" aria-label="Acessar Documentos de Competição" title="Documentos de Competição">
             <FileText size={22} />
+          </Link>
+          <Link
+            className="home-bottom-btn home-auth-btn"
+            to="/login"
+            aria-label={user ? 'Desconectar da conta' : 'Fazer Login'}
+            title={user ? 'Desconectar da conta' : 'Fazer Login'}
+            onClick={() => {
+              if (user) {
+                onLogout();
+              }
+            }}
+          >
+            {user ? <LogOut size={22} /> : <LogIn size={22} />}
           </Link>
         </div>
       </section>

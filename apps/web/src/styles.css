@@ -7199,18 +7199,6 @@ textarea,
   box-shadow: 0 8px 26px rgba(0, 0, 0, 0.75);
 }
 
-.home-bottom-btn.competition-docs-btn {
-  border-color: rgba(74, 222, 128, 0.7);
-  background: rgba(20, 83, 45, 0.55);
-  color: #86efac;
-}
-
-.home-bottom-btn.competition-docs-btn:hover {
-  background: rgba(22, 101, 52, 0.85);
-  border-color: #4ade80;
-  color: #fff;
-}
-
 .drawer-auth-btn {
   margin-top: 0.4rem;
   border: 1px solid rgba(255, 255, 255, 0.2);
