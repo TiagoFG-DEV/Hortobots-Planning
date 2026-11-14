@@ -30,17 +30,17 @@ import fll from './assets/generated/fll_team_logo.webp';
 import obr from './assets/generated/obr_team_logo.webp';
 import fllBook from './assets/generated/fll_book.webp';
 import obrBook from './assets/generated/obr_book.webp';
-import underBook from './assets/originals/underconstruction_book.png';
-import underLogo from './assets/originals/underconstruction_logo.png';
+import underBook from './assets/generated/underconstruction_book.webp';
+import underLogo from './assets/generated/underconstruction_logo.webp';
 import novo from './assets/generated/novo_registro_button.webp';
 import salvos from './assets/generated/registros_salvos_button.webp';
-import testsButton from './assets/originals/simulacoes_e_testes_button.png';
+import testsButton from './assets/generated/simulacoes_e_testes_button.webp';
 import mascote from './assets/generated/mascote.webp';
 import fundo1280 from './assets/generated/fundo-1280.webp';
 import fundo1920 from './assets/generated/fundo-1920.webp';
 import fundoObr1920 from './assets/generated/fundo-obr-1920.webp';
-import fundoUnder from './assets/originals/fundo_underconstruction.png';
-import fundoNeutro from './assets/originals/fundo_neutro.png';
+import fundoUnder from './assets/generated/fundo-under-1920.webp';
+import fundoNeutro from './assets/generated/fundo-neutro-1920.webp';
 import { CalendarView } from './CalendarView';
 import { CompetitionDocumentsView } from './CompetitionDocumentsView';
 import { CompetitionUpdatesView } from './CompetitionUpdatesView';
@@ -2213,35 +2213,47 @@ export function App() {
     if (bootLoader) bootLoader.remove();
 
     let mounted = true;
-    const plannerAssets = [
-      mascote,
+    // Apenas ativos essenciais para renderizar a Home imediatamente
+    const homeAssets = [
       logo,
       fllBook,
       underBook,
-      obrBook,
-      fll,
-      underLogo,
-      obr,
-      fundo1280,
-      fundo1920,
-      fundoObr1920,
-      fundoUnder,
-      fundoNeutro,
-      novo,
-      salvos,
-      testsButton
+      obrBook
     ];
     const criticalAssets = location.pathname === SESI_BIOGLOW_PORTAL.route
       ? [mascote, logo]
-      : plannerAssets;
+      : location.pathname === '/' || location.pathname === '/login'
+      ? homeAssets
+      : [logo, fllBook, underBook, obrBook];
+
+    // Preload em background dos demais ativos secundários sem bloquear a inicialização da tela
+    window.setTimeout(() => {
+      const backgroundAssets = [
+        fll,
+        underLogo,
+        obr,
+        novo,
+        salvos,
+        testsButton,
+        fundo1280,
+        fundo1920,
+        fundoObr1920,
+        fundoUnder,
+        fundoNeutro
+      ];
+      backgroundAssets.forEach(src => {
+        const img = new Image();
+        img.src = src;
+      });
+    }, 500);
 
     const safetyTimer = window.setTimeout(() => {
       if (mounted) setIsInitialLoading(false);
-    }, 10000);
+    }, 3500);
 
     waitForRenderComplete(criticalAssets, {
-      minimumMs: location.pathname === SESI_BIOGLOW_PORTAL.route ? 360 : 1250,
-      timeoutMs: location.pathname === SESI_BIOGLOW_PORTAL.route ? 2400 : 9000
+      minimumMs: location.pathname === SESI_BIOGLOW_PORTAL.route ? 200 : 250,
+      timeoutMs: location.pathname === SESI_BIOGLOW_PORTAL.route ? 1500 : 3000
     }).then(() => {
       if (mounted) {
         clearTimeout(safetyTimer);

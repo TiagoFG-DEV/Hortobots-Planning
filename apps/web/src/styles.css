@@ -977,7 +977,7 @@ textarea:focus-visible {
 .cover {
   min-height: 100svh;
   height: 100svh;
-  background: #101311 url('./assets/originals/fundo_neutro.png') center/cover fixed;
+  background: #101311 url('./assets/generated/fundo-neutro-1920.webp') center/cover fixed;
   color: white;
   position: relative;
   overflow: hidden
@@ -3108,7 +3108,7 @@ body {
 /* A Home dos três cadernos e as Centrais de Documentos usam a identidade neutra em todos os perfis */
 .cover:before,
 .documents-container:before {
-  background: #160d18 url('./assets/originals/fundo_neutro.png') center/cover no-repeat
+  background: #160d18 url('./assets/generated/fundo-neutro-1920.webp') center/cover no-repeat
 }
 
 .shell>main,
@@ -7147,18 +7147,21 @@ textarea,
    Central de Documentos de Competicao e Controles de Acesso da Home (Marco 4)
    ----------------------------------------------------------------------------- */
 .home-bottom-actions {
-  position: absolute;
-  bottom: 1.5rem;
-  left: 50%;
-  transform: translateX(-50%);
+  position: absolute !important;
+  bottom: max(1.5rem, env(safe-area-inset-bottom, 1.5rem)) !important;
+  left: 0 !important;
+  right: 0 !important;
+  margin: 0 auto !important;
+  transform: none !important;
   display: flex !important;
   flex-direction: row !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 1.2rem !important;
-  z-index: 10;
+  gap: 1.25rem !important;
+  z-index: 10 !important;
   flex-wrap: nowrap !important;
-  width: auto !important;
+  width: fit-content !important;
+  max-width: 100% !important;
 }
 
 /* Botões da Home: círculos perfeitos lado a lado em qualquer dispositivo */
@@ -7950,16 +7953,19 @@ textarea,
 
 @media (max-width: 768px) {
   .home-bottom-actions {
+    position: static !important;
+    left: auto !important;
+    right: auto !important;
+    transform: none !important;
+    margin: 1.25rem auto 0.5rem !important;
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
     justify-content: center !important;
     align-items: center !important;
-    gap: 1.2rem !important;
-    width: auto !important;
-    bottom: 1.5rem !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
+    gap: 1.25rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
   .home-bottom-btn {
     width: 52px !important;

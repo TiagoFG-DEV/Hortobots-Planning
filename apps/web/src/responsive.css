@@ -630,18 +630,31 @@ html:has(.menu-layer.open, .dialog-layer, .focus-layer, .hb-dialog-overlay) .log
 /* Responsividade dos controles inferiores e Central de Documentos */
 @media (max-width: 640px) {
   .home-bottom-actions {
-    position: static;
-    transform: none;
-    margin-top: 1rem;
-    flex-direction: column;
-    width: 100%;
-    gap: 0.6rem;
+    position: static !important;
+    left: auto !important;
+    right: auto !important;
+    transform: none !important;
+    margin: 1.25rem auto 0.5rem !important;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    justify-content: center !important;
+    align-items: center !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    gap: 1.2rem !important;
   }
   .home-bottom-btn {
-    width: 100%;
-    justify-content: center;
-    padding: 0.65rem 1rem;
-    font-size: 0.8rem;
+    width: 52px !important;
+    min-width: 52px !important;
+    max-width: 52px !important;
+    height: 52px !important;
+    min-height: 52px !important;
+    max-height: 52px !important;
+    flex: 0 0 52px !important;
+    border-radius: 50% !important;
+    aspect-ratio: 1 / 1 !important;
+    padding: 0 !important;
   }
   .documents-header {
     flex-direction: column;
