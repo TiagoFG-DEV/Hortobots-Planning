@@ -7076,46 +7076,6 @@ textarea,
   margin-bottom: 0.15rem;
 }
 
-.test-form .attempt-fields-grid label,
-.test-form .round-top-fields label {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 0.35rem;
-  margin: 0;
-  font: 700 0.76rem 'Barlow Condensed', sans-serif;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: #cbd5e1;
-}
-
-.test-form .attempt-fields-grid input,
-.test-form .round-top-fields input {
-  background: rgba(10, 18, 14, 0.92);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 8px;
-  color: #f1f5f9;
-  padding: 0.5rem 0.75rem;
-  font: 700 1rem 'Barlow Condensed', sans-serif;
-  min-height: 42px;
-  width: 100%;
-  transition: border-color 0.15s, box-shadow 0.15s;
-}
-
-.test-form .attempt-fields-grid input:focus,
-.test-form .round-top-fields input:focus {
-  border-color: rgba(34, 211, 238, 0.55);
-  box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.15);
-  outline: none;
-}
-
-.test-form .round-top-fields input[readonly] {
-  color: #4ade80;
-  cursor: default;
-  border-color: rgba(74, 222, 128, 0.25);
-  background: rgba(5, 30, 18, 0.65);
-}
-
 .attempt-score-sync-hint {
   display: block;
   font-size: 0.72rem;
@@ -10509,7 +10469,7 @@ textarea,
   gap: 0.4rem;
 }
 
-/* Campos de Tempo e Pontuação do round — lado a lado, compactos */
+/* Campos de Tempo e Pontuação das tentativas e rounds */
 .round-top-fields {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -10517,36 +10477,44 @@ textarea,
   margin-bottom: 1rem;
 }
 
-.round-top-fields label {
+.test-form .attempt-card .attempt-fields-grid label,
+.test-form .attempt-card .round-top-fields label {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
-  font: 600 0.78rem 'Barlow Condensed', sans-serif;
-  letter-spacing: 0.04em;
+  justify-content: space-between;
+  gap: 0.35rem;
+  margin: 0;
+  font: 700 0.78rem 'Barlow Condensed', sans-serif;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: #64748b;
+  color: var(--attempt-color, #cbd5e1);
 }
 
-.round-top-fields input {
-  background: rgba(10, 18, 14, 0.9);
-  border: 1px solid rgba(255,255,255,0.1);
+.test-form .attempt-card .attempt-fields-grid input,
+.test-form .attempt-card .round-top-fields input {
+  background: rgba(10, 18, 14, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 8px;
-  color: #e2e8f0;
+  color: #f8fafc;
   padding: 0.5rem 0.75rem;
-  font: 700 1.05rem 'Barlow Condensed', sans-serif;
+  font: 700 1.02rem 'Barlow Condensed', sans-serif;
   min-height: 42px;
-  transition: border-color 0.15s;
+  width: 100%;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.round-top-fields input:focus {
-  border-color: rgba(34, 211, 238, 0.4);
+.test-form .attempt-card .attempt-fields-grid input:focus,
+.test-form .attempt-card .round-top-fields input:focus {
+  border-color: var(--attempt-color, rgba(34, 211, 238, 0.55));
+  box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.16);
   outline: none;
 }
 
-.round-top-fields input[readonly] {
+.test-form .attempt-card .round-top-fields input[readonly] {
   color: #4ade80;
   cursor: default;
-  border-color: rgba(74, 222, 128, 0.18);
+  border-color: rgba(74, 222, 128, 0.28);
+  background: rgba(5, 30, 18, 0.72);
 }
 
 /* Responsividade das round cards em mobile */

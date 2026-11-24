@@ -1993,7 +1993,11 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
                     <div
                       key={i}
                       className="attempt-card round-card"
-                      style={{ borderLeftColor: attemptColor, borderLeftWidth: '4px' }}
+                      style={{
+                        borderLeftColor: attemptColor,
+                        borderLeftWidth: '4px',
+                        '--attempt-color': attemptColor
+                      } as React.CSSProperties}
                     >
                       <div className="attempt-card-header" style={{ color: attemptColor }}>
                         <span className="attempt-legend-dot" style={{ backgroundColor: attemptColor }} />
@@ -2045,7 +2049,15 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
                 const missionMax = selectedMissionData ? selectedMissionData.maximum : (base.maxScore || 100);
 
                 return (
-                  <div key={i} className="attempt-card" style={{ borderLeftColor: attemptColor, borderLeftWidth: '4px' }}>
+                  <div
+                    key={i}
+                    className="attempt-card"
+                    style={{
+                      borderLeftColor: attemptColor,
+                      borderLeftWidth: '4px',
+                      '--attempt-color': attemptColor
+                    } as React.CSSProperties}
+                  >
                     <div className="attempt-card-header" style={{ color: attemptColor }}>
                       <span className="attempt-legend-dot" style={{ backgroundColor: attemptColor }} />
                       <span>Tentativa {i + 1}</span>
