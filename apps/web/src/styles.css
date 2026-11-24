@@ -9736,90 +9736,110 @@ textarea,
 }
 
 /* ─── ROUND SCORE SHEET COMPONENT ─── */
+/* ═══════════════════════════════════════════════════════════════════════
+   ROUND SCORESHEET — Estilo alinhado ao design system do site
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Container principal do scoresheet: lista única, sem altura máxima limitada */
 .round-scoresheet-container {
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
-  margin-top: 0.5rem;
+  gap: 1rem;
+  margin-top: 0.75rem;
+  width: 100%;
+  min-width: 0;
 }
 
+/* ─── Cabeçalho: título do round + ações ─── */
 .round-scoresheet-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  background: rgba(15, 23, 42, 0.95);
-  padding: 0.75rem 1rem;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  gap: 0.6rem;
+  background: rgba(10, 20, 15, 0.9);
+  padding: 0.85rem 1.1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(74, 222, 128, 0.18);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
 }
 
 .rsh-title {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  min-width: 0;
 }
 
 .rsh-tag {
   color: #0f172a;
-  font-size: 0.78rem;
-  font-weight: 800;
+  font: 800 0.78rem 'Barlow Condensed', sans-serif;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  padding: 3px 8px;
+  padding: 4px 10px;
   border-radius: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .rsh-score {
-  font-size: 0.92rem;
-  color: #cbd5e1;
+  font: 500 0.9rem 'Open Sans', sans-serif;
+  color: #94a3b8;
+  white-space: nowrap;
 }
 
 .rsh-score strong {
   color: #4ade80;
-  font-size: 1.15rem;
+  font: 800 1.1rem 'Barlow Condensed', sans-serif;
 }
 
 .rsh-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.4rem;
+  flex-shrink: 0;
 }
 
 .rsh-btn-sm {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #cbd5e1;
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  color: #94a3b8;
+  font: 600 0.73rem 'Open Sans', sans-serif;
+  padding: 5px 10px;
   border-radius: 6px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  transition: all 0.15s ease;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  white-space: nowrap;
 }
 
 .rsh-btn-sm:hover {
-  background: rgba(255, 255, 255, 0.15);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.14);
+  color: #e2e8f0;
+  border-color: rgba(255,255,255,0.22);
 }
 
 .rsh-btn-sm.danger {
   color: #f87171;
-  border-color: rgba(239, 68, 68, 0.3);
+  border-color: rgba(239, 68, 68, 0.28);
 }
 
 .rsh-btn-sm.danger:hover {
-  background: rgba(239, 68, 68, 0.2);
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
 }
 
-/* Painel de Bônus: Inspeção e Discos de Precisão */
+/* ─── Painel de Bônus: Inspeção + Discos ─── */
 .round-bonus-panel {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
-  background: rgba(30, 41, 59, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  padding: 0.85rem;
+  gap: 0.55rem;
+  background: rgba(15, 25, 20, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 0.85rem 1rem;
   border-radius: 10px;
 }
 
@@ -9827,80 +9847,88 @@ textarea,
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.5rem 0.75rem;
-  background: rgba(15, 23, 42, 0.7);
+  gap: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  background: rgba(10, 18, 14, 0.75);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 8px;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s, background 0.2s;
 }
 
 .round-bonus-item.active {
-  border-color: #22d3ee;
-  background: rgba(34, 211, 238, 0.1);
+  border-color: rgba(16, 185, 129, 0.45);
+  background: rgba(16, 185, 129, 0.08);
 }
 
 .round-bonus-label {
   display: flex;
-  align-items: center;
-  gap: 0.65rem;
+  align-items: flex-start;
+  gap: 0.6rem;
+  min-width: 0;
+  flex: 1;
 }
 
 .round-bonus-label .bonus-icon {
-  color: #38bdf8;
+  color: #34d399;
   flex-shrink: 0;
+  margin-top: 2px;
 }
 
 .round-bonus-label strong {
-  font-size: 0.88rem;
+  font: 700 0.85rem 'Barlow Condensed', sans-serif;
   color: #f1f5f9;
   display: block;
+  letter-spacing: 0.02em;
 }
 
 .round-bonus-label small {
-  font-size: 0.75rem;
-  color: #94a3b8;
+  font: 400 0.74rem 'Open Sans', sans-serif;
+  color: #64748b;
+  display: block;
+  margin-top: 1px;
 }
 
-/* Switch Toggle */
+/* ─── Toggle Switch ─── */
 .round-toggle-switch {
   position: relative;
   display: inline-block;
   width: 44px;
   height: 24px;
+  flex-shrink: 0;
 }
 
 .round-toggle-switch input {
   opacity: 0;
   width: 0;
   height: 0;
+  position: absolute;
 }
 
 .toggle-slider {
   position: absolute;
   cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #334155;
-  transition: 0.25s;
+  inset: 0;
+  background-color: #1e293b;
+  border: 1px solid rgba(255,255,255,0.1);
+  transition: background 0.25s;
   border-radius: 24px;
 }
 
 .toggle-slider:before {
   position: absolute;
   content: "";
-  height: 18px;
-  width: 18px;
+  height: 16px;
+  width: 16px;
   left: 3px;
   bottom: 3px;
-  background-color: #cbd5e1;
-  transition: 0.25s;
+  background-color: #64748b;
+  transition: transform 0.25s, background 0.25s;
   border-radius: 50%;
 }
 
 .round-toggle-switch input:checked + .toggle-slider {
   background-color: #10b981;
+  border-color: #34d399;
 }
 
 .round-toggle-switch input:checked + .toggle-slider:before {
@@ -9908,156 +9936,167 @@ textarea,
   background-color: #fff;
 }
 
-/* Discos de Precisão Buttons */
+/* ─── Discos de Precisão ─── */
 .precision-token-buttons {
   display: flex;
-  gap: 0.35rem;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 .precision-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  width: 34px;
+  height: 34px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(15, 23, 42, 0.8);
-  color: #94a3b8;
-  font-weight: 700;
-  font-size: 0.88rem;
+  color: #64748b;
+  font: 700 0.85rem 'Barlow Condensed', sans-serif;
   cursor: pointer;
   transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .precision-btn:hover {
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.3);
+  color: #e2e8f0;
+  border-color: rgba(56, 189, 248, 0.4);
+  background: rgba(56, 189, 248, 0.08);
 }
 
 .precision-btn.selected {
-  background: #38bdf8;
-  color: #0f172a;
+  background: #0ea5e9;
+  color: #fff;
   border-color: #38bdf8;
-  box-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
 }
 
-/* Lista de 15 Missões */
+/* ─── Lista das 15 Missões — sem scroll interno, expansão livre ─── */
 .round-missions-list {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  max-height: 520px;
-  overflow-y: auto;
-  padding-right: 4px;
+  gap: 0.4rem;
+  /* SEM max-height nem overflow-y: o conteúdo expande naturalmente */
 }
 
+/* ─── Mission Card ─── */
 .round-mission-card {
-  background: rgba(15, 23, 42, 0.65);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
+  background: rgba(10, 18, 14, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 9px;
   overflow: hidden;
-  transition: border-color 0.2s ease, background 0.2s ease;
+  transition: border-color 0.2s, background 0.2s;
 }
 
 .round-mission-card.completed-partial {
-  border-color: rgba(56, 189, 248, 0.4);
-  background: rgba(15, 23, 42, 0.85);
+  border-color: rgba(56, 189, 248, 0.38);
+  background: rgba(10, 25, 35, 0.75);
 }
 
 .round-mission-card.completed-max {
-  border-color: rgba(74, 222, 128, 0.5);
-  background: rgba(11, 43, 25, 0.45);
+  border-color: rgba(74, 222, 128, 0.42);
+  background: rgba(5, 30, 18, 0.55);
 }
 
+/* ─── Barra de sumário da missão (linha clicável) ─── */
 .round-mission-summary-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.65rem 0.85rem;
+  gap: 0.5rem;
+  padding: 0.6rem 0.9rem;
   cursor: pointer;
   user-select: none;
+  min-width: 0;
 }
 
 .round-mission-summary-bar:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.025);
 }
 
+/* Esquerda: badge + nome */
 .rm-left {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.55rem;
   min-width: 0;
   flex: 1;
 }
 
 .rm-id-badge {
-  background: #1e293b;
-  color: #94a3b8;
-  font-size: 0.75rem;
-  font-weight: 800;
+  background: rgba(30, 41, 59, 0.9);
+  color: #64748b;
+  font: 800 0.68rem 'Barlow Condensed', sans-serif;
+  letter-spacing: 0.06em;
   padding: 3px 6px;
   border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   flex-shrink: 0;
+  min-width: 32px;
+  text-align: center;
 }
 
 .rm-title-group {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  flex: 1;
 }
 
+/* CORREÇÃO: nome da missão NÃO trunca — wrap suave */
 .rm-name {
-  font-size: 0.88rem;
-  font-weight: 700;
-  color: #f1f5f9;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font: 700 0.85rem 'Open Sans', sans-serif;
+  color: #e2e8f0;
+  white-space: normal;       /* permite quebrar linha */
+  word-break: break-word;    /* quebra palavras longas */
+  line-height: 1.3;
 }
 
 .rm-rule-hint {
-  font-size: 0.72rem;
-  color: #64748b;
+  font: 400 0.69rem 'Open Sans', sans-serif;
+  color: #475569;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  margin-top: 1px;
 }
 
+/* Direita: pontuação + presets + chevron */
 .rm-right {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.5rem;
   flex-shrink: 0;
 }
 
 .rm-score-display {
   display: flex;
   align-items: baseline;
-  gap: 2px;
-  font-size: 0.95rem;
+  gap: 1px;
+  font-family: 'Barlow Condensed', sans-serif;
+  white-space: nowrap;
+}
+
+.rm-score-display strong {
+  font-size: 1.05rem;
   font-weight: 800;
 }
 
-.rm-score-display strong.score-zero {
-  color: #64748b;
-}
-
-.rm-score-display strong.score-mid {
-  color: #38bdf8;
-}
-
-.rm-score-display strong.score-max {
-  color: #4ade80;
-}
+.rm-score-display strong.score-zero { color: #475569; }
+.rm-score-display strong.score-mid  { color: #38bdf8; }
+.rm-score-display strong.score-max  { color: #4ade80; }
 
 .rm-score-divider {
-  color: #475569;
-  font-size: 0.8rem;
+  color: #334155;
+  font-size: 0.85rem;
+  margin: 0 1px;
 }
 
 .rm-max {
-  color: #94a3b8;
-  font-size: 0.8rem;
-  font-weight: 500;
+  color: #64748b;
+  font: 500 0.78rem 'Open Sans', sans-serif;
+  white-space: nowrap;
 }
 
 .rm-quick-preset {
@@ -10066,61 +10105,73 @@ textarea,
 }
 
 .btn-score-preset {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #cbd5e1;
-  font-size: 0.7rem;
-  font-weight: 700;
-  padding: 3px 7px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  font: 700 0.68rem 'Barlow Condensed', sans-serif;
+  letter-spacing: 0.03em;
+  padding: 3px 8px;
   border-radius: 4px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.15s;
+  white-space: nowrap;
 }
 
 .btn-score-preset:hover {
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.14);
+  color: #e2e8f0;
+  border-color: rgba(255,255,255,0.22);
 }
 
-.btn-score-preset.active {
+.btn-score-preset.max.active {
   background: #10b981;
   color: #fff;
-  border-color: #10b981;
+  border-color: #34d399;
+}
+
+.btn-score-preset.zero:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.3);
 }
 
 .btn-toggle-expand {
   background: transparent;
   border: none;
-  color: #64748b;
+  color: #475569;
   cursor: pointer;
   padding: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
 }
 
 .btn-toggle-expand:hover {
-  color: #cbd5e1;
-  background: rgba(255, 255, 255, 0.05);
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.06);
 }
 
+/* ─── Corpo expandido da missão ─── */
 .round-mission-body {
-  padding: 0.75rem 0.85rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(0, 0, 0, 0.2);
+  padding: 0.8rem 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.18);
 }
 
 .rm-rule-desc {
-  font-size: 0.76rem;
-  color: #94a3b8;
-  margin-bottom: 0.5rem;
+  font: 400 0.75rem 'Open Sans', sans-serif;
+  color: #64748b;
+  margin-bottom: 0.65rem;
+  line-height: 1.4;
 }
 
 .rm-fields-grid {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.55rem;
 }
 
 .rm-checkbox-label {
@@ -10228,4 +10279,259 @@ textarea,
 
 .test-view-round-summary strong {
   color: #38bdf8;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ROUND TESTE — Campos internos das missões (body expandido)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.rm-checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  cursor: pointer;
+  font: 400 0.82rem 'Open Sans', sans-serif;
+  color: #94a3b8;
+  user-select: none;
+  line-height: 1.4;
+  padding: 0.3rem 0.5rem;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.rm-checkbox-label:hover {
+  background: rgba(255,255,255,0.03);
+  color: #cbd5e1;
+}
+
+.rm-checkbox-label input {
+  display: none;
+}
+
+.rm-checkbox-box {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  border-radius: 5px;
+  border: 1.5px solid #334155;
+  background: rgba(10, 18, 14, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #22d3ee;
+  flex-shrink: 0;
+  margin-top: 1px;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.rm-checkbox-label input:checked + .rm-checkbox-box {
+  border-color: #22d3ee;
+  background: rgba(34, 211, 238, 0.18);
+}
+
+.rm-checkbox-text {
+  flex: 1;
+}
+
+.rm-number-field, .rm-select-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.3rem 0.5rem;
+}
+
+.rm-field-label {
+  font: 400 0.82rem 'Open Sans', sans-serif;
+  color: #94a3b8;
+  flex: 1;
+  min-width: 0;
+}
+
+.rm-counter-control {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.btn-counter {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #1e293b;
+  color: #e2e8f0;
+  font: 800 1rem 'Barlow Condensed', sans-serif;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn-counter:hover:not(:disabled) {
+  background: #334155;
+  border-color: rgba(255,255,255,0.22);
+}
+
+.btn-counter:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.counter-val {
+  font: 700 1rem 'Barlow Condensed', sans-serif;
+  color: #38bdf8;
+  min-width: 20px;
+  text-align: center;
+}
+
+.counter-total-pts {
+  font: 400 0.75rem 'Open Sans', sans-serif;
+  color: #64748b;
+  margin-left: 0.2rem;
+  white-space: nowrap;
+}
+
+.rm-select-input {
+  background: #0f1a14;
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 7px;
+  padding: 5px 10px;
+  font: 400 0.8rem 'Open Sans', sans-serif;
+  min-height: 36px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.rm-select-input:hover, .rm-select-input:focus {
+  border-color: rgba(34, 211, 238, 0.4);
+  outline: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ATTEMPT CARD — Round Teste: ocupa 100% da largura disponível
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Sobrescreve o grid auto-fill para round cards — lista única */
+.attempts:has(.round-card),
+.attempts-round-list {
+  grid-template-columns: 1fr;
+}
+
+/* Fieldset do round — estilo completo alinhado ao site */
+.attempt-card.round-card {
+  background: rgba(10, 20, 15, 0.82);
+  border: 1.5px solid rgba(255,255,255,0.09);
+  border-radius: 14px;
+  padding: 1.1rem 1.25rem 1.4rem;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+  transition: border-color 0.2s;
+}
+
+.attempt-card.round-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255,255,255,0.025) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* Legend do round */
+.attempt-card.round-card > legend,
+.attempt-card.round-card .attempt-legend {
+  font: 800 0.85rem 'Barlow Condensed', sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* Campos de Tempo e Pontuação do round — lado a lado, compactos */
+.round-top-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.round-top-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font: 600 0.78rem 'Barlow Condensed', sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.round-top-fields input {
+  background: rgba(10, 18, 14, 0.9);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  color: #e2e8f0;
+  padding: 0.5rem 0.75rem;
+  font: 700 1.05rem 'Barlow Condensed', sans-serif;
+  min-height: 42px;
+  transition: border-color 0.15s;
+}
+
+.round-top-fields input:focus {
+  border-color: rgba(34, 211, 238, 0.4);
+  outline: none;
+}
+
+.round-top-fields input[readonly] {
+  color: #4ade80;
+  cursor: default;
+  border-color: rgba(74, 222, 128, 0.18);
+}
+
+/* Responsividade das round cards em mobile */
+@media (max-width: 600px) {
+  .round-top-fields {
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
+  }
+
+  .round-scoresheet-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.55rem;
+  }
+
+  .rsh-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .round-bonus-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .precision-token-buttons {
+    justify-content: flex-start;
+  }
+
+  .rm-right {
+    gap: 0.35rem;
+  }
+
+  .rm-quick-preset {
+    display: none; /* esconde botões 0/Máx em mobile muito pequeno */
+  }
+
+  .rm-name {
+    font-size: 0.8rem;
+  }
 }

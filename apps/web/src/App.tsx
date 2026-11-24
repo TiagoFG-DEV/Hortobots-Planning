@@ -1981,7 +1981,7 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
               <small>Na OBR 2026, a referência máxima é definida pela composição da arena.</small>
             </label>}
 
-            <div className="attempts">
+            <div className={`attempts${testMode === 'round' && notebook.modality === 'FLL' ? ' attempts-round-list' : ''}`}>
               {activeAttempts.map((a, i) => {
                 const attemptColor = ATTEMPT_COLORS[i % ATTEMPT_COLORS.length];
                 const attemptMissions = a.missions || [];
@@ -1990,13 +1990,17 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
                 // No modo Round Teste: exibe a folha de pontuação completa oficial
                 if (notebook.modality === 'FLL' && testMode === 'round') {
                   return (
-                    <fieldset key={i} className="attempt-card round-card" style={{ borderLeftColor: attemptColor, borderLeftWidth: '4px' }}>
+                    <fieldset
+                      key={i}
+                      className="attempt-card round-card"
+                      style={{ borderLeftColor: attemptColor, borderLeftWidth: '4px' }}
+                    >
                       <legend className="attempt-legend" style={{ color: attemptColor }}>
                         <span className="attempt-legend-dot" style={{ backgroundColor: attemptColor }} />
                         Round Teste {i + 1}
                       </legend>
 
-                      <div className="attempt-fields-grid" style={{ marginBottom: '0.75rem' }}>
+                      <div className="round-top-fields">
                         <label>
                           Tempo de Round (s)
                           <input
@@ -2010,12 +2014,11 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
                           />
                         </label>
                         <label>
-                          Pontuação Calculada do Round
+                          Pontuação do Round
                           <input
                             type="number"
                             readOnly
                             value={a.score}
-                            style={{ background: 'rgba(0,0,0,0.3)', fontWeight: 800, color: '#4ade80' }}
                           />
                         </label>
                       </div>
