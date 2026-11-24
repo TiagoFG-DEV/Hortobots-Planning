@@ -778,3 +778,36 @@ html:has(.menu-layer.open, .dialog-layer, .focus-layer, .hb-dialog-overlay) .log
     max-width: 1200px;
   }
 }
+
+/* Responsividade dos novos Gráficos de Assertividade e Seleção de Missões por Tentativa */
+@media (max-width: 768px) {
+  .mac-stats-row {
+    grid-template-columns: 1fr;
+    gap: 0.4rem;
+  }
+  .mac-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .analytics-view-tabs {
+    flex-direction: column;
+    border-radius: 12px;
+  }
+  .analytics-tab-btn {
+    border-radius: 8px;
+    padding: 0.5rem;
+  }
+  .attempts {
+    grid-template-columns: 1fr;
+  }
+  .attempt-mission-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+  }
+  .attempt-mission-inputs {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+

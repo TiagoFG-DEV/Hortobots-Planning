@@ -21,7 +21,8 @@ import obrCompetitionLogo from './assets/originals/obr_logo.png';
 type TeamKey = 'fll' | 'under' | 'obr';
 type ActivityKind = 'record' | 'test';
 type PreparedMedia = { name: string; source: string; video: boolean };
-type Attempt = { time?: number; score?: number; failures?: number; observed?: number };
+type AttemptMission = { missionId: string; name?: string; score: number; maxScore: number };
+type Attempt = { time?: number; score?: number; failures?: number; observed?: number; missions?: AttemptMission[] };
 
 type GenerateActivityPdfOptions = {
   item: Record<string, any>;
@@ -367,6 +368,36 @@ export const ActivityDocument = ({ item, kind, team, media, teamLogo, competitio
                 </View>;
               })}
             </View>)}
+          {attempts.some(a => Array.isArray(a.missions) && a.missions.length > 0) && (
+            <View style={[styles.section, { marginTop: 10 }]} wrap={false}>
+              <Text style={[styles.sectionTitle, { color: identity.ink, borderBottomColor: identity.secondary }]}>
+                Assertividade por Missão nas Tentativas
+              </Text>
+              <View style={styles.attemptsTable}>
+                <View style={[styles.attemptRow, styles.attemptHeader, { backgroundColor: identity.secondary }]}>
+                  <Text style={[styles.attemptCell, { width: '18%' }]}>Tentativa</Text>
+                  <Text style={[styles.attemptCell, { width: '18%' }]}>Missão</Text>
+                  <Text style={[styles.attemptCell, { width: '22%' }]}>Pontuação</Text>
+                  <Text style={[styles.attemptCell, { width: '20%' }]}>Máximo</Text>
+                  <Text style={[styles.attemptCell, { width: '22%' }]}>Assertividade</Text>
+                </View>
+                {attempts.flatMap((att, attIdx) => (att.missions || []).map((m, mIdx) => {
+                  const max = m.maxScore || 1;
+                  const scoreVal = asNumber(m.score);
+                  const pct = Math.min(100, Math.round((scoreVal / max) * 100));
+                  return (
+                    <View key={`${attIdx}-${m.missionId}`} style={[styles.attemptRow, { backgroundColor: (attIdx + mIdx) % 2 ? '#f1f3ee' : '#ffffff' }]}>
+                      <Text style={[styles.attemptCell, { width: '18%' }]}>Tentativa {attIdx + 1}</Text>
+                      <Text style={[styles.attemptCell, { width: '18%', fontFamily: 'Helvetica-Bold' }]}>{m.missionId}</Text>
+                      <Text style={[styles.attemptCell, { width: '22%' }]}>{scoreVal} pts</Text>
+                      <Text style={[styles.attemptCell, { width: '20%' }]}>{max} pts</Text>
+                      <Text style={[styles.attemptCell, { width: '22%', fontFamily: 'Helvetica-Bold', color: pct >= 100 ? '#16794b' : pct >= 50 ? '#2563eb' : '#d97706' }]}>{pct}%</Text>
+                    </View>
+                  );
+                }))}
+              </View>
+            </View>
+          )}
           {(team === 'fll' || team === 'under' || String(item.modality || '').toUpperCase() === 'FLL') && (() => {
             const configuredMaximum = Number(item.maxScore) > 0 ? Number(item.maxScore) : 530;
             const best = scores.length ? Math.max(...scores) : 0;

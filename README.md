@@ -6,6 +6,12 @@ O projeto opera como um monorepo modular em TypeScript. O backend em Node.js com
 
 ## Versões
 
+- **3.1.0 — Seleção de Missões por Tentativa e Gráfico de Assertividade Sobreposto (FLL 2026/2027 BIOGLOW):**
+  - **Seleção Individual por Tentativa:** Cada tentativa agora possui sua própria seleção de missões realizadas (`M01` a `M15`) com pontuação independente, substituindo a limitação anterior de missão única para todo o teste.
+  - **Ações Rápidas de Lançamento:** Botões `+ Todas` (adiciona as 15 missões da temporada BIOGLOW com 1 clique para simulações completas de rodada), `Copiar T{i}` (clona as missões e notas da tentativa anterior) e `Limpar`.
+  - **Gráfico de Assertividade por Missão (`MissionAssertivenessChart`):** Curvas de linhas coloridas sobrepostas onde cada linha representa uma tentativa específica. O eixo Y mede a assertividade percentual (0% a 100%, pontos obtidos sobre o teto da missão) e o eixo X apresenta as missões testadas (`M01`, `M02`, `M03`, `M04`...).
+  - **Visualização de Ambos os Gráficos Sobrepostos:** Seletor com abas para visualizar "Assertividade p/ Missão", "Evolução Geral" (pontos, tempo e falhas) ou "Ambos Sobrepostos" (ambos os gráficos empilhados na tela).
+  - **Relatório PDF Atualizado:** Tabela analítica de assertividade por missão nas tentativas integrada à exportação oficial em PDF.
 - **3.0.0 — Homepage Pública, Central de Documentos, Monitoramento Oficial e Redundância de Bancos:**
   - **Acesso Público & Homepage Padrão:** A rota `/` abre diretamente a Homepage com acesso público e visualização aos cadernos e calendário. Login migrado para `/login` e botão flutuante contextualizado.
   - **Central Oficial de Documentos de Competição:** Nova interface pública e autenticada (`/documentos`) catalogando rubricas de avaliação, regras e manuais de FLL (Challenge e Explore) e OBR (Resgate, Artística, Simulação e Teórica) com visualizador nativo e download de PDFs.
@@ -90,10 +96,12 @@ hortobots-planning/
 
 - **Simulacoes e Testes de Robos:**
   - Registro de ciclos de testes com quantidade variavel de tentativas (3 a 15).
-  - Metricas de tempo, pontuacao observada e taxa de falhas.
-  - Visualizacao grafica de desempenho em linha, barras ou circular.
-  - Pontuação FLL vinculada ao teto oficial de 530 pontos da temporada BIOGLOW 2026/2027, com aproveitamento percentual, faixa de desempenho, pontos restantes e tabela detalhada de missões/discos de precisão.
-  - Pontuação máxima OBR configurável por teste, pois o teto depende da composição da arena, do nível e da fase.
+  - **Seleção Individual de Missões por Tentativa:** Em vez de definir apenas uma missão para todo o teste, cada tentativa permite selecionar quais missões foram realizadas (`M01` a `M15`) e quantos pontos foram feitos em cada uma delas.
+  - **Ações Rápidas de Automação:** Botões `+ Todas` (adiciona todas as 15 missões da temporada BIOGLOW com 1 clique), `Copiar T{i}` (clona as missões e notas da tentativa anterior) e `Limpar`.
+  - **Gráfico de Assertividade por Missão (Tentativas Sobrepostas):** Gráfico vetorial de linha onde cada tentativa é representada por uma curva colorida distinta sobreposta, medindo a assertividade percentual (0% a 100%, calculada por `(pontos obtidos / pontos máximos) * 100`) em função das missões (`M01`, `M02`, `M03`, `M04`...).
+  - **Visualização de Ambos os Gráficos Sobrepostos:** Abas no painel de resultados permitindo alternar entre "Assertividade p/ Missão", "Evolução Geral" (pontuação, tempo e falhas) e "Ambos Sobrepostos" (ambos os gráficos empilhados simultaneamente).
+  - **Pontuação da Temporada FLL BIOGLOW 2026/2027:** Vinculada ao teto oficial de 530 pontos (460 pontos das missões M01–M15, 20 pontos de inspeção de equipamento e até 50 pontos de discos de precisão), com cálculo de assertividade e faixa de desempenho.
+  - **Pontuação Máxima OBR:** Configurável por teste conforme a composição da arena da rodada.
 
 - **Banner científico A×B:**
   - Um banner persistente por equipe, criado pela pergunta-problema, registros do caderno, testes do robô e anexos DOCX, XLSX, PDF, TXT, MD ou CSV.

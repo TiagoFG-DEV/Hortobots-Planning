@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { BIOGLOW_SEASON, OBR_2026_SCORING, performancePercent } from '../src/season.js';
+import {
+  BIOGLOW_SEASON,
+  OBR_2026_SCORING,
+  calculateMissionAssertiveness,
+  getMissionMaxScore,
+  getSeasonMission,
+  performancePercent
+} from '../src/season.js';
 
 describe('season scoring', () => {
   it('keeps the BIOGLOW mission ceiling linked to the official table maximum', () => {
@@ -20,4 +27,15 @@ describe('season scoring', () => {
     expect(performancePercent(800, 530)).toBe(100);
     expect(performancePercent(-1, 530)).toBe(0);
   });
+
+  it('calculates assertiveness and retrieves mission metadata correctly', () => {
+    const m01 = getSeasonMission('M01');
+    expect(m01?.name).toBe('Drone Survey');
+    expect(getMissionMaxScore('M01')).toBe(30);
+    expect(getMissionMaxScore('M02')).toBe(40);
+    expect(calculateMissionAssertiveness(20, 30)).toBeCloseTo(66.67, 1);
+    expect(calculateMissionAssertiveness(30, 30)).toBe(100);
+    expect(calculateMissionAssertiveness(0, 30)).toBe(0);
+  });
 });
+

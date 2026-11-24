@@ -59,3 +59,24 @@ export const OBR_2026_SCORING = {
 
 export const performancePercent = (score: number, maximum: number) =>
   maximum > 0 ? Math.max(0, Math.min(100, (score / maximum) * 100)) : 0;
+
+export type AttemptMission = {
+  missionId: string;
+  name?: string;
+  score: number;
+  maxScore: number;
+};
+
+export const getSeasonMission = (missionId: string): SeasonMission | undefined =>
+  BIOGLOW_SEASON.missions.find(m => m.id.toUpperCase() === missionId.toUpperCase());
+
+export const getMissionMaxScore = (missionId: string): number => {
+  const mission = getSeasonMission(missionId);
+  return mission ? mission.maximum : 0;
+};
+
+export const calculateMissionAssertiveness = (score: number, maxScore: number): number => {
+  if (maxScore <= 0) return 0;
+  return Math.max(0, Math.min(100, (score / maxScore) * 100));
+};
+

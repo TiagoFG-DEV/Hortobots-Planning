@@ -11,6 +11,7 @@ import {
   FileText,
   Home as HomeIcon,
   Image as ImageIcon,
+  Layers,
   Leaf,
   LayoutTemplate,
   List,
@@ -54,7 +55,14 @@ import { MentorSettings } from './MentorSettings';
 import { AdminPanel } from './AdminPanel';
 import { FeedbackThread } from './FeedbackThread';
 import { PerformancePanel } from './PerformancePanel';
-import { BIOGLOW_SEASON } from '@hortobots/shared';
+import {
+  BIOGLOW_SEASON,
+  calculateMissionAssertiveness,
+  getMissionMaxScore,
+  getSeasonMission,
+  type AttemptMission
+} from '@hortobots/shared';
+import { MissionAssertivenessChart, ATTEMPT_COLORS } from './MissionAssertivenessChart';
 import { TEAMS, getTeamKey, withTeamTag, isTeamTag, displayDate, teamFromRoute, notebookRoute } from './teams';
 import {
   canCreateTeamContent,
@@ -95,7 +103,13 @@ const MISSIONS = [
 ];
 
 type User = AccountUser;
-type Attempt = { time: number; score: number; failures: number; observed: number };
+type Attempt = {
+  time: number;
+  score: number;
+  failures: number;
+  observed: number;
+  missions?: AttemptMission[];
+};
 
 const UserContext = createContext<User | null>(null);
 const useCurrentUser = () => useContext(UserContext);
@@ -1431,15 +1445,127 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
   const [loaded, setLoaded] = useState(!isEdit);
   const [count, setCount] = useState(3);
   const [attempts, setAttempts] = useState<Attempt[]>(
-    Array.from({ length: 15 }, () => ({ time: 150, score: 0, failures: 0, observed: 0 }))
+    Array.from({ length: 15 }, () => ({ time: 150, score: 0, failures: 0, observed: 0, missions: [] }))
   );
+  const [chartTab, setChartTab] = useState<'both' | 'assertiveness' | 'evolution'>('both');
   const [media, setMedia] = useState<MediaSlot[]>([]);
   const [focusSlot, setFocusSlot] = useState<MediaSlot | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [celebration, setCelebration] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [base, setBase] = useState({ date: today, title: '', objective: '', comments: '', mission: '', maxScore: notebook.modality === 'FLL' ? BIOGLOW_SEASON.maximumScore : 0 });
-  const [showAnalysis, setShowAnalysis] = useState(false);
+  const [showAnalysis, setShowAnalysis] = useState(true);
+
+  // Adiciona missão a uma tentativa
+  const addMissionToAttempt = (attIndex: number, missionId: string) => {
+    if (!missionId) return;
+    const seasonM = getSeasonMission(missionId);
+    const maxScore = seasonM ? seasonM.maximum : 0;
+    setAttempts(prev => {
+      const copy = [...prev];
+      const att = copy[attIndex];
+      const currentMissions = att.missions || [];
+      if (currentMissions.some(m => m.missionId.toUpperCase() === missionId.toUpperCase())) return prev;
+      const newMissions = [
+        ...currentMissions,
+        {
+          missionId: missionId.toUpperCase(),
+          name: seasonM?.name || missionId,
+          score: 0,
+          maxScore
+        }
+      ].sort((a, b) => {
+        const numA = parseInt(a.missionId.replace(/\D/g, ''), 10) || 0;
+        const numB = parseInt(b.missionId.replace(/\D/g, ''), 10) || 0;
+        return numA - numB;
+      });
+      const missionTotal = newMissions.reduce((s, m) => s + (Number(m.score) || 0), 0);
+      copy[attIndex] = { ...att, missions: newMissions, score: missionTotal };
+      return copy;
+    });
+  };
+
+  // Adiciona todas as 15 missões da temporada BIOGLOW a uma tentativa
+  const addAllMissionsToAttempt = (attIndex: number) => {
+    setAttempts(prev => {
+      const copy = [...prev];
+      const att = copy[attIndex];
+      const currentMap = new Map((att.missions || []).map(m => [m.missionId.toUpperCase(), m]));
+      const newMissions: AttemptMission[] = BIOGLOW_SEASON.missions.map(m => {
+        const existing = currentMap.get(m.id.toUpperCase());
+        return {
+          missionId: m.id,
+          name: m.name,
+          score: existing ? existing.score : 0,
+          maxScore: m.maximum
+        };
+      });
+      const missionTotal = newMissions.reduce((s, m) => s + (Number(m.score) || 0), 0);
+      copy[attIndex] = { ...att, missions: newMissions, score: missionTotal };
+      return copy;
+    });
+  };
+
+  // Remove missão de uma tentativa
+  const removeMissionFromAttempt = (attIndex: number, missionId: string) => {
+    setAttempts(prev => {
+      const copy = [...prev];
+      const att = copy[attIndex];
+      const newMissions = (att.missions || []).filter(
+        m => m.missionId.toUpperCase() !== missionId.toUpperCase()
+      );
+      const missionTotal = newMissions.reduce((s, m) => s + (Number(m.score) || 0), 0);
+      copy[attIndex] = { ...att, missions: newMissions, score: missionTotal };
+      return copy;
+    });
+  };
+
+  // Atualiza pontuação de uma missão
+  const updateMissionScore = (attIndex: number, missionId: string, score: number) => {
+    setAttempts(prev => {
+      const copy = [...prev];
+      const att = copy[attIndex];
+      const newMissions = (att.missions || []).map(m => {
+        if (m.missionId.toUpperCase() === missionId.toUpperCase()) {
+          const clamped = Math.max(0, Math.min(m.maxScore, score));
+          return { ...m, score: clamped };
+        }
+        return m;
+      });
+      const missionTotal = newMissions.reduce((s, m) => s + (Number(m.score) || 0), 0);
+      copy[attIndex] = { ...att, missions: newMissions, score: missionTotal };
+      return copy;
+    });
+  };
+
+  // Copia missões da tentativa anterior
+  const copyMissionsFromPrevious = (attIndex: number) => {
+    if (attIndex <= 0) return;
+    setAttempts(prev => {
+      const copy = [...prev];
+      const source = copy[attIndex - 1];
+      const current = copy[attIndex];
+      const clonedMissions = (source.missions || []).map(m => ({ ...m }));
+      const missionTotal = clonedMissions.reduce((s, m) => s + (Number(m.score) || 0), 0);
+      copy[attIndex] = {
+        ...current,
+        missions: clonedMissions,
+        score: missionTotal,
+        time: source.time,
+        failures: source.failures
+      };
+      return copy;
+    });
+  };
+
+  // Limpa missões de uma tentativa
+  const clearMissionsFromAttempt = (attIndex: number) => {
+    setAttempts(prev => {
+      const copy = [...prev];
+      copy[attIndex] = { ...copy[attIndex], missions: [] };
+      return copy;
+    });
+  };
 
   // Aviso de alterações não salvas ao fechar ou recarregar
   useEffect(() => {
@@ -1486,7 +1612,22 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
               setAttempts(prev => {
                 const copy = [...prev];
                 t.attempts.forEach((att: any, idx: number) => {
-                  if (idx < copy.length) copy[idx] = att;
+                  if (idx < copy.length) {
+                    let attMissions: AttemptMission[] = Array.isArray(att.missions) ? att.missions : [];
+                    if (attMissions.length === 0 && t.mission) {
+                      const mId = t.mission.slice(0, 3);
+                      const sm = getSeasonMission(mId);
+                      if (sm) {
+                        attMissions = [{
+                          missionId: sm.id,
+                          name: sm.name,
+                          score: Number(att.score) || 0,
+                          maxScore: sm.maximum
+                        }];
+                      }
+                    }
+                    copy[idx] = { ...att, missions: attMissions };
+                  }
                 });
                 return copy;
               });
@@ -1609,11 +1750,12 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
             {notebook.modality === 'FLL' && (
               <>
                 <label>
-                  Missão BIOGLOW (Temporada 2026/2027 • Teto 530 pts)
+                  Foco do teste (Opcional • As missões agora são definidas em cada tentativa abaixo)
                   <select value={base.mission} onChange={e => setBase({ ...base, mission: e.target.value })}>
-                    <option value="">Selecione a missão</option>
+                    <option value="">Geral • Simulação Completa / Multimissões</option>
+                    <option value="Multimissões">Multimissões / Rodada de Mesa</option>
                     {MISSIONS.map(m => (
-                      <option key={m}>{m}</option>
+                      <option key={m} value={m}>{m}</option>
                     ))}
                   </select>
                 </label>
@@ -1644,50 +1786,208 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
               <input type="number" min="1" value={base.maxScore || ''} onChange={e => setBase({ ...base, maxScore: Number(e.target.value) })} placeholder="Varia conforme a arena da rodada" />
               <small>Na OBR 2026, a referência máxima é definida pela composição da arena.</small>
             </label>}
+
             <div className="attempts">
-              {activeAttempts.map((a, i) => (
-                <fieldset key={i}>
-                  <legend>Tentativa {i + 1}</legend>
-                  <label>
-                    Tempo (s)
-                    <input
-                      type="number"
-                      value={a.time}
-                      onChange={e => {
-                        const n = [...attempts];
-                        n[i] = { ...a, time: +e.target.value };
-                        setAttempts(n);
-                      }}
-                    />
-                  </label>
-                  <label>
-                    {notebook.modality === 'FLL' ? 'Pontuação' : 'Valor observado'}
-                    <input
-                      type="number"
-                      min="0"
-                      max={base.maxScore || undefined}
-                      value={notebook.modality === 'FLL' ? a.score : a.observed}
-                      onChange={e => {
-                        const n = [...attempts];
-                        n[i] = { ...a, [notebook.modality === 'FLL' ? 'score' : 'observed']: +e.target.value, score: +e.target.value };
-                        setAttempts(n);
-                      }}
-                    />
-                  </label>
-                  <label>
-                    Falhas
-                    <input
-                      type="number"
-                      value={a.failures}
-                      onChange={e => {
-                        const n = [...attempts];
-                        n[i] = { ...a, failures: +e.target.value };
-                        setAttempts(n);
-                      }}
-                    />
-                  </label>
-                </fieldset>
-              ))}
+              {activeAttempts.map((a, i) => {
+                const attemptColor = ATTEMPT_COLORS[i % ATTEMPT_COLORS.length];
+                const attemptMissions = a.missions || [];
+                const availableMissions = BIOGLOW_SEASON.missions.filter(
+                  sm => !attemptMissions.some(m => m.missionId.toUpperCase() === sm.id.toUpperCase())
+                );
+                const missionsTotalScore = attemptMissions.reduce((sum, m) => sum + (Number(m.score) || 0), 0);
+
+                return (
+                  <fieldset key={i} className="attempt-card" style={{ borderLeftColor: attemptColor, borderLeftWidth: '3px' }}>
+                    <legend className="attempt-legend" style={{ color: attemptColor }}>
+                      <span className="attempt-legend-dot" style={{ backgroundColor: attemptColor }} />
+                      Tentativa {i + 1}
+                    </legend>
+
+                    <div className="attempt-fields-grid">
+                      <label>
+                        Tempo (s)
+                        <input
+                          type="number"
+                          value={a.time}
+                          onChange={e => {
+                            const n = [...attempts];
+                            n[i] = { ...a, time: +e.target.value };
+                            setAttempts(n);
+                          }}
+                        />
+                      </label>
+                      <label>
+                        {notebook.modality === 'FLL' ? 'Pontuação Total' : 'Valor observado'}
+                        <input
+                          type="number"
+                          min="0"
+                          max={base.maxScore || undefined}
+                          value={notebook.modality === 'FLL' ? a.score : a.observed}
+                          onChange={e => {
+                            const n = [...attempts];
+                            n[i] = { ...a, [notebook.modality === 'FLL' ? 'score' : 'observed']: +e.target.value, score: +e.target.value };
+                            setAttempts(n);
+                          }}
+                        />
+                        {attemptMissions.length > 0 && (
+                          <span className="attempt-score-sync-hint">
+                            Soma das missões: <strong>{missionsTotalScore} pts</strong>
+                          </span>
+                        )}
+                      </label>
+                      <label>
+                        Falhas
+                        <input
+                          type="number"
+                          value={a.failures}
+                          onChange={e => {
+                            const n = [...attempts];
+                            n[i] = { ...a, failures: +e.target.value };
+                            setAttempts(n);
+                          }}
+                        />
+                      </label>
+                    </div>
+
+                    {/* ── Missões da Tentativa (FLL BIOGLOW 2026/2027) ── */}
+                    {notebook.modality === 'FLL' && (
+                      <div className="attempt-missions-box">
+                        <div className="attempt-missions-head">
+                          <span className="attempt-missions-kicker">
+                            MISSÕES REALIZADAS ({attemptMissions.length})
+                          </span>
+                          <div className="attempt-missions-actions">
+                            <button
+                              type="button"
+                              className="btn-quick-mission"
+                              onClick={() => addAllMissionsToAttempt(i)}
+                              title="Adicionar todas as 15 missões da temporada BIOGLOW nesta tentativa"
+                            >
+                              + Todas
+                            </button>
+                            {i > 0 && (
+                              <button
+                                type="button"
+                                className="btn-quick-mission"
+                                onClick={() => copyMissionsFromPrevious(i)}
+                                title={`Copiar missões e notas da Tentativa ${i}`}
+                              >
+                                Copiar T{i}
+                              </button>
+                            )}
+                            {attemptMissions.length > 0 && (
+                              <button
+                                type="button"
+                                className="btn-quick-mission btn-clear"
+                                onClick={() => clearMissionsFromAttempt(i)}
+                                title="Remover missões desta tentativa"
+                              >
+                                Limpar
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Dropdown de adição de missão */}
+                        {availableMissions.length > 0 && (
+                          <div className="attempt-mission-picker">
+                            <select
+                              value=""
+                              onChange={e => {
+                                addMissionToAttempt(i, e.target.value);
+                                e.target.value = '';
+                              }}
+                              className="attempt-add-select"
+                              aria-label="Adicionar missão nesta tentativa"
+                            >
+                              <option value="">+ Adicionar missão nesta tentativa...</option>
+                              {availableMissions.map(m => (
+                                <option key={m.id} value={m.id}>
+                                  {m.id} — {m.name} (máx {m.maximum} pts)
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+
+                        {/* Lista de missões selecionadas */}
+                        {attemptMissions.length > 0 ? (
+                          <div className="attempt-missions-items">
+                            {attemptMissions.map(m => {
+                              const seasonM = getSeasonMission(m.missionId);
+                              const max = m.maxScore || seasonM?.maximum || 1;
+                              const pct = calculateMissionAssertiveness(m.score, max);
+                              const pctColor =
+                                pct >= 100 ? '#4ade80' : pct >= 50 ? '#38bdf8' : pct > 0 ? '#fbbf24' : '#94a3b8';
+
+                              return (
+                                <div key={m.missionId} className="attempt-mission-row">
+                                  <div className="attempt-mission-info">
+                                    <strong>{m.missionId}</strong>
+                                    <span className="mission-name-span">{m.name || seasonM?.name}</span>
+                                    <span className="mission-max-badge">{max}p</span>
+                                  </div>
+
+                                  <div className="attempt-mission-inputs">
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      max={max}
+                                      value={m.score}
+                                      onChange={e => updateMissionScore(i, m.missionId, +e.target.value)}
+                                      className="attempt-mission-score-input"
+                                      title={`Pontos feitos em ${m.missionId} (máx ${max})`}
+                                    />
+                                    <span
+                                      className="attempt-mission-pct-pill"
+                                      style={{ color: pctColor, borderColor: pctColor }}
+                                      title={`Assertividade: ${pct.toFixed(1)}%`}
+                                    >
+                                      {pct.toFixed(0)}%
+                                    </span>
+
+                                    <div className="mission-quick-buttons">
+                                      <button
+                                        type="button"
+                                        className="btn-quick-val"
+                                        onClick={() => updateMissionScore(i, m.missionId, 0)}
+                                        title="Zerar pontuação desta missão"
+                                      >
+                                        0
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className="btn-quick-val max"
+                                        onClick={() => updateMissionScore(i, m.missionId, max)}
+                                        title="Pontuação máxima (100%)"
+                                      >
+                                        {max}
+                                      </button>
+                                    </div>
+
+                                    <button
+                                      type="button"
+                                      className="btn-remove-mission"
+                                      onClick={() => removeMissionFromAttempt(i, m.missionId)}
+                                      title={`Remover ${m.missionId} desta tentativa`}
+                                    >
+                                      <X size={13} />
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <p className="attempt-no-missions-text">
+                            Nenhuma missão selecionada para esta tentativa. Selecione no menu acima ou clique em "+ Todas".
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </fieldset>
+                );
+              })}
             </div>
             <label>
               Comentários opcionais
@@ -1726,7 +2026,45 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
             </div>
 
             <PerformancePanel attempts={activeAttempts} modality={notebook.modality} maximum={base.maxScore} />
-            {showAnalysis && <DataAnalysis attempts={activeAttempts} maximumScore={base.maxScore} />}
+
+            {showAnalysis && (
+              <div className="analytics-tabs-wrapper">
+                <div className="analytics-view-tabs">
+                  <button
+                    type="button"
+                    className={`analytics-tab-btn ${chartTab === 'assertiveness' ? 'active' : ''}`}
+                    onClick={() => setChartTab('assertiveness')}
+                  >
+                    Assertividade p/ Missão
+                  </button>
+                  <button
+                    type="button"
+                    className={`analytics-tab-btn ${chartTab === 'evolution' ? 'active' : ''}`}
+                    onClick={() => setChartTab('evolution')}
+                  >
+                    Evolução Geral
+                  </button>
+                  <button
+                    type="button"
+                    className={`analytics-tab-btn ${chartTab === 'both' ? 'active' : ''}`}
+                    onClick={() => setChartTab('both')}
+                  >
+                    Ambos Sobrepostos
+                  </button>
+                </div>
+
+                {(chartTab === 'assertiveness' || chartTab === 'both') && (
+                  <MissionAssertivenessChart
+                    attempts={activeAttempts}
+                    modality={notebook.modality}
+                  />
+                )}
+
+                {(chartTab === 'evolution' || chartTab === 'both') && (
+                  <DataAnalysis attempts={activeAttempts} maximumScore={base.maxScore} />
+                )}
+              </div>
+            )}
 
             <div style={{ marginTop: '1.2rem' }}>
               <span className="paper-label test-media-label">MÍDIAS DO TESTE</span>
@@ -2060,10 +2398,54 @@ function TestView() {
         </div>
       </article>
       <section className="test-detail-analysis" aria-label="Resultados das tentativas">
-        <h2>Resultados</h2>
+        <h2>Resultados e Desempenho</h2>
         <PerformancePanel attempts={Array.isArray(item.attempts) ? item.attempts : []} modality={item.modality} maximum={item.maxScore} />
+
+        {/* Gráfico de Assertividade por Missão (Tentativas Sobrepostas) */}
+        <MissionAssertivenessChart
+          attempts={Array.isArray(item.attempts) ? item.attempts : []}
+          modality={item.modality}
+        />
+
+        {/* Gráfico de Evolução Geral (Pontos, Tempo e Falhas) */}
         <DataAnalysis attempts={Array.isArray(item.attempts) ? item.attempts : []} maximumScore={Number(item.maxScore || (item.modality === 'FLL' ? BIOGLOW_SEASON.maximumScore : 0))} />
-        <div className="attempt-results">{(item.attempts || []).map((attempt: Attempt, i: number) => <article key={i}><strong>Tentativa {i + 1}</strong><span>Tempo: {attempt.time} s</span><span>Pontuação: {attempt.score}</span><span>Falhas: {attempt.failures}</span>{mod === 'obr' && <span>Valor observado: {attempt.observed}</span>}</article>)}</div>
+
+        <div className="attempt-results">{(item.attempts || []).map((attempt: Attempt, i: number) => {
+          const attemptColor = ATTEMPT_COLORS[i % ATTEMPT_COLORS.length];
+          const missions = Array.isArray(attempt.missions) ? attempt.missions : [];
+          return (
+            <article key={i} className="test-view-attempt-card" style={{ borderLeftColor: attemptColor }}>
+              <div className="test-view-attempt-head">
+                <span className="test-view-attempt-dot" style={{ backgroundColor: attemptColor }} />
+                <strong>Tentativa {i + 1}</strong>
+              </div>
+              <div className="test-view-attempt-metrics">
+                <span><strong>Tempo:</strong> {attempt.time} s</span>
+                <span><strong>Pontuação:</strong> {attempt.score} pts</span>
+                <span><strong>Falhas:</strong> {attempt.failures}</span>
+                {mod === 'obr' && <span><strong>Valor observado:</strong> {attempt.observed}</span>}
+              </div>
+
+              {missions.length > 0 && (
+                <div className="test-view-attempt-missions">
+                  <small>Missões Realizadas ({missions.length}):</small>
+                  <div className="test-view-mission-chips">
+                    {missions.map(m => {
+                      const max = m.maxScore || getMissionMaxScore(m.missionId) || 1;
+                      const pct = calculateMissionAssertiveness(m.score, max);
+                      const pctColor = pct >= 100 ? '#4ade80' : pct >= 50 ? '#38bdf8' : pct > 0 ? '#fbbf24' : '#94a3b8';
+                      return (
+                        <span key={m.missionId} className="test-view-mission-chip">
+                          <b>{m.missionId}</b> {m.score}/{max}p <i style={{ color: pctColor }}>({pct.toFixed(0)}%)</i>
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </article>
+          );
+        })}</div>
       </section>
       {item.media?.length > 0 && <section className="test-detail-media" aria-label="Mídias do teste">{item.media.map((media: any, i: number) => {
         const url = resolveTestMediaUrl(media);

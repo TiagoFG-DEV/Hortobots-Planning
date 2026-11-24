@@ -2,6 +2,40 @@
 
 As versões futuras devem ser acrescentadas no topo deste arquivo, preservando o histórico já publicado.
 
+## [3.1.0] — 2026-11-24 — Seleção de Missões por Tentativa e Gráfico de Assertividade Sobreposto (FLL 2026/2027 BIOGLOW)
+
+### Novas Funcionalidades e Melhorias
+
+#### 1. Seleção e Pontuação Individual de Missões por Tentativa
+- **Desacoplamento do Modelo Global:** Em vez de definir apenas uma missão genérica para todas as tentativas, cada tentativa agora permite selecionar individualmente quais missões foram realizadas (`M01` a `M15`) e quantos pontos foram conquistados em cada uma delas.
+- **Integração com a Mesa Oficial FLL Challenge 2026/2027 (BIOGLOW):** Cadastro completo das 15 missões da mesa com pontuações mínimas e máximas oficiais (M01 Drone Survey máx 30 pts, M02 Exploding Seeds máx 40 pts, M03 Flip the Rock máx 30 pts, etc.), permitindo lançar a pontuação real obtida em cada desafio.
+- **Ações Rápidas de Produtividade nas Tentativas:**
+  - Botão **`+ Todas`**: adiciona instantaneamente todas as 15 missões da temporada na tentativa com um único clique, ideal para simulações completas de rodada oficial (2min30s).
+  - Botão **`Copiar T{i}`**: clona as missões e notas da tentativa anterior para a tentativa atual, agilizando testes iterativos de estratégia.
+  - Botão **`Limpar`**: remove todas as missões da tentativa caso necessário.
+  - Botões rápidos **`0`** e **`Máx`** por missão para zerar ou atribuir pontuação máxima (100%) com agilidade.
+- **Soma e Sincronização Inteligente:** A pontuação total da tentativa é calculada e sincronizada automaticamente a partir da soma dos pontos das missões concluídas, preservando a liberdade de ajuste fino e mantendo total retrocompatibilidade com testes antigos.
+
+#### 2. Gráfico de Assertividade por Missão com Curvas Sobrepostas (`MissionAssertivenessChart`)
+- **Linhas Sobrepostas por Tentativa:** Gráfico analítico vetorial em SVG onde cada tentativa é representada por uma linha contínua com cor exclusiva de alto contraste (`#22d3ee`, `#a78bfa`, `#fbbf24`, `#34d399`, `#f43f5e`, etc.).
+- **Eixo Y — Assertividade Percentual (0% a 100%):** Mede o quanto de cada missão foi concluído em porcentagem (`(pontos obtidos / pontuação máxima) * 100`), com linhas de grade e marcações visuais nos níveis 100%, 75%, 50%, 25% e 0%.
+- **Eixo X — Missões da Mesa:** Apresenta as missões testadas no eixo horizontal (`M01`, `M02`, `M03`, `M04`...) com indicação de teto de pontos por missão e botão para alternar entre "Apenas Testadas" e "Ver Todas (M01–M15)".
+- **Interatividade Completa:**
+  - **Tooltips dinâmicos:** exibem tentativa, ID da missão, nome, pontuação obtida, teto e porcentagem exata de assertividade.
+  - **Isolamento de Curvas na Legenda:** clicar em uma tentativa na legenda isola sua curva no gráfico e atenua as demais para análise focada de evolução.
+  - **Métricas e Destaques da Mesa:** cards informativos com Assertividade Média Geral, Melhor Missão da rodada e Oportunidade de Treino (missão com menor índice de conclusão).
+
+#### 3. Visualização Flexível e Ambos os Gráficos Sobrepostos
+- **Abas Analíticas no Painel de Testes:**
+  - **Assertividade p/ Missão:** foca no gráfico de curvas sobrepostas por missão.
+  - **Evolução Geral:** exibe o gráfico clássico com pontuação, tempo e falhas por tentativa.
+  - **Ambos Sobrepostos:** renderiza ambos os gráficos empilhados verticalmente na mesma tela para diagnóstico técnico completo da sessão.
+- **Atualização da Visualização de Testes Salvos (`TestView`):** Exibição do gráfico de assertividade por missão e detalhamento de cada tentativa com chips coloridos de missões concluídas, pontos e porcentagem.
+
+#### 4. Exportação Oficial para PDF com Assertividade
+- **Documento do Diário de Bordo Atualizado (`activityPdf.tsx`):** Inclusão de seção e tabela dedicada de assertividade por missão nas tentativas no PDF oficial gerado para bancas de avaliação e portfólio de engenharia.
+
+
 ## [3.0.1] — 2026-11-13 — Manutenção e Melhorias de UX / Dados
 
 ### Novas Funcionalidades
@@ -74,8 +108,10 @@ A versão 3.0.0 consolida a evolução estrutural do Hortobots Planning através
 - **Destaque de Criticidade:** Identificação visual e filtro dedicado para comunicados urgentes/críticos e erratas oficiais.
 
 #### 4. Redundância, Contingência e Diagnóstico de Bancos (Marco 7)
-- **Arquitetura Ativo/Passivo com Failover:** Suporte configurado no backend entre a nova instância principal Supabase (gpqqqnhpadbgiolfyplx) e a secundária de backup (xfdjwdfinhqdwllzmcc).
-- **Serviço de Redundância (RedundancyService):** Métricas em tempo real de latência, disponibilidade e replicação tolerante a falhas (eplicateMutation).
+- **Arquitetura Ativo/Passivo com Failover:** Suporte configurado no backend entre a nova instância principal Supabase (gpqqqnhpadbgiolfyplx) e a secundária de backup (
+xfdjwdfinhqdwllzmcc).
+- **Serviço de Redundância (RedundancyService):** Métricas em tempo real de latência, disponibilidade e replicação tolerante a falhas (
+eplicateMutation).
 - **Segurança de Segredos:** Mascaramento obrigatório de credenciais e URLs de banco de dados nos endpoints da API e nas visualizações de diagnóstico.
 
 #### 5. Gestão de Documentos no Painel Mentor (Marco 8)
@@ -88,7 +124,8 @@ A versão 3.0.0 consolida a evolução estrutural do Hortobots Planning através
 - **Validação de Acesso:** Garantia de leitura pública para documentos/atualizações e isolamento estrito das contas privadas (gestao, mentor, obr, ll).
 
 #### 7. Responsividade Universal (Marco 10)
-- **Auditoria de Breakpoints:** Media queries refinadas em esponsive.css para smartphones (<=640px e <=768px), tablets (769px a 1024px) e monitores ultrawide (>=1800px).
+- **Auditoria de Breakpoints:** Media queries refinadas em 
+esponsive.css para smartphones (<=640px e <=768px), tablets (769px a 1024px) e monitores ultrawide (>=1800px).
 - **Zero Overflow:** Eliminação completa de rolagem horizontal indevida ou corte de texto na grade de documentos, formulários administrativos e visualizadores.
 
 ---
