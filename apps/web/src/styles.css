@@ -10487,15 +10487,15 @@ textarea,
   font: 700 0.78rem 'Barlow Condensed', sans-serif;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--attempt-color, #cbd5e1);
+  color: var(--attempt-color, #cbd5e1) !important;
 }
 
 .test-form .attempt-card .attempt-fields-grid input,
 .test-form .attempt-card .round-top-fields input {
-  background: rgba(10, 18, 14, 0.92);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(10, 18, 14, 0.94) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
   border-radius: 8px;
-  color: #f8fafc;
+  color: var(--attempt-color, #f8fafc) !important;
   padding: 0.5rem 0.75rem;
   font: 700 1.02rem 'Barlow Condensed', sans-serif;
   min-height: 42px;
@@ -10505,16 +10505,16 @@ textarea,
 
 .test-form .attempt-card .attempt-fields-grid input:focus,
 .test-form .attempt-card .round-top-fields input:focus {
-  border-color: var(--attempt-color, rgba(34, 211, 238, 0.55));
+  border-color: var(--attempt-color, rgba(34, 211, 238, 0.55)) !important;
   box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.16);
   outline: none;
 }
 
 .test-form .attempt-card .round-top-fields input[readonly] {
-  color: #4ade80;
+  color: var(--attempt-color, #4ade80) !important;
   cursor: default;
-  border-color: rgba(74, 222, 128, 0.28);
-  background: rgba(5, 30, 18, 0.72);
+  border-color: rgba(255, 255, 255, 0.16) !important;
+  background: rgba(5, 30, 18, 0.72) !important;
 }
 
 /* Responsividade das round cards em mobile */

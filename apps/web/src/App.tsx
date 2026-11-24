@@ -2005,11 +2005,12 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
                       </div>
 
                       <div className="round-top-fields">
-                        <label>
+                        <label style={{ color: attemptColor }}>
                           Tempo de Round (s)
                           <input
                             type="number"
                             value={a.time}
+                            style={{ color: attemptColor }}
                             onChange={e => {
                               const n = [...attempts];
                               n[i] = { ...a, time: +e.target.value };
@@ -2017,12 +2018,13 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
                             }}
                           />
                         </label>
-                        <label>
+                        <label style={{ color: attemptColor }}>
                           Pontuação do Round
                           <input
                             type="number"
                             readOnly
                             value={a.score}
+                            style={{ color: attemptColor }}
                           />
                         </label>
                       </div>
@@ -2064,11 +2066,12 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
                     </div>
 
                     <div className="attempt-fields-grid">
-                      <label>
+                      <label style={{ color: attemptColor }}>
                         Tempo (s)
                         <input
                           type="number"
                           value={a.time}
+                          style={{ color: attemptColor }}
                           onChange={e => {
                             const n = [...attempts];
                             n[i] = { ...a, time: +e.target.value };
@@ -2076,13 +2079,14 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
                           }}
                         />
                       </label>
-                      <label>
+                      <label style={{ color: attemptColor }}>
                         {notebook.modality === 'FLL' ? `Pontuação (máx ${missionMax} pts)` : 'Valor observado'}
                         <input
                           type="number"
                           min="0"
                           max={notebook.modality === 'FLL' ? missionMax : (base.maxScore || undefined)}
                           value={notebook.modality === 'FLL' ? a.score : a.observed}
+                          style={{ color: attemptColor }}
                           onChange={e => {
                             const val = +e.target.value;
                             const clamped = notebook.modality === 'FLL' ? Math.max(0, Math.min(missionMax, val)) : val;
@@ -2104,11 +2108,12 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
                           }}
                         />
                       </label>
-                      <label>
+                      <label style={{ color: attemptColor }}>
                         Falhas
                         <input
                           type="number"
                           value={a.failures}
+                          style={{ color: attemptColor }}
                           onChange={e => {
                             const n = [...attempts];
                             n[i] = { ...a, failures: +e.target.value };
