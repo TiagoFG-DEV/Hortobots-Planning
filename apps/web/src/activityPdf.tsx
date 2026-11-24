@@ -386,32 +386,252 @@ export const ActivityDocument = ({ item, kind, team, media, teamLogo, competitio
               })}
             </View>)}
           {attempts.some(a => Array.isArray(a.missions) && a.missions.length > 0) && (() => {
-            // Calcula a média consolidada de cada missão individual e discos de precisão
-            const missionIds = Array.from(new Set(attempts.flatMap(a => (a.missions || []).map(m => m.missionId.toUpperCase())))).sort();
+            const isRoundMode = item.testMode === 'round';
+
+            // Paleta de cores por tentativa/round
+            const ATTEMPT_COLORS_PDF = [
+              '#22d3ee','#a78bfa','#fbbf24','#34d399','#f43f5e',
+              '#38bdf8','#fb923c','#e879f9','#a3e635','#818cf8'
+            ];
+
+            // ── Dados de missões por tentativa ──────────────────────────────
+            const missionIds = Array.from(new Set(
+              attempts.flatMap(a => (a.missions || []).map(m => m.missionId.toUpperCase()))
+            )).sort((a, b) => (parseInt(a.replace(/\D/g,''),10)||0) - (parseInt(b.replace(/\D/g,''),10)||0));
+
             const missionSummary = missionIds.map(mId => {
-              let totalScore = 0;
-              let maxScore = 0;
-              let count = 0;
+              let totalScore = 0; let maxScore = 0; let count = 0;
               attempts.forEach(a => {
                 const found = (a.missions || []).find(m => m.missionId.toUpperCase() === mId);
-                if (found) {
-                  totalScore += asNumber(found.score);
-                  maxScore = found.maxScore || maxScore || 1;
-                  count++;
-                }
+                if (found) { totalScore += asNumber(found.score); maxScore = found.maxScore || maxScore || 1; count++; }
               });
               const avgScore = count > 0 ? totalScore / count : 0;
               const avgPct = maxScore > 0 ? Math.min(100, Math.round((avgScore / maxScore) * 100)) : 0;
               return { mId, avgScore, maxScore, avgPct, count };
             });
 
-            // Média dos discos de precisão
+            // ── SVG helpers ──────────────────────────────────────────────────
+            const SVG_W = 480; const SVG_H = 130;
+            const PAD_L = 28; const PAD_R = 12; const PAD_T = 10; const PAD_B = 36;
+            const plotW = SVG_W - PAD_L - PAD_R;
+            const plotH = SVG_H - PAD_T - PAD_B;
+            const nMissions = missionIds.length;
+            const xOf = (i: number) => PAD_L + (nMissions > 1 ? (i / (nMissions - 1)) * plotW : plotW / 2);
+            const yOf = (pct: number) => PAD_T + plotH - (Math.max(0, Math.min(100, pct)) / 100) * plotH;
+
+            // Pontos por tentativa
+            const seriesData = attempts.map((att, attIdx) => {
+              const color: string = ATTEMPT_COLORS_PDF[attIdx % ATTEMPT_COLORS_PDF.length] ?? '#22d3ee';
+              const missionMap = new Map((att.missions || []).map(m => [m.missionId.toUpperCase(), m]));
+              const pts = missionIds.map((mId, i) => {
+                const found = missionMap.get(mId);
+                const score = found ? asNumber(found.score) : 0;
+                const max = found?.maxScore || 1;
+                const pct = Math.min(100, Math.round((score / max) * 100));
+                return { mId, score, max, pct, x: xOf(i), y: yOf(pct) };
+              });
+              const polyPoints = pts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+              const totalScore = asNumber(att.score);
+              const avgPct = pts.length > 0 ? Math.round(pts.reduce((s,p) => s+p.pct,0) / pts.length) : 0;
+              return { attIdx, color, pts, polyPoints, totalScore, avgPct };
+            });
+
+            // Pontos de média por missão
+            const avgPts = missionIds.map((mId, i) => {
+              const m = missionSummary.find(x => x.mId === mId);
+              return { mId, pct: m?.avgPct || 0, x: xOf(i), y: yOf(m?.avgPct || 0) };
+            });
+            const avgPolyPoints = avgPts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+
+            // Discos de precisão
             const tokenCounts = attempts.map(a => a.precisionTokensRemaining ?? 6);
             const avgTokens = tokenCounts.length ? tokenCounts.reduce((s, v) => s + v, 0) / tokenCounts.length : 6;
             const tokenPoints = tokenCounts.map(t => t >= 5 ? 50 : t === 4 ? 35 : t === 3 ? 25 : t === 2 ? 15 : t === 1 ? 10 : 0);
             const avgTokenPoints = tokenPoints.length ? tokenPoints.reduce((s: number, v) => s + v, 0) / tokenPoints.length : 50;
             const avgTokenPct = Math.round((avgTokenPoints / 50) * 100);
 
+            // ── SVG de um gráfico de assertividade ──────────────────────────
+            const AssertChart = ({ series: chartSeries, showAvg, chartColor, label }: {
+              series: Array<{ color: string; polyPoints: string; pts: Array<{x:number;y:number;pct:number;mId:string}> }>;
+              showAvg: boolean;
+              chartColor: string;
+              label: string;
+            }) => (
+              <View style={{ marginBottom: 6 }} wrap={false}>
+                <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 7, color: chartColor, marginBottom: 3, textTransform: 'uppercase', letterSpacing: 0.8 }}>{label}</Text>
+                <Svg width="100%" height={SVG_H} viewBox={`0 0 ${SVG_W} ${SVG_H}`}>
+                  {/* Grade horizontal */}
+                  {[0,25,50,75,100].map(tick => (
+                    <Line key={tick}
+                      x1={PAD_L} y1={yOf(tick)} x2={SVG_W - PAD_R} y2={yOf(tick)}
+                      stroke={tick === 0 ? '#94a3b8' : '#cbd5e1'} strokeWidth={tick === 0 ? 1 : 0.5}
+                      strokeDasharray={tick === 0 ? undefined : '3 2'} />
+                  ))}
+                  {/* Eixos */}
+                  <Line x1={PAD_L} y1={PAD_T} x2={PAD_L} y2={PAD_T + plotH} stroke="#94a3b8" strokeWidth="1" />
+                  <Line x1={PAD_L} y1={PAD_T + plotH} x2={SVG_W - PAD_R} y2={PAD_T + plotH} stroke="#94a3b8" strokeWidth="1" />
+                  {/* Linhas do eixo Y 0/50/100% */}
+                  <Polyline points={`${PAD_L},${yOf(100)} ${PAD_L},${yOf(0)}`} stroke="#94a3b8" strokeWidth={0.5} fill="none" />
+                  {/* Linhas de cada série */}
+                  {chartSeries.map((s, si) => s.pts.length > 1 ? (
+                    <Polyline key={si} points={s.polyPoints} fill="none" stroke={s.color} strokeWidth={1.8} />
+                  ) : null)}
+                  {/* Pontos */}
+                  {chartSeries.map((s, si) => s.pts.map((p, pi) => (
+                    <Circle key={`${si}-${pi}`} cx={p.x} cy={p.y} r={2.5} fill={s.color} />
+                  )))}
+                  {/* Linha de média */}
+                  {showAvg && avgPts.length > 1 && (
+                    <Polyline points={avgPolyPoints} fill="none" stroke="#fbbf24" strokeWidth={2} strokeDasharray="4 3" />
+                  )}
+                  {showAvg && avgPts.map((p, i) => (
+                    <Circle key={`avg-${i}`} cx={p.x} cy={p.y} r={2.5} fill="#fbbf24" />
+                  ))}
+                </Svg>
+              </View>
+            );
+
+            if (isRoundMode) {
+              // ── MODO ROUND: intercala info + gráfico individual por round ──
+              return (
+                <>
+                  {/* Tabela de média por missão */}
+                  <View style={[styles.section, { marginTop: 10 }]}>
+                    <Text style={[styles.sectionTitle, { color: identity.ink, borderBottomColor: identity.secondary }]}>
+                      Médias de Assertividade por Missão (Todos os Rounds)
+                    </Text>
+                    <View style={[styles.attemptsTable, { marginBottom: 8 }]}>
+                      <View style={[styles.attemptRow, styles.attemptHeader, { backgroundColor: identity.primary }]}>
+                        <Text style={[styles.attemptCell, { width: '25%' }]}>Missão / Item</Text>
+                        <Text style={[styles.attemptCell, { width: '25%' }]}>Pontuação Média</Text>
+                        <Text style={[styles.attemptCell, { width: '25%' }]}>Pontuação Máx</Text>
+                        <Text style={[styles.attemptCell, { width: '25%' }]}>Assertividade Média</Text>
+                      </View>
+                      {missionSummary.map((m, mIdx) => (
+                        <View key={m.mId} style={[styles.attemptRow, { backgroundColor: mIdx % 2 ? '#f1f3ee' : '#ffffff' }]}>
+                          <Text style={[styles.attemptCell, { width: '25%', fontFamily: 'Helvetica-Bold' }]}>{m.mId}</Text>
+                          <Text style={[styles.attemptCell, { width: '25%' }]}>{m.avgScore.toFixed(1)} pts</Text>
+                          <Text style={[styles.attemptCell, { width: '25%' }]}>{m.maxScore} pts</Text>
+                          <Text style={[styles.attemptCell, { width: '25%', fontFamily: 'Helvetica-Bold', color: m.avgPct >= 100 ? '#16794b' : m.avgPct >= 50 ? '#2563eb' : '#d97706' }]}>
+                            {m.avgPct}%
+                          </Text>
+                        </View>
+                      ))}
+                      <View style={[styles.attemptRow, { backgroundColor: '#eef2ea' }]}>
+                        <Text style={[styles.attemptCell, { width: '25%', fontFamily: 'Helvetica-Bold' }]}>Discos de Precisão</Text>
+                        <Text style={[styles.attemptCell, { width: '25%' }]}>{avgTokenPoints.toFixed(1)} pts ({avgTokens.toFixed(1)} rest.)</Text>
+                        <Text style={[styles.attemptCell, { width: '25%' }]}>50 pts</Text>
+                        <Text style={[styles.attemptCell, { width: '25%', fontFamily: 'Helvetica-Bold', color: avgTokenPct >= 100 ? '#16794b' : avgTokenPct >= 50 ? '#2563eb' : '#d97706' }]}>
+                          {avgTokenPct}%
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* ── Por Round: informações + gráfico individual ── */}
+                  {attempts.map((att, attIdx) => {
+                    const roundColor: string = ATTEMPT_COLORS_PDF[attIdx % ATTEMPT_COLORS_PDF.length] ?? '#22d3ee';
+                    const s = seriesData[attIdx]!;
+                    const precisionPts = tokenPoints[attIdx] ?? 50;
+                    const inspPts = att.inspectionBonus ? 20 : 0;
+                    const roundMissions = att.missions || [];
+
+                    return (
+                      <View key={attIdx} style={[styles.section, { marginTop: 12, borderLeftWidth: 3, borderLeftColor: roundColor, paddingLeft: 10 }]} wrap={false}>
+                        {/* Header do round */}
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6, gap: 8 }}>
+                          <View style={{ backgroundColor: roundColor, borderRadius: 4, paddingVertical: 3, paddingHorizontal: 7 }}>
+                            <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 8, color: '#0f172a' }}>ROUND TESTE {attIdx + 1}</Text>
+                          </View>
+                          <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 11, color: roundColor }}>{asNumber(att.score)} / 530 pts</Text>
+                          <Text style={{ fontSize: 8, color: '#565d54' }}>Tempo: {asNumber(att.time)} s  ·  Assertividade média: {s.avgPct}%</Text>
+                        </View>
+
+                        {/* Métricas de round */}
+                        <View style={{ flexDirection: 'row', gap: 7, marginBottom: 8 }}>
+                          <View style={[styles.stat, { flexBasis: '30%' }]}>
+                            <Text style={styles.statLabel}>Discos Restantes</Text>
+                            <Text style={[styles.statValue, { color: roundColor, fontSize: 12 }]}>{att.precisionTokensRemaining ?? 6} ({precisionPts} pts)</Text>
+                          </View>
+                          <View style={[styles.stat, { flexBasis: '30%' }]}>
+                            <Text style={styles.statLabel}>Inspeção</Text>
+                            <Text style={[styles.statValue, { color: roundColor, fontSize: 12 }]}>{att.inspectionBonus ? '+20 pts' : '0 pts'}</Text>
+                          </View>
+                          <View style={[styles.stat, { flexBasis: '40%' }]}>
+                            <Text style={styles.statLabel}>Total missões + bônus</Text>
+                            <Text style={[styles.statValue, { color: roundColor, fontSize: 12 }]}>{asNumber(att.score) - precisionPts - inspPts} + {precisionPts} + {inspPts} pts</Text>
+                          </View>
+                        </View>
+
+                        {/* Gráfico individual do round */}
+                        {s && (
+                          <AssertChart
+                            series={[{ color: s.color, polyPoints: s.polyPoints, pts: s.pts }]}
+                            showAvg={false}
+                            chartColor={roundColor}
+                            label={`Assertividade — Round Teste ${attIdx + 1}`}
+                          />
+                        )}
+
+                        {/* Tabela de missões do round */}
+                        {roundMissions.length > 0 && (
+                          <View style={[styles.attemptsTable, { marginTop: 4 }]}>
+                            <View style={[styles.attemptRow, styles.attemptHeader, { backgroundColor: roundColor }]}>
+                              <Text style={[styles.attemptCell, { width: '25%', color: '#0f172a' }]}>Missão</Text>
+                              <Text style={[styles.attemptCell, { width: '25%', color: '#0f172a' }]}>Pontuação</Text>
+                              <Text style={[styles.attemptCell, { width: '25%', color: '#0f172a' }]}>Máximo</Text>
+                              <Text style={[styles.attemptCell, { width: '25%', color: '#0f172a' }]}>Assertividade</Text>
+                            </View>
+                            {roundMissions.map((m, mIdx) => {
+                              const max = m.maxScore || 1;
+                              const scoreVal = asNumber(m.score);
+                              const pct = Math.min(100, Math.round((scoreVal / max) * 100));
+                              return (
+                                <View key={m.missionId} style={[styles.attemptRow, { backgroundColor: mIdx % 2 ? '#f1f3ee' : '#ffffff' }]}>
+                                  <Text style={[styles.attemptCell, { width: '25%', fontFamily: 'Helvetica-Bold' }]}>{m.missionId}</Text>
+                                  <Text style={[styles.attemptCell, { width: '25%' }]}>{scoreVal} pts</Text>
+                                  <Text style={[styles.attemptCell, { width: '25%' }]}>{max} pts</Text>
+                                  <Text style={[styles.attemptCell, { width: '25%', fontFamily: 'Helvetica-Bold', color: pct >= 100 ? '#16794b' : pct >= 50 ? '#2563eb' : '#d97706' }]}>{pct}%</Text>
+                                </View>
+                              );
+                            })}
+                          </View>
+                        )}
+                      </View>
+                    );
+                  })}
+
+                  {/* ── Gráfico Geral Sobreposto (todos os rounds) ── */}
+                  <View style={[styles.section, { marginTop: 16 }]} wrap={false}>
+                    <Text style={[styles.sectionTitle, { color: identity.ink, borderBottomColor: identity.secondary }]}>
+                      Gráfico Geral — Todos os Rounds Sobrepostos
+                    </Text>
+                    <AssertChart
+                      series={seriesData}
+                      showAvg={true}
+                      chartColor={identity.primary}
+                      label={`Comparativo entre ${attempts.length} rounds por missão · linha tracejada amarela = média`}
+                    />
+                    {/* Legenda do gráfico geral */}
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 4 }}>
+                      {seriesData.map(s => (
+                        <View key={s.attIdx} style={[styles.legendItem]}>
+                          <View style={[styles.legendDot, { backgroundColor: s.color }]} />
+                          <Text style={{ fontSize: 7, color: s.color, fontFamily: 'Helvetica-Bold' }}>R{s.attIdx + 1}</Text>
+                          <Text style={{ fontSize: 7, color: '#565d54' }}> {s.totalScore}pts ({s.avgPct}%)</Text>
+                        </View>
+                      ))}
+                      <View style={styles.legendItem}>
+                        <View style={[styles.legendDot, { backgroundColor: '#fbbf24' }]} />
+                        <Text style={{ fontSize: 7, color: '#fbbf24', fontFamily: 'Helvetica-Bold' }}>Média</Text>
+                      </View>
+                    </View>
+                  </View>
+                </>
+              );
+            }
+
+            // ── MODO NÃO-ROUND (Missão Individual): tabela consolidada ──────
             return (
               <View style={[styles.section, { marginTop: 10 }]} wrap={false}>
                 <Text style={[styles.sectionTitle, { color: identity.ink, borderBottomColor: identity.secondary }]}>

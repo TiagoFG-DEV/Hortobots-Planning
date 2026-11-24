@@ -504,6 +504,103 @@ export function MissionAssertivenessChart({
                 </svg>
               </div>
             </div>
+
+            {/* ── Gráfico Geral Sobreposto (todos os rounds) ── */}
+            <div className="mac-single-chart-wrap mac-overview-chart-wrap">
+              <div className="mac-single-chart-header" style={{ color: '#f1f5f9' }}>
+                <span className="mac-single-chart-dot" style={{ backgroundColor: '#f1f5f9' }} />
+                <span>Visão Geral — Todos os Rounds Sobrepostos</span>
+                <span className="mac-single-chart-score">
+                  Comparativo direto entre {series.length} rounds por missão
+                </span>
+              </div>
+              <div className="mac-chart-wrap">
+                <svg viewBox={`0 0 ${W} ${H}`} className="mac-svg" preserveAspectRatio="none">
+                  <defs>
+                    <filter id="mac-glow-overview" x="-20%" y="-20%" width="140%" height="140%">
+                      <feDropShadow dx="0" dy="1" stdDeviation="2" floodColor="#000" floodOpacity="0.7" />
+                    </filter>
+                    <filter id="mac-avg-glow-overview" x="-30%" y="-30%" width="160%" height="160%">
+                      <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#fbbf24" floodOpacity="0.8" />
+                    </filter>
+                  </defs>
+
+                  {yTicks.map(t => {
+                    const y = yOf(t.value);
+                    return (
+                      <g key={t.value}>
+                        <line x1={PAD.l} y1={y} x2={W - PAD.r} y2={y}
+                          stroke={t.value === 0 ? '#475569' : '#334155'}
+                          strokeWidth={t.value === 0 ? 1.2 : 0.75}
+                          strokeDasharray={t.value === 0 ? undefined : '4 3'} />
+                        <text x={PAD.l - 8} y={y + 3.5} textAnchor="end" fontSize="9.5" fontWeight="700"
+                          fill={t.value === 100 ? '#4ade80' : t.value === 50 ? '#fbbf24' : '#94a3b8'}>
+                          {t.label}
+                        </text>
+                      </g>
+                    );
+                  })}
+
+                  <line x1={PAD.l} y1={PAD.t} x2={PAD.l} y2={PAD.t + plotH} stroke="#475569" strokeWidth="1.2" />
+                  <line x1={PAD.l} y1={PAD.t + plotH} x2={W - PAD.r} y2={PAD.t + plotH} stroke="#475569" strokeWidth="1.2" />
+
+                  {activeMissionIds.map((mId, i) => {
+                    const x = xOf(i);
+                    const seasonM = getSeasonMission(mId);
+                    return (
+                      <g key={mId}>
+                        <line x1={x} y1={PAD.t + plotH} x2={x} y2={PAD.t + plotH + 4} stroke="#475569" strokeWidth="1" />
+                        <text x={x} y={H - PAD.b + 14} textAnchor="middle" fontSize="9.5" fontWeight="800" fill="#f1f5f9">{mId}</text>
+                        <text x={x} y={H - PAD.b + 25} textAnchor="middle" fontSize="7.5" fill="#64748b">
+                          {seasonM ? `${seasonM.maximum}p` : ''}
+                        </text>
+                      </g>
+                    );
+                  })}
+
+                  {/* Todas as linhas sobrepostas */}
+                  {series.map(s => s.points.length > 1 ? (
+                    <g key={`ov-${s.attIdx}`}>
+                      <path d={s.pathD} fill="none" stroke={s.color} strokeWidth="2.2"
+                        strokeLinecap="round" strokeLinejoin="round" strokeOpacity="0.85"
+                        filter="url(#mac-glow-overview)" />
+                      {s.points.map(p => (
+                        <circle key={`ov-pt-${s.attIdx}-${p.missionId}`}
+                          cx={p.x} cy={p.y} r="3.5" fill={s.color} stroke="#0f172a" strokeWidth="1.2" />
+                      ))}
+                    </g>
+                  ) : null)}
+
+                  {/* Linha de média */}
+                  {missionAverages.length > 1 && (
+                    <path d={averageCurvePath} fill="none" stroke="#fbbf24" strokeWidth="3"
+                      strokeDasharray="5 4" strokeLinecap="round" strokeLinejoin="round"
+                      filter="url(#mac-avg-glow-overview)" />
+                  )}
+                  {missionAverages.map(p => (
+                    <polygon key={`ov-avg-${p.missionId}`}
+                      points={`${p.x},${p.y - 5} ${p.x + 4.5},${p.y + 3} ${p.x - 4.5},${p.y + 3}`}
+                      fill="#fbbf24" stroke="#0f172a" strokeWidth="1.2" />
+                  ))}
+                </svg>
+              </div>
+              {/* Mini legenda interna */}
+              <div className="mac-legend" style={{ marginTop: '0.4rem' }}>
+                <span className="mac-legend-hint">Rounds:</span>
+                {series.map(s => (
+                  <span key={s.attIdx} className="mac-legend-item" style={{ cursor: 'default' }}>
+                    <span className="mac-legend-dot" style={{ backgroundColor: s.color }} />
+                    <strong style={{ color: s.color }}>R{s.attIdx + 1}</strong>
+                    <small>{s.avgAssertiveness.toFixed(0)}%</small>
+                  </span>
+                ))}
+                <span className="mac-legend-item avg-legend-item" style={{ cursor: 'default' }}>
+                  <span className="mac-legend-dot" style={{ backgroundColor: '#fbbf24' }} />
+                  <strong>Média</strong>
+                  <small>por missão</small>
+                </span>
+              </div>
+            </div>
           </div>
 
           {/* Tabela de médias (também exibível no modo split) */}
