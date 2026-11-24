@@ -2574,8 +2574,16 @@ function TestView() {
         <PerformancePanel attempts={Array.isArray(item.attempts) ? item.attempts : []} modality={item.modality} maximum={item.maxScore} />
 
         {/* Gráfico correspondente ao Modo (Missão Individual vs Round Teste) */}
-        {item.modality === 'FLL' && (item.testMode === 'individual' || (!item.testMode && item.mission)) ? (
-          (() => {
+        {(() => {
+          const isRoundView =
+            item.testMode === 'round' ||
+            (item.modality === 'FLL' &&
+              item.testMode !== 'individual' &&
+              !item.mission &&
+              Array.isArray(item.attempts) &&
+              item.attempts.some((a: Attempt) => Array.isArray(a?.missions) && a.missions.length > 1));
+
+          if (item.modality === 'FLL' && !isRoundView && (item.testMode === 'individual' || item.mission)) {
             const selMId = item.mission ? item.mission.slice(0, 3) : '';
             const selMData = selMId ? getSeasonMission(selMId) : null;
             const mMax = selMData ? selMData.maximum : (item.maxScore || 30);
@@ -2587,17 +2595,19 @@ function TestView() {
                 attempts={Array.isArray(item.attempts) ? item.attempts : []}
               />
             );
-          })()
-        ) : (
-          <MissionAssertivenessChart
-            attempts={Array.isArray(item.attempts) ? item.attempts : []}
-            modality={item.modality}
-            title={item.modality === 'FLL' ? 'Assertividade do Desafio do Robô (M01 a M15)' : 'Assertividade por Missão'}
-            forceAllMissions={item.modality === 'FLL'}
-            attemptLabelPrefix={item.testMode === 'round' ? 'Round Teste' : 'Tentativa'}
-            splitByRound={item.modality === 'FLL' && item.testMode === 'round'}
-          />
-        )}
+          }
+
+          return (
+            <MissionAssertivenessChart
+              attempts={Array.isArray(item.attempts) ? item.attempts : []}
+              modality={item.modality}
+              title={item.modality === 'FLL' ? 'Assertividade do Desafio do Robô (M01 a M15)' : 'Assertividade por Missão'}
+              forceAllMissions={item.modality === 'FLL'}
+              attemptLabelPrefix={isRoundView ? 'Round Teste' : 'Tentativa'}
+              splitByRound={item.modality === 'FLL' && isRoundView}
+            />
+          );
+        })()}
 
         {/* Gráfico de Evolução Geral (Pontos, Tempo e Falhas) */}
         <DataAnalysis attempts={Array.isArray(item.attempts) ? item.attempts : []} maximumScore={Number(item.maxScore || (item.modality === 'FLL' ? BIOGLOW_SEASON.maximumScore : 0))} />
@@ -2605,7 +2615,13 @@ function TestView() {
         <div className="attempt-results">{(item.attempts || []).map((attempt: Attempt, i: number) => {
           const attemptColor = ATTEMPT_COLORS[i % ATTEMPT_COLORS.length];
           const missions = Array.isArray(attempt.missions) ? attempt.missions : [];
-          const isRound = item.testMode === 'round';
+          const isRound =
+            item.testMode === 'round' ||
+            (item.modality === 'FLL' &&
+              item.testMode !== 'individual' &&
+              !item.mission &&
+              Array.isArray(item.attempts) &&
+              item.attempts.some((a: Attempt) => Array.isArray(a?.missions) && a.missions.length > 1));
           const precisionPts = calculatePrecisionPoints(attempt.precisionTokensRemaining ?? 6);
           const inspectionPts = attempt.inspectionBonus ? BIOGLOW_SEASON.equipmentInspectionPoints : 0;
 
