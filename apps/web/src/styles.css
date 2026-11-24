@@ -10557,3 +10557,67 @@ textarea,
     font-size: 0.8rem;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   MAC SPLIT CHARTS — Gráficos individuais por Round Teste (FLL)
+   ══════════════════════════════════════════════════════════════════ */
+
+.mac-split-charts {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-top: 0.75rem;
+}
+
+.mac-single-chart-wrap {
+  background: rgba(10, 20, 15, 0.6);
+  border-radius: 10px;
+  padding: 0.85rem 1rem 0.65rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.mac-avg-chart-wrap {
+  border-color: rgba(251, 191, 36, 0.25) !important;
+  background: rgba(251, 191, 36, 0.04) !important;
+}
+
+.mac-single-chart-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-family: 'Barlow Condensed', 'Barlow', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-wrap: wrap;
+}
+
+.mac-single-chart-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.mac-single-chart-score {
+  font-size: 0.72rem;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  opacity: 0.8;
+  margin-left: auto;
+}
+
+@media (max-width: 600px) {
+  .mac-single-chart-score {
+    display: block;
+    margin-left: 0;
+    width: 100%;
+  }
+  .mac-single-chart-header {
+    font-size: 0.78rem;
+  }
+}

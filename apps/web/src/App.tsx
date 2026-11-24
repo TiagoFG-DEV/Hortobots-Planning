@@ -2190,6 +2190,7 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
                       title="Assertividade do Desafio do Robô (M01 a M15)"
                       forceAllMissions={true}
                       attemptLabelPrefix="Round Teste"
+                      splitByRound={true}
                     />
                     <div style={{ marginTop: '1rem' }}>
                       <DataAnalysis attempts={activeAttempts} maximumScore={BIOGLOW_SEASON.maximumScore} />
@@ -2594,6 +2595,7 @@ function TestView() {
             title={item.modality === 'FLL' ? 'Assertividade do Desafio do Robô (M01 a M15)' : 'Assertividade por Missão'}
             forceAllMissions={item.modality === 'FLL'}
             attemptLabelPrefix={item.testMode === 'round' ? 'Round Teste' : 'Tentativa'}
+            splitByRound={item.modality === 'FLL' && item.testMode === 'round'}
           />
         )}
 
