@@ -6,6 +6,12 @@ O projeto opera como um monorepo modular em TypeScript. O backend em Node.js com
 
 ## Versões
 
+- **3.2.0 — Modos "Missão individual" e "Round Teste" Completo (FLL 2026/2027 BIOGLOW):**
+  - **Seletor de Modo no Topo:** Opções "Missão individual" e "Round Teste" adicionadas logo abaixo do nome do teste exclusivamente para os cadernos FLL.
+  - **Modo "Missão individual":** Avaliação de precisão e acertividade com foco em uma missão por vez. Gráfico de linha de Assertividade em função das tentativas medido diretamente sobre a **pontuação máxima da missão selecionada** (e não mais pela pontuação máxima da mesa toda).
+  - **Modo "Round Teste":** Simulação completa do Desafio do Robô FLL (2min30s) em cada tentativa. Inclui Score Sheet oficial completo com as 15 missões da temporada BIOGLOW (sub-objetivos, bônus, checkboxes, seletores), Bônus de Inspeção (+20 pts) e Discos de Precisão restantes (0 a 6 discos, até 50 pts) substituindo o campo de falhas.
+  - **Gráfico de Assertividade por Missão do Round Teste:** Gráfico vetorial apresentando a assertividade percentual (0% a 100%) em função de cada uma das 15 missões (`M01` a `M15`), com cada Round Teste representado por uma linha colorida sobreposta com legenda interativa.
+  - **Visualização e Edição Integradas:** Detecção e renderização consistente entre modo individual e round teste ao editar ou consultar testes salvos.
 - **3.1.0 — Seleção de Missões por Tentativa e Gráfico de Assertividade Sobreposto (FLL 2026/2027 BIOGLOW):**
   - **Seleção Individual por Tentativa:** Cada tentativa agora possui sua própria seleção de missões realizadas (`M01` a `M15`) com pontuação independente, substituindo a limitação anterior de missão única para todo o teste.
   - **Ações Rápidas de Lançamento:** Botões `+ Todas` (adiciona as 15 missões da temporada BIOGLOW com 1 clique para simulações completas de rodada), `Copiar T{i}` (clona as missões e notas da tentativa anterior) e `Limpar`.

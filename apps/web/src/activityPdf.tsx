@@ -22,7 +22,15 @@ type TeamKey = 'fll' | 'under' | 'obr';
 type ActivityKind = 'record' | 'test';
 type PreparedMedia = { name: string; source: string; video: boolean };
 type AttemptMission = { missionId: string; name?: string; score: number; maxScore: number };
-type Attempt = { time?: number; score?: number; failures?: number; observed?: number; missions?: AttemptMission[] };
+type Attempt = {
+  time?: number;
+  score?: number;
+  failures?: number;
+  observed?: number;
+  inspectionBonus?: boolean;
+  precisionTokensRemaining?: number;
+  missions?: AttemptMission[];
+};
 
 type GenerateActivityPdfOptions = {
   item: Record<string, any>;
@@ -359,45 +367,112 @@ export const ActivityDocument = ({ item, kind, team, media, teamLogo, competitio
           <PerformanceChart attempts={attempts} team={team} />
           {attemptChunks.map((chunk, chunkIndex) => <View key={chunkIndex} style={[styles.attemptsTable, chunkIndex > 0 ? { marginTop: 8 } : {}]} wrap={false} break={chunkIndex > 0}>
               <View style={[styles.attemptRow, styles.attemptHeader, { backgroundColor: identity.primary }]}>
-                <Text style={styles.attemptCell}>Tentativa</Text><Text style={styles.attemptCell}>Tempo</Text><Text style={styles.attemptCell}>{team === 'obr' ? 'Observado' : 'Pontuação'}</Text><Text style={styles.attemptCell}>Falhas</Text><Text style={styles.attemptCell}>Resultado</Text>
+                <Text style={styles.attemptCell}>{item.testMode === 'round' ? 'Round Teste' : 'Tentativa'}</Text>
+                <Text style={styles.attemptCell}>Tempo</Text>
+                <Text style={styles.attemptCell}>{team === 'obr' ? 'Observado' : 'Pontuação'}</Text>
+                <Text style={styles.attemptCell}>{item.testMode === 'round' ? 'Discos Rest.' : 'Falhas'}</Text>
+                <Text style={styles.attemptCell}>{item.testMode === 'round' ? 'Inspeção' : 'Resultado'}</Text>
               </View>
               {chunk.map((attempt, index) => {
                 const absoluteIndex = chunkIndex * 8 + index;
+                const isRound = item.testMode === 'round';
                 return <View key={absoluteIndex} style={[styles.attemptRow, { backgroundColor: absoluteIndex % 2 ? '#f1f3ee' : '#ffffff' }]}>
-                  <Text style={styles.attemptCell}>{absoluteIndex + 1}</Text><Text style={styles.attemptCell}>{asNumber(attempt.time)} s</Text><Text style={styles.attemptCell}>{team === 'obr' ? asNumber(attempt.observed ?? attempt.score) : asNumber(attempt.score)}</Text><Text style={styles.attemptCell}>{asNumber(attempt.failures)}</Text><Text style={styles.attemptCell}>{asNumber(attempt.failures) === 0 ? 'Sem falhas' : 'Revisar'}</Text>
+                  <Text style={styles.attemptCell}>{isRound ? `Round ${absoluteIndex + 1}` : absoluteIndex + 1}</Text>
+                  <Text style={styles.attemptCell}>{asNumber(attempt.time)} s</Text>
+                  <Text style={styles.attemptCell}>{team === 'obr' ? asNumber(attempt.observed ?? attempt.score) : asNumber(attempt.score)}</Text>
+                  <Text style={styles.attemptCell}>{isRound ? `${attempt.precisionTokensRemaining ?? 6} discos` : asNumber(attempt.failures)}</Text>
+                  <Text style={styles.attemptCell}>{isRound ? (attempt.inspectionBonus ? '+20 pts' : '0 pts') : (asNumber(attempt.failures) === 0 ? 'Sem falhas' : 'Revisar')}</Text>
                 </View>;
               })}
             </View>)}
-          {attempts.some(a => Array.isArray(a.missions) && a.missions.length > 0) && (
-            <View style={[styles.section, { marginTop: 10 }]} wrap={false}>
-              <Text style={[styles.sectionTitle, { color: identity.ink, borderBottomColor: identity.secondary }]}>
-                Assertividade por Missão nas Tentativas
-              </Text>
-              <View style={styles.attemptsTable}>
-                <View style={[styles.attemptRow, styles.attemptHeader, { backgroundColor: identity.secondary }]}>
-                  <Text style={[styles.attemptCell, { width: '18%' }]}>Tentativa</Text>
-                  <Text style={[styles.attemptCell, { width: '18%' }]}>Missão</Text>
-                  <Text style={[styles.attemptCell, { width: '22%' }]}>Pontuação</Text>
-                  <Text style={[styles.attemptCell, { width: '20%' }]}>Máximo</Text>
-                  <Text style={[styles.attemptCell, { width: '22%' }]}>Assertividade</Text>
-                </View>
-                {attempts.flatMap((att, attIdx) => (att.missions || []).map((m, mIdx) => {
-                  const max = m.maxScore || 1;
-                  const scoreVal = asNumber(m.score);
-                  const pct = Math.min(100, Math.round((scoreVal / max) * 100));
-                  return (
-                    <View key={`${attIdx}-${m.missionId}`} style={[styles.attemptRow, { backgroundColor: (attIdx + mIdx) % 2 ? '#f1f3ee' : '#ffffff' }]}>
-                      <Text style={[styles.attemptCell, { width: '18%' }]}>Tentativa {attIdx + 1}</Text>
-                      <Text style={[styles.attemptCell, { width: '18%', fontFamily: 'Helvetica-Bold' }]}>{m.missionId}</Text>
-                      <Text style={[styles.attemptCell, { width: '22%' }]}>{scoreVal} pts</Text>
-                      <Text style={[styles.attemptCell, { width: '20%' }]}>{max} pts</Text>
-                      <Text style={[styles.attemptCell, { width: '22%', fontFamily: 'Helvetica-Bold', color: pct >= 100 ? '#16794b' : pct >= 50 ? '#2563eb' : '#d97706' }]}>{pct}%</Text>
+          {attempts.some(a => Array.isArray(a.missions) && a.missions.length > 0) && (() => {
+            // Calcula a média consolidada de cada missão individual e discos de precisão
+            const missionIds = Array.from(new Set(attempts.flatMap(a => (a.missions || []).map(m => m.missionId.toUpperCase())))).sort();
+            const missionSummary = missionIds.map(mId => {
+              let totalScore = 0;
+              let maxScore = 0;
+              let count = 0;
+              attempts.forEach(a => {
+                const found = (a.missions || []).find(m => m.missionId.toUpperCase() === mId);
+                if (found) {
+                  totalScore += asNumber(found.score);
+                  maxScore = found.maxScore || maxScore || 1;
+                  count++;
+                }
+              });
+              const avgScore = count > 0 ? totalScore / count : 0;
+              const avgPct = maxScore > 0 ? Math.min(100, Math.round((avgScore / maxScore) * 100)) : 0;
+              return { mId, avgScore, maxScore, avgPct, count };
+            });
+
+            // Média dos discos de precisão
+            const tokenCounts = attempts.map(a => a.precisionTokensRemaining ?? 6);
+            const avgTokens = tokenCounts.length ? tokenCounts.reduce((s, v) => s + v, 0) / tokenCounts.length : 6;
+            const tokenPoints = tokenCounts.map(t => t >= 5 ? 50 : t === 4 ? 35 : t === 3 ? 25 : t === 2 ? 15 : t === 1 ? 10 : 0);
+            const avgTokenPoints = tokenPoints.length ? tokenPoints.reduce((s: number, v) => s + v, 0) / tokenPoints.length : 50;
+            const avgTokenPct = Math.round((avgTokenPoints / 50) * 100);
+
+            return (
+              <View style={[styles.section, { marginTop: 10 }]} wrap={false}>
+                <Text style={[styles.sectionTitle, { color: identity.ink, borderBottomColor: identity.secondary }]}>
+                  Médias de Assertividade por Missão (Todas as Tentativas)
+                </Text>
+                <View style={[styles.attemptsTable, { marginBottom: 8 }]}>
+                  <View style={[styles.attemptRow, styles.attemptHeader, { backgroundColor: identity.primary }]}>
+                    <Text style={[styles.attemptCell, { width: '25%' }]}>Missão / Item</Text>
+                    <Text style={[styles.attemptCell, { width: '25%' }]}>Pontuação Média</Text>
+                    <Text style={[styles.attemptCell, { width: '25%' }]}>Pontuação Máx</Text>
+                    <Text style={[styles.attemptCell, { width: '25%' }]}>Assertividade Média</Text>
+                  </View>
+                  {missionSummary.map((m, mIdx) => (
+                    <View key={m.mId} style={[styles.attemptRow, { backgroundColor: mIdx % 2 ? '#f1f3ee' : '#ffffff' }]}>
+                      <Text style={[styles.attemptCell, { width: '25%', fontFamily: 'Helvetica-Bold' }]}>{m.mId}</Text>
+                      <Text style={[styles.attemptCell, { width: '25%' }]}>{m.avgScore.toFixed(1)} pts</Text>
+                      <Text style={[styles.attemptCell, { width: '25%' }]}>{m.maxScore} pts</Text>
+                      <Text style={[styles.attemptCell, { width: '25%', fontFamily: 'Helvetica-Bold', color: m.avgPct >= 100 ? '#16794b' : m.avgPct >= 50 ? '#2563eb' : '#d97706' }]}>
+                        {m.avgPct}%
+                      </Text>
                     </View>
-                  );
-                }))}
+                  ))}
+                  <View style={[styles.attemptRow, { backgroundColor: '#eef2ea' }]}>
+                    <Text style={[styles.attemptCell, { width: '25%', fontFamily: 'Helvetica-Bold' }]}>Discos de Precisão</Text>
+                    <Text style={[styles.attemptCell, { width: '25%' }]}>{avgTokenPoints.toFixed(1)} pts ({avgTokens.toFixed(1)} rest.)</Text>
+                    <Text style={[styles.attemptCell, { width: '25%' }]}>50 pts</Text>
+                    <Text style={[styles.attemptCell, { width: '25%', fontFamily: 'Helvetica-Bold', color: avgTokenPct >= 100 ? '#16794b' : avgTokenPct >= 50 ? '#2563eb' : '#d97706' }]}>
+                      {avgTokenPct}%
+                    </Text>
+                  </View>
+                </View>
+
+                <Text style={[styles.sectionTitle, { color: identity.ink, borderBottomColor: identity.secondary, marginTop: 6 }]}>
+                  Detalhamento por Tentativa / Round
+                </Text>
+                <View style={styles.attemptsTable}>
+                  <View style={[styles.attemptRow, styles.attemptHeader, { backgroundColor: identity.secondary }]}>
+                    <Text style={[styles.attemptCell, { width: '20%' }]}>Tentativa/Round</Text>
+                    <Text style={[styles.attemptCell, { width: '18%' }]}>Missão</Text>
+                    <Text style={[styles.attemptCell, { width: '20%' }]}>Pontuação</Text>
+                    <Text style={[styles.attemptCell, { width: '20%' }]}>Máximo</Text>
+                    <Text style={[styles.attemptCell, { width: '22%' }]}>Assertividade</Text>
+                  </View>
+                  {attempts.flatMap((att, attIdx) => (att.missions || []).map((m, mIdx) => {
+                    const max = m.maxScore || 1;
+                    const scoreVal = asNumber(m.score);
+                    const pct = Math.min(100, Math.round((scoreVal / max) * 100));
+                    return (
+                      <View key={`${attIdx}-${m.missionId}`} style={[styles.attemptRow, { backgroundColor: (attIdx + mIdx) % 2 ? '#f1f3ee' : '#ffffff' }]}>
+                        <Text style={[styles.attemptCell, { width: '20%' }]}>{item.testMode === 'round' ? `Round ${attIdx + 1}` : `Tentativa ${attIdx + 1}`}</Text>
+                        <Text style={[styles.attemptCell, { width: '18%', fontFamily: 'Helvetica-Bold' }]}>{m.missionId}</Text>
+                        <Text style={[styles.attemptCell, { width: '20%' }]}>{scoreVal} pts</Text>
+                        <Text style={[styles.attemptCell, { width: '20%' }]}>{max} pts</Text>
+                        <Text style={[styles.attemptCell, { width: '22%', fontFamily: 'Helvetica-Bold', color: pct >= 100 ? '#16794b' : pct >= 50 ? '#2563eb' : '#d97706' }]}>{pct}%</Text>
+                      </View>
+                    );
+                  }))}
+                </View>
               </View>
-            </View>
-          )}
+            );
+          })()}
           {(team === 'fll' || team === 'under' || String(item.modality || '').toUpperCase() === 'FLL') && (() => {
             const configuredMaximum = Number(item.maxScore) > 0 ? Number(item.maxScore) : 530;
             const best = scores.length ? Math.max(...scores) : 0;

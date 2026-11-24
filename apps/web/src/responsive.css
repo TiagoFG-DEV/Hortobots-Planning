@@ -811,3 +811,145 @@ html:has(.menu-layer.open, .dialog-layer, .focus-layer, .hb-dialog-overlay) .log
   }
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Responsividade: Modos de Teste FLL — Missão Individual + Round Teste
+   Alvo: mobile 320px–480px, tablet 481px–768px
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Tablet (≤ 768 px) */
+@media (max-width: 768px) {
+
+  /* Seletor de modo: empilhar botões verticalmente */
+  .test-mode-options-bar {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .test-mode-btn {
+    justify-content: center;
+    padding: 0.65rem 1rem;
+  }
+
+  /* SingleMissionChart – header e stats */
+  .smc-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  .smc-stats-bar {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .smc-stat-item {
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  /* RoundScoreSheet – header e bonus */
+  .round-scoresheet-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.6rem;
+  }
+  .round-bonus-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+    padding: 0.65rem 0.75rem;
+  }
+
+  /* Discos de precisão: overflow horizontal, touch-friendly */
+  .precision-token-buttons {
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  /* Missão card dentro do Round Teste */
+  .round-mission-card {
+    padding: 0.65rem 0.75rem;
+  }
+  .rm-fields-grid {
+    gap: 0.45rem;
+  }
+
+  /* MAC: Averages table */
+  .mac-averages-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .mac-table-grid {
+    min-width: 480px;        /* force scroll em vez de quebrar o layout */
+  }
+  .mac-header-controls {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  /* Legenda da média */
+  .avg-legend-item {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.72rem;
+  }
+}
+
+/* Mobile (≤ 480 px) */
+@media (max-width: 480px) {
+
+  /* Modo selector: botões full-width */
+  .test-mode-options-bar {
+    padding: 0.4rem;
+    border-radius: 10px;
+  }
+  .test-mode-btn {
+    font-size: 0.82rem;
+    gap: 0.4rem;
+  }
+
+  /* SingleMission SVG: altura menor para caber na tela */
+  .smc-svg {
+    height: 180px;
+  }
+
+  /* Discos: botões menores para caber em 320 px */
+  .precision-token-buttons button {
+    min-width: 36px;
+    min-height: 36px;
+    font-size: 0.78rem;
+    padding: 0.2rem 0.35rem;
+  }
+
+  /* Averages table: scroll horizontal sempre ativo */
+  .mac-table-grid {
+    min-width: 420px;
+  }
+  .mac-table-cell {
+    padding: 0.4rem 0.5rem;
+    font-size: 0.72rem;
+  }
+
+  /* MAC chart: label font menor */
+  .mac-legend-hint {
+    font-size: 0.65rem;
+  }
+  .mac-legend-item {
+    font-size: 0.72rem;
+    padding: 0.15rem 0.4rem;
+  }
+
+  /* Round mission summary bar (pontuação por missão) */
+  .round-mission-summary-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.3rem;
+  }
+
+  /* Garantir que checboxes/radios sejam tap-friendly */
+  .rm-fields-grid input[type='checkbox'],
+  .rm-fields-grid input[type='radio'] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+  }
+}
+
+

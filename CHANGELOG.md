@@ -1,8 +1,36 @@
-﻿# Histórico de versões
+# Histórico de versões
 
 As versões futuras devem ser acrescentadas no topo deste arquivo, preservando o histórico já publicado.
 
-## [3.1.0] — 2026-11-24 — Seleção de Missões por Tentativa e Gráfico de Assertividade Sobreposto (FLL 2026/2027 BIOGLOW)
+## [3.2.0] — 2026-11-24 — Modos "Missão individual" e "Round Teste" Completo (FLL 2026/2027 BIOGLOW)
+
+### Novas Funcionalidades e Inovações
+
+#### 1. Seletor de Modo na Tela de Simulações e Testes (Cadernos FLL)
+- **Alternância entre Modos de Simulação:** Inserido seletor logo abaixo do campo de título do teste com duas opções exclusivas para equipes de FLL (SESI Hortobots e UnderConstruction):
+  - **"Missão individual"**: dedicado a testes repetitivos de precisão e acertividade em uma única missão isolada.
+  - **"Round Teste"**: simula o Desafio do Robô completo de 2min30s com todas as 15 missões da temporada, bônus de inspeção e discos de precisão.
+
+#### 2. Modo "Missão individual" com Teto Específico da Missão
+- **Gráfico Focado no Teto da Missão:** A escala e a porcentagem de assertividade agora comparam os pontos obtidos em relação à **pontuação máxima daquela missão específica** selecionada (ex: teto de 30 pts para M01 Drone Survey), e não mais em relação aos 530 pontos da mesa toda.
+- **Gráfico de Linha de Assertividade em Função das Tentativas:** Renderiza a assertividade (%) da missão ao longo das tentativas (`Tentativa 1`, `Tentativa 2`, etc.), com área sombreada, tooltips flutuantes e estatísticas de média e pico.
+
+#### 3. Modo "Round Teste" — Simulação Completa do Desafio do Robô FLL
+- **Score Sheet Oficial Completo por Round:** Cada tentativa passa a ser um **Round Teste** (`Round Teste 1`, `Round Teste 2`, etc.), contendo a avaliação de todas as 15 missões oficiais da temporada BIOGLOW:
+  - Checkboxes, botões de incremento/decremento e seletores para cada sub-objetivo e bônus da regra (ex: Drone elevado + LiDAR bônus; Sementes dispersadas 0 a 4; Rocha invertida e retornada; Esperança protegida; etc.).
+  - **Bônus de Inspeção de Equipamento (+20 pts)** com toggle switch dedicado.
+  - **Discos de Precisão Restantes (0 a 6)** substituindo o campo de falhas, calculando a pontuação oficial regressiva (6 discos = 50 pts, 5 = 50 pts, 4 = 35 pts, 3 = 25 pts, 2 = 15 pts, 1 = 10 pts, 0 = 0 pts).
+  - Cálculo e soma automáticos da pontuação total oficial de cada round (até 530 pontos).
+- **Gráfico de Assertividade em Função de Cada Missão (Linhas Coloridas Sobrepostas):**
+  - Eixo X com todas as 15 missões (`M01` a `M15`).
+  - Eixo Y com a acertividade em porcentagem (0% a 100%) calculada com base no total de pontos de cada missão.
+  - Cada Round Teste é representado por uma linha com cor distinta na legenda e no gráfico.
+  - Legenda interativa com capacidade de isolar cada Round Teste para análise aprofundada.
+
+#### 4. Visualização e Edição Integradas
+- Identificação automática do modo ao abrir testes salvos em `/:mod/teste/:id` e em `/:mod/testes/editar/:id`, preservando o modo escolhido e renderizando os componentes e gráficos correspondentes.
+
+
 
 ### Novas Funcionalidades e Melhorias
 

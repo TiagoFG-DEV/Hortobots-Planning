@@ -22,6 +22,7 @@ import {
   Plus,
   Search,
   Shield,
+  Target,
   Trash2,
   Video,
   X
@@ -60,9 +61,12 @@ import {
   calculateMissionAssertiveness,
   getMissionMaxScore,
   getSeasonMission,
+  calculatePrecisionPoints,
   type AttemptMission
 } from '@hortobots/shared';
 import { MissionAssertivenessChart, ATTEMPT_COLORS } from './MissionAssertivenessChart';
+import { SingleMissionChart } from './SingleMissionChart';
+import { RoundScoreSheet } from './RoundScoreSheet';
 import { TEAMS, getTeamKey, withTeamTag, isTeamTag, displayDate, teamFromRoute, notebookRoute } from './teams';
 import {
   canCreateTeamContent,
@@ -108,6 +112,8 @@ type Attempt = {
   score: number;
   failures: number;
   observed: number;
+  inspectionBonus?: boolean;
+  precisionTokensRemaining?: number;
   missions?: AttemptMission[];
 };
 
@@ -1444,8 +1450,17 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
   const user = useCurrentUser();
   const [loaded, setLoaded] = useState(!isEdit);
   const [count, setCount] = useState(3);
+  const [testMode, setTestMode] = useState<'individual' | 'round'>('individual');
   const [attempts, setAttempts] = useState<Attempt[]>(
-    Array.from({ length: 15 }, () => ({ time: 150, score: 0, failures: 0, observed: 0, missions: [] }))
+    Array.from({ length: 15 }, () => ({
+      time: 150,
+      score: 0,
+      failures: 0,
+      observed: 0,
+      inspectionBonus: false,
+      precisionTokensRemaining: 6,
+      missions: []
+    }))
   );
   const [chartTab, setChartTab] = useState<'both' | 'assertiveness' | 'evolution'>('both');
   const [media, setMedia] = useState<MediaSlot[]>([]);
@@ -1453,10 +1468,18 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
   const [isSaving, setIsSaving] = useState(false);
   const [celebration, setCelebration] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
-  const [base, setBase] = useState({ date: today, title: '', objective: '', comments: '', mission: '', maxScore: notebook.modality === 'FLL' ? BIOGLOW_SEASON.maximumScore : 0 });
+  const [base, setBase] = useState({
+    date: today,
+    title: '',
+    objective: '',
+    comments: '',
+    mission: '',
+    testMode: 'individual',
+    maxScore: notebook.modality === 'FLL' ? BIOGLOW_SEASON.maximumScore : 0
+  });
   const [showAnalysis, setShowAnalysis] = useState(true);
 
-  // Adiciona missão a uma tentativa
+  // Adiciona missão a uma tentativa (Modo Individual)
   const addMissionToAttempt = (attIndex: number, missionId: string) => {
     if (!missionId) return;
     const seasonM = getSeasonMission(missionId);
@@ -1464,6 +1487,7 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
     setAttempts(prev => {
       const copy = [...prev];
       const att = copy[attIndex];
+      if (!att) return prev;
       const currentMissions = att.missions || [];
       if (currentMissions.some(m => m.missionId.toUpperCase() === missionId.toUpperCase())) return prev;
       const newMissions = [
@@ -1485,11 +1509,118 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
     });
   };
 
+  // Atualiza pontuação de missão no Round Teste ou Individual
+  const updateMissionScoreInAttempt = (
+    attIndex: number,
+    missionId: string,
+    score: number,
+    answers?: Record<string, any>
+  ) => {
+    setAttempts(prev => {
+      const copy = [...prev];
+      const att = copy[attIndex];
+      if (!att) return prev;
+      const seasonM = getSeasonMission(missionId);
+      const maxScore = seasonM ? seasonM.maximum : 0;
+      const currentMissions = att.missions || [];
+      const exists = currentMissions.some(m => m.missionId.toUpperCase() === missionId.toUpperCase());
+
+      let newMissions: AttemptMission[];
+      if (exists) {
+        newMissions = currentMissions.map(m => {
+          if (m.missionId.toUpperCase() === missionId.toUpperCase()) {
+            return {
+              ...m,
+              score,
+              answers: answers || m.answers
+            };
+          }
+          return m;
+        });
+      } else {
+        newMissions = [
+          ...currentMissions,
+          {
+            missionId: missionId.toUpperCase(),
+            name: seasonM?.name || missionId,
+            score,
+            maxScore,
+            answers
+          }
+        ];
+      }
+
+      const missionsTotal = newMissions.reduce((s, m) => s + (Number(m.score) || 0), 0);
+      const precisionBonus = calculatePrecisionPoints(att.precisionTokensRemaining ?? 6);
+      const inspectionBonus = att.inspectionBonus ? BIOGLOW_SEASON.equipmentInspectionPoints : 0;
+      const finalScore = missionsTotal + precisionBonus + inspectionBonus;
+
+      copy[attIndex] = {
+        ...att,
+        missions: newMissions,
+        score: testMode === 'round' ? finalScore : missionsTotal
+      };
+      return copy;
+    });
+  };
+
+  // Atualiza extra do Round Teste (inspeção ou discos de precisão)
+  const updateRoundExtra = (
+    attIndex: number,
+    field: 'inspectionBonus' | 'precisionTokensRemaining',
+    value: any
+  ) => {
+    setAttempts(prev => {
+      const copy = [...prev];
+      const att = copy[attIndex];
+      if (!att) return prev;
+      const updatedAtt: Attempt = {
+        ...att,
+        [field]: value
+      };
+      const missionsTotal = (updatedAtt.missions || []).reduce((s, m) => s + (Number(m.score) || 0), 0);
+      const precisionBonus = calculatePrecisionPoints(updatedAtt.precisionTokensRemaining ?? 6);
+      const inspectionBonus = updatedAtt.inspectionBonus ? BIOGLOW_SEASON.equipmentInspectionPoints : 0;
+      const finalScore = missionsTotal + precisionBonus + inspectionBonus;
+      copy[attIndex] = {
+        ...updatedAtt,
+        score: finalScore,
+        failures: field === 'precisionTokensRemaining' ? Math.max(0, 6 - Number(value)) : att.failures
+      };
+      return copy;
+    });
+  };
+
+  // Zerar missões de um Round Teste
+  const resetRoundMissions = (attIndex: number) => {
+    setAttempts(prev => {
+      const copy = [...prev];
+      const att = copy[attIndex];
+      if (!att) return prev;
+      const zeroedMissions: AttemptMission[] = BIOGLOW_SEASON.missions.map(m => ({
+        missionId: m.id,
+        name: m.name,
+        score: 0,
+        maxScore: m.maximum,
+        answers: {}
+      }));
+      const precisionBonus = calculatePrecisionPoints(att.precisionTokensRemaining ?? 6);
+      const inspectionBonus = att.inspectionBonus ? BIOGLOW_SEASON.equipmentInspectionPoints : 0;
+      copy[attIndex] = {
+        ...att,
+        missions: zeroedMissions,
+        score: precisionBonus + inspectionBonus
+      };
+      return copy;
+    });
+  };
+
   // Adiciona todas as 15 missões da temporada BIOGLOW a uma tentativa
   const addAllMissionsToAttempt = (attIndex: number) => {
     setAttempts(prev => {
       const copy = [...prev];
       const att = copy[attIndex];
+      if (!att) return prev;
       const currentMap = new Map((att.missions || []).map(m => [m.missionId.toUpperCase(), m]));
       const newMissions: AttemptMission[] = BIOGLOW_SEASON.missions.map(m => {
         const existing = currentMap.get(m.id.toUpperCase());
@@ -1511,6 +1642,7 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
     setAttempts(prev => {
       const copy = [...prev];
       const att = copy[attIndex];
+      if (!att) return prev;
       const newMissions = (att.missions || []).filter(
         m => m.missionId.toUpperCase() !== missionId.toUpperCase()
       );
@@ -1525,6 +1657,7 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
     setAttempts(prev => {
       const copy = [...prev];
       const att = copy[attIndex];
+      if (!att) return prev;
       const newMissions = (att.missions || []).map(m => {
         if (m.missionId.toUpperCase() === missionId.toUpperCase()) {
           const clamped = Math.max(0, Math.min(m.maxScore, score));
@@ -1545,6 +1678,7 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
       const copy = [...prev];
       const source = copy[attIndex - 1];
       const current = copy[attIndex];
+      if (!source || !current) return prev;
       const clonedMissions = (source.missions || []).map(m => ({ ...m }));
       const missionTotal = clonedMissions.reduce((s, m) => s + (Number(m.score) || 0), 0);
       copy[attIndex] = {
@@ -1562,7 +1696,9 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
   const clearMissionsFromAttempt = (attIndex: number) => {
     setAttempts(prev => {
       const copy = [...prev];
-      copy[attIndex] = { ...copy[attIndex], missions: [] };
+      const att = copy[attIndex];
+      if (!att) return prev;
+      copy[attIndex] = { ...att, missions: [] };
       return copy;
     });
   };
@@ -1597,12 +1733,15 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
               navigate(`/${mod}/teste/${id}`, { replace: true });
               return;
             }
+            const loadedMode = t.testMode || (t.attempts?.[0]?.missions?.length > 1 && !t.mission ? 'round' : 'individual');
+            setTestMode(loadedMode);
             setBase({
               date: t.date || today,
               title: t.title || '',
               objective: t.objective || '',
               comments: t.comments || '',
               mission: t.mission || '',
+              testMode: loadedMode,
               maxScore: Number(t.maxScore || (notebook.modality === 'FLL' ? BIOGLOW_SEASON.maximumScore : 0))
             });
             setLoaded(true);
@@ -1626,7 +1765,12 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
                         }];
                       }
                     }
-                    copy[idx] = { ...att, missions: attMissions };
+                    copy[idx] = {
+                      ...att,
+                      inspectionBonus: Boolean(att.inspectionBonus),
+                      precisionTokensRemaining: att.precisionTokensRemaining ?? 6,
+                      missions: attMissions
+                    };
                   }
                 });
                 return copy;
@@ -1678,8 +1822,17 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
       // 1. Upload seguro e direto de todas as mídias para a nuvem Supabase Storage
       const processedMedia = await uploadMediaList(media, 'testes', notebook.modality);
 
+      const selectedMissionId = base.mission ? base.mission.slice(0, 3) : '';
+      const selectedMissionData = selectedMissionId ? getSeasonMission(selectedMissionId) : null;
+      const effectiveMaxScore =
+        notebook.modality === 'FLL'
+          ? (testMode === 'round' ? BIOGLOW_SEASON.maximumScore : (selectedMissionData?.maximum || BIOGLOW_SEASON.maximumScore))
+          : base.maxScore;
+
       const payload = {
         ...base,
+        testMode,
+        maxScore: effectiveMaxScore,
         modality: notebook.modality,
         team: notebook.storedName,
         attempts: attempts.slice(0, count),
@@ -1743,17 +1896,58 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
               Nome do teste
               <input value={base.title} onChange={e => setBase({ ...base, title: e.target.value })} />
             </label>
+
+            {/* Seletor de Modo: Missão Individual vs Round Teste (Exclusivo FLL) */}
+            {notebook.modality === 'FLL' && (
+              <div className="test-mode-selector-group">
+                <span className="test-mode-selector-label">Modo da Simulação</span>
+                <div className="test-mode-options-bar">
+                  <button
+                    type="button"
+                    className={`test-mode-btn ${testMode === 'individual' ? 'active' : ''}`}
+                    onClick={() => {
+                      setTestMode('individual');
+                      setBase(prev => ({ ...prev, testMode: 'individual' }));
+                    }}
+                  >
+                    <Target size={16} /> Missão individual
+                  </button>
+                  <button
+                    type="button"
+                    className={`test-mode-btn round ${testMode === 'round' ? 'active' : ''}`}
+                    onClick={() => {
+                      setTestMode('round');
+                      setBase(prev => ({ ...prev, testMode: 'round' }));
+                    }}
+                  >
+                    <Layers size={16} /> Round Teste
+                  </button>
+                </div>
+              </div>
+            )}
+
             <label>
               Objetivo
               <AutoArea value={base.objective} onChange={e => setBase({ ...base, objective: e.target.value })} />
             </label>
-            {notebook.modality === 'FLL' && (
+            {notebook.modality === 'FLL' && testMode === 'individual' && (
               <>
                 <label>
-                  Foco do teste (Opcional • As missões agora são definidas em cada tentativa abaixo)
-                  <select value={base.mission} onChange={e => setBase({ ...base, mission: e.target.value })}>
-                    <option value="">Geral • Simulação Completa / Multimissões</option>
-                    <option value="Multimissões">Multimissões / Rodada de Mesa</option>
+                  Missão testada (FLL BIOGLOW • Teto específico da missão)
+                  <select
+                    value={base.mission}
+                    onChange={e => {
+                      const mVal = e.target.value;
+                      const mId = mVal.slice(0, 3);
+                      const sm = getSeasonMission(mId);
+                      setBase({
+                        ...base,
+                        mission: mVal,
+                        maxScore: sm ? sm.maximum : BIOGLOW_SEASON.maximumScore
+                      });
+                    }}
+                  >
+                    <option value="">Selecione a missão testada...</option>
                     {MISSIONS.map(m => (
                       <option key={m} value={m}>{m}</option>
                     ))}
@@ -1766,7 +1960,7 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
                   return (
                     <div className="season-mission-hint" style={{ padding: '0.8rem', background: 'rgba(11, 43, 25, 0.85)', border: '1px solid #16794b', borderRadius: '8px', marginBottom: '0.9rem', fontSize: '0.88rem' }}>
                       <strong style={{ color: '#9fe870', display: 'block', marginBottom: '0.3rem' }}>
-                        {missionData.id} — {missionData.name} ({missionData.minimum === missionData.maximum ? `${missionData.maximum} pts` : `${missionData.minimum} a ${missionData.maximum} pts`})
+                        {missionData.id} — {missionData.name} (Teto: {missionData.maximum} pts)
                       </strong>
                       <p style={{ margin: '0 0 0.4rem', color: '#dceadf', fontSize: '0.82rem', lineHeight: 1.4 }}>
                         {missionData.scoring.join(' • ')}
@@ -1774,7 +1968,7 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
                       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                         {missionData.shared && <span style={{ background: '#2563eb', color: '#fff', fontSize: '0.72rem', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold' }}>COMPARTILHADA</span>}
                         {missionData.losable && <span style={{ background: '#d97706', color: '#fff', fontSize: '0.72rem', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold' }}>PONTOS PERDÍVEIS</span>}
-                        <span style={{ background: '#16794b', color: '#fff', fontSize: '0.72rem', padding: '2px 8px', borderRadius: '4px' }}>Teto Oficial: 530 pts</span>
+                        <span style={{ background: '#16794b', color: '#fff', fontSize: '0.72rem', padding: '2px 8px', borderRadius: '4px' }}>Teto Desta Missão: {missionData.maximum} pts</span>
                       </div>
                     </div>
                   );
@@ -1791,10 +1985,61 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
               {activeAttempts.map((a, i) => {
                 const attemptColor = ATTEMPT_COLORS[i % ATTEMPT_COLORS.length];
                 const attemptMissions = a.missions || [];
-                const availableMissions = BIOGLOW_SEASON.missions.filter(
-                  sm => !attemptMissions.some(m => m.missionId.toUpperCase() === sm.id.toUpperCase())
-                );
                 const missionsTotalScore = attemptMissions.reduce((sum, m) => sum + (Number(m.score) || 0), 0);
+
+                // No modo Round Teste: exibe a folha de pontuação completa oficial
+                if (notebook.modality === 'FLL' && testMode === 'round') {
+                  return (
+                    <fieldset key={i} className="attempt-card round-card" style={{ borderLeftColor: attemptColor, borderLeftWidth: '4px' }}>
+                      <legend className="attempt-legend" style={{ color: attemptColor }}>
+                        <span className="attempt-legend-dot" style={{ backgroundColor: attemptColor }} />
+                        Round Teste {i + 1}
+                      </legend>
+
+                      <div className="attempt-fields-grid" style={{ marginBottom: '0.75rem' }}>
+                        <label>
+                          Tempo de Round (s)
+                          <input
+                            type="number"
+                            value={a.time}
+                            onChange={e => {
+                              const n = [...attempts];
+                              n[i] = { ...a, time: +e.target.value };
+                              setAttempts(n);
+                            }}
+                          />
+                        </label>
+                        <label>
+                          Pontuação Calculada do Round
+                          <input
+                            type="number"
+                            readOnly
+                            value={a.score}
+                            style={{ background: 'rgba(0,0,0,0.3)', fontWeight: 800, color: '#4ade80' }}
+                          />
+                        </label>
+                      </div>
+
+                      <RoundScoreSheet
+                        roundIndex={i}
+                        color={attemptColor || '#22d3ee'}
+                        missions={a.missions || []}
+                        inspectionBonus={a.inspectionBonus}
+                        precisionTokensRemaining={a.precisionTokensRemaining ?? 6}
+                        onUpdateMission={(mId, score, answers) =>
+                          updateMissionScoreInAttempt(i, mId, score, answers)
+                        }
+                        onUpdateRoundExtra={(field, val) => updateRoundExtra(i, field, val)}
+                        onResetRound={() => resetRoundMissions(i)}
+                      />
+                    </fieldset>
+                  );
+                }
+
+                // Modo Missão Individual (ou OBR)
+                const selectedMissionId = base.mission ? base.mission.slice(0, 3) : '';
+                const selectedMissionData = selectedMissionId ? getSeasonMission(selectedMissionId) : null;
+                const missionMax = selectedMissionData ? selectedMissionData.maximum : (base.maxScore || 100);
 
                 return (
                   <fieldset key={i} className="attempt-card" style={{ borderLeftColor: attemptColor, borderLeftWidth: '3px' }}>
@@ -1817,23 +2062,32 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
                         />
                       </label>
                       <label>
-                        {notebook.modality === 'FLL' ? 'Pontuação Total' : 'Valor observado'}
+                        {notebook.modality === 'FLL' ? `Pontuação (máx ${missionMax} pts)` : 'Valor observado'}
                         <input
                           type="number"
                           min="0"
-                          max={base.maxScore || undefined}
+                          max={notebook.modality === 'FLL' ? missionMax : (base.maxScore || undefined)}
                           value={notebook.modality === 'FLL' ? a.score : a.observed}
                           onChange={e => {
+                            const val = +e.target.value;
+                            const clamped = notebook.modality === 'FLL' ? Math.max(0, Math.min(missionMax, val)) : val;
                             const n = [...attempts];
-                            n[i] = { ...a, [notebook.modality === 'FLL' ? 'score' : 'observed']: +e.target.value, score: +e.target.value };
+                            const sm = selectedMissionData;
+                            const mList: AttemptMission[] = sm ? [{
+                              missionId: sm.id,
+                              name: sm.name,
+                              score: clamped,
+                              maxScore: sm.maximum
+                            }] : [];
+                            n[i] = {
+                              ...a,
+                              [notebook.modality === 'FLL' ? 'score' : 'observed']: clamped,
+                              score: clamped,
+                              missions: mList
+                            };
                             setAttempts(n);
                           }}
                         />
-                        {attemptMissions.length > 0 && (
-                          <span className="attempt-score-sync-hint">
-                            Soma das missões: <strong>{missionsTotalScore} pts</strong>
-                          </span>
-                        )}
                       </label>
                       <label>
                         Falhas
@@ -1848,143 +2102,6 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
                         />
                       </label>
                     </div>
-
-                    {/* ── Missões da Tentativa (FLL BIOGLOW 2026/2027) ── */}
-                    {notebook.modality === 'FLL' && (
-                      <div className="attempt-missions-box">
-                        <div className="attempt-missions-head">
-                          <span className="attempt-missions-kicker">
-                            MISSÕES REALIZADAS ({attemptMissions.length})
-                          </span>
-                          <div className="attempt-missions-actions">
-                            <button
-                              type="button"
-                              className="btn-quick-mission"
-                              onClick={() => addAllMissionsToAttempt(i)}
-                              title="Adicionar todas as 15 missões da temporada BIOGLOW nesta tentativa"
-                            >
-                              + Todas
-                            </button>
-                            {i > 0 && (
-                              <button
-                                type="button"
-                                className="btn-quick-mission"
-                                onClick={() => copyMissionsFromPrevious(i)}
-                                title={`Copiar missões e notas da Tentativa ${i}`}
-                              >
-                                Copiar T{i}
-                              </button>
-                            )}
-                            {attemptMissions.length > 0 && (
-                              <button
-                                type="button"
-                                className="btn-quick-mission btn-clear"
-                                onClick={() => clearMissionsFromAttempt(i)}
-                                title="Remover missões desta tentativa"
-                              >
-                                Limpar
-                              </button>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Dropdown de adição de missão */}
-                        {availableMissions.length > 0 && (
-                          <div className="attempt-mission-picker">
-                            <select
-                              value=""
-                              onChange={e => {
-                                addMissionToAttempt(i, e.target.value);
-                                e.target.value = '';
-                              }}
-                              className="attempt-add-select"
-                              aria-label="Adicionar missão nesta tentativa"
-                            >
-                              <option value="">+ Adicionar missão nesta tentativa...</option>
-                              {availableMissions.map(m => (
-                                <option key={m.id} value={m.id}>
-                                  {m.id} — {m.name} (máx {m.maximum} pts)
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        )}
-
-                        {/* Lista de missões selecionadas */}
-                        {attemptMissions.length > 0 ? (
-                          <div className="attempt-missions-items">
-                            {attemptMissions.map(m => {
-                              const seasonM = getSeasonMission(m.missionId);
-                              const max = m.maxScore || seasonM?.maximum || 1;
-                              const pct = calculateMissionAssertiveness(m.score, max);
-                              const pctColor =
-                                pct >= 100 ? '#4ade80' : pct >= 50 ? '#38bdf8' : pct > 0 ? '#fbbf24' : '#94a3b8';
-
-                              return (
-                                <div key={m.missionId} className="attempt-mission-row">
-                                  <div className="attempt-mission-info">
-                                    <strong>{m.missionId}</strong>
-                                    <span className="mission-name-span">{m.name || seasonM?.name}</span>
-                                    <span className="mission-max-badge">{max}p</span>
-                                  </div>
-
-                                  <div className="attempt-mission-inputs">
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      max={max}
-                                      value={m.score}
-                                      onChange={e => updateMissionScore(i, m.missionId, +e.target.value)}
-                                      className="attempt-mission-score-input"
-                                      title={`Pontos feitos em ${m.missionId} (máx ${max})`}
-                                    />
-                                    <span
-                                      className="attempt-mission-pct-pill"
-                                      style={{ color: pctColor, borderColor: pctColor }}
-                                      title={`Assertividade: ${pct.toFixed(1)}%`}
-                                    >
-                                      {pct.toFixed(0)}%
-                                    </span>
-
-                                    <div className="mission-quick-buttons">
-                                      <button
-                                        type="button"
-                                        className="btn-quick-val"
-                                        onClick={() => updateMissionScore(i, m.missionId, 0)}
-                                        title="Zerar pontuação desta missão"
-                                      >
-                                        0
-                                      </button>
-                                      <button
-                                        type="button"
-                                        className="btn-quick-val max"
-                                        onClick={() => updateMissionScore(i, m.missionId, max)}
-                                        title="Pontuação máxima (100%)"
-                                      >
-                                        {max}
-                                      </button>
-                                    </div>
-
-                                    <button
-                                      type="button"
-                                      className="btn-remove-mission"
-                                      onClick={() => removeMissionFromAttempt(i, m.missionId)}
-                                      title={`Remover ${m.missionId} desta tentativa`}
-                                    >
-                                      <X size={13} />
-                                    </button>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        ) : (
-                          <p className="attempt-no-missions-text">
-                            Nenhuma missão selecionada para esta tentativa. Selecione no menu acima ou clique em "+ Todas".
-                          </p>
-                        )}
-                      </div>
-                    )}
                   </fieldset>
                 );
               })}
@@ -2029,39 +2146,73 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
 
             {showAnalysis && (
               <div className="analytics-tabs-wrapper">
-                <div className="analytics-view-tabs">
-                  <button
-                    type="button"
-                    className={`analytics-tab-btn ${chartTab === 'assertiveness' ? 'active' : ''}`}
-                    onClick={() => setChartTab('assertiveness')}
-                  >
-                    Assertividade p/ Missão
-                  </button>
-                  <button
-                    type="button"
-                    className={`analytics-tab-btn ${chartTab === 'evolution' ? 'active' : ''}`}
-                    onClick={() => setChartTab('evolution')}
-                  >
-                    Evolução Geral
-                  </button>
-                  <button
-                    type="button"
-                    className={`analytics-tab-btn ${chartTab === 'both' ? 'active' : ''}`}
-                    onClick={() => setChartTab('both')}
-                  >
-                    Ambos Sobrepostos
-                  </button>
-                </div>
+                {notebook.modality === 'FLL' && testMode === 'individual' ? (
+                  /* Modo Missão Individual FLL: Gráfico de Assertividade em função das tentativas com teto da missão */
+                  (() => {
+                    const selMId = base.mission ? base.mission.slice(0, 3) : '';
+                    const selMData = selMId ? getSeasonMission(selMId) : null;
+                    const mMax = selMData ? selMData.maximum : (base.maxScore || 30);
+                    return (
+                      <SingleMissionChart
+                        missionId={selMId || 'M01'}
+                        missionName={selMData?.name}
+                        maxScore={mMax}
+                        attempts={activeAttempts}
+                      />
+                    );
+                  })()
+                ) : notebook.modality === 'FLL' && testMode === 'round' ? (
+                  /* Modo Round Teste FLL: Gráfico de todas as 15 missões com linhas coloridas por round */
+                  <div className="round-test-charts">
+                    <MissionAssertivenessChart
+                      attempts={activeAttempts}
+                      modality={notebook.modality}
+                      title="Assertividade do Desafio do Robô (M01 a M15)"
+                      forceAllMissions={true}
+                      attemptLabelPrefix="Round Teste"
+                    />
+                    <div style={{ marginTop: '1rem' }}>
+                      <DataAnalysis attempts={activeAttempts} maximumScore={BIOGLOW_SEASON.maximumScore} />
+                    </div>
+                  </div>
+                ) : (
+                  /* Modo OBR ou fallback */
+                  <>
+                    <div className="analytics-view-tabs">
+                      <button
+                        type="button"
+                        className={`analytics-tab-btn ${chartTab === 'assertiveness' ? 'active' : ''}`}
+                        onClick={() => setChartTab('assertiveness')}
+                      >
+                        Assertividade p/ Missão
+                      </button>
+                      <button
+                        type="button"
+                        className={`analytics-tab-btn ${chartTab === 'evolution' ? 'active' : ''}`}
+                        onClick={() => setChartTab('evolution')}
+                      >
+                        Evolução Geral
+                      </button>
+                      <button
+                        type="button"
+                        className={`analytics-tab-btn ${chartTab === 'both' ? 'active' : ''}`}
+                        onClick={() => setChartTab('both')}
+                      >
+                        Ambos Sobrepostos
+                      </button>
+                    </div>
 
-                {(chartTab === 'assertiveness' || chartTab === 'both') && (
-                  <MissionAssertivenessChart
-                    attempts={activeAttempts}
-                    modality={notebook.modality}
-                  />
-                )}
+                    {(chartTab === 'assertiveness' || chartTab === 'both') && (
+                      <MissionAssertivenessChart
+                        attempts={activeAttempts}
+                        modality={notebook.modality}
+                      />
+                    )}
 
-                {(chartTab === 'evolution' || chartTab === 'both') && (
-                  <DataAnalysis attempts={activeAttempts} maximumScore={base.maxScore} />
+                    {(chartTab === 'evolution' || chartTab === 'both') && (
+                      <DataAnalysis attempts={activeAttempts} maximumScore={base.maxScore} />
+                    )}
+                  </>
                 )}
               </div>
             )}
@@ -2401,11 +2552,30 @@ function TestView() {
         <h2>Resultados e Desempenho</h2>
         <PerformancePanel attempts={Array.isArray(item.attempts) ? item.attempts : []} modality={item.modality} maximum={item.maxScore} />
 
-        {/* Gráfico de Assertividade por Missão (Tentativas Sobrepostas) */}
-        <MissionAssertivenessChart
-          attempts={Array.isArray(item.attempts) ? item.attempts : []}
-          modality={item.modality}
-        />
+        {/* Gráfico correspondente ao Modo (Missão Individual vs Round Teste) */}
+        {item.modality === 'FLL' && (item.testMode === 'individual' || (!item.testMode && item.mission)) ? (
+          (() => {
+            const selMId = item.mission ? item.mission.slice(0, 3) : '';
+            const selMData = selMId ? getSeasonMission(selMId) : null;
+            const mMax = selMData ? selMData.maximum : (item.maxScore || 30);
+            return (
+              <SingleMissionChart
+                missionId={selMId || 'M01'}
+                missionName={selMData?.name}
+                maxScore={mMax}
+                attempts={Array.isArray(item.attempts) ? item.attempts : []}
+              />
+            );
+          })()
+        ) : (
+          <MissionAssertivenessChart
+            attempts={Array.isArray(item.attempts) ? item.attempts : []}
+            modality={item.modality}
+            title={item.modality === 'FLL' ? 'Assertividade do Desafio do Robô (M01 a M15)' : 'Assertividade por Missão'}
+            forceAllMissions={item.modality === 'FLL'}
+            attemptLabelPrefix={item.testMode === 'round' ? 'Round Teste' : 'Tentativa'}
+          />
+        )}
 
         {/* Gráfico de Evolução Geral (Pontos, Tempo e Falhas) */}
         <DataAnalysis attempts={Array.isArray(item.attempts) ? item.attempts : []} maximumScore={Number(item.maxScore || (item.modality === 'FLL' ? BIOGLOW_SEASON.maximumScore : 0))} />
@@ -2413,22 +2583,32 @@ function TestView() {
         <div className="attempt-results">{(item.attempts || []).map((attempt: Attempt, i: number) => {
           const attemptColor = ATTEMPT_COLORS[i % ATTEMPT_COLORS.length];
           const missions = Array.isArray(attempt.missions) ? attempt.missions : [];
+          const isRound = item.testMode === 'round';
+          const precisionPts = calculatePrecisionPoints(attempt.precisionTokensRemaining ?? 6);
+          const inspectionPts = attempt.inspectionBonus ? BIOGLOW_SEASON.equipmentInspectionPoints : 0;
+
           return (
             <article key={i} className="test-view-attempt-card" style={{ borderLeftColor: attemptColor }}>
               <div className="test-view-attempt-head">
                 <span className="test-view-attempt-dot" style={{ backgroundColor: attemptColor }} />
-                <strong>Tentativa {i + 1}</strong>
+                <strong>{isRound ? `Round Teste ${i + 1}` : `Tentativa ${i + 1}`}</strong>
               </div>
               <div className="test-view-attempt-metrics">
                 <span><strong>Tempo:</strong> {attempt.time} s</span>
                 <span><strong>Pontuação:</strong> {attempt.score} pts</span>
-                <span><strong>Falhas:</strong> {attempt.failures}</span>
+                {!isRound && <span><strong>Falhas:</strong> {attempt.failures}</span>}
+                {isRound && (
+                  <>
+                    <span><strong>Discos Restantes:</strong> {attempt.precisionTokensRemaining ?? 6} (+{precisionPts}p)</span>
+                    <span><strong>Inspeção:</strong> {attempt.inspectionBonus ? '+20p' : '0p'}</span>
+                  </>
+                )}
                 {mod === 'obr' && <span><strong>Valor observado:</strong> {attempt.observed}</span>}
               </div>
 
               {missions.length > 0 && (
                 <div className="test-view-attempt-missions">
-                  <small>Missões Realizadas ({missions.length}):</small>
+                  <small>{isRound ? 'Missões Avaliadas:' : `Missões Realizadas (${missions.length}):`}</small>
                   <div className="test-view-mission-chips">
                     {missions.map(m => {
                       const max = m.maxScore || getMissionMaxScore(m.missionId) || 1;
