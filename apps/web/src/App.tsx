@@ -2192,9 +2192,6 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
                       attemptLabelPrefix="Round Teste"
                       splitByRound={true}
                     />
-                    <div style={{ marginTop: '1rem' }}>
-                      <DataAnalysis attempts={activeAttempts} maximumScore={BIOGLOW_SEASON.maximumScore} />
-                    </div>
                   </div>
                 ) : (
                   /* Modo OBR ou fallback */
@@ -2588,29 +2585,34 @@ function TestView() {
             const selMData = selMId ? getSeasonMission(selMId) : null;
             const mMax = selMData ? selMData.maximum : (item.maxScore || 30);
             return (
-              <SingleMissionChart
-                missionId={selMId || 'M01'}
-                missionName={selMData?.name}
-                maxScore={mMax}
-                attempts={Array.isArray(item.attempts) ? item.attempts : []}
-              />
+              <>
+                <SingleMissionChart
+                  missionId={selMId || 'M01'}
+                  missionName={selMData?.name}
+                  maxScore={mMax}
+                  attempts={Array.isArray(item.attempts) ? item.attempts : []}
+                />
+                <DataAnalysis attempts={Array.isArray(item.attempts) ? item.attempts : []} maximumScore={Number(item.maxScore || BIOGLOW_SEASON.maximumScore)} />
+              </>
             );
           }
 
           return (
-            <MissionAssertivenessChart
-              attempts={Array.isArray(item.attempts) ? item.attempts : []}
-              modality={item.modality}
-              title={item.modality === 'FLL' ? 'Assertividade do Desafio do Robô (M01 a M15)' : 'Assertividade por Missão'}
-              forceAllMissions={item.modality === 'FLL'}
-              attemptLabelPrefix={isRoundView ? 'Round Teste' : 'Tentativa'}
-              splitByRound={item.modality === 'FLL' && isRoundView}
-            />
+            <>
+              <MissionAssertivenessChart
+                attempts={Array.isArray(item.attempts) ? item.attempts : []}
+                modality={item.modality}
+                title={item.modality === 'FLL' ? 'Assertividade do Desafio do Robô (M01 a M15)' : 'Assertividade por Missão'}
+                forceAllMissions={item.modality === 'FLL'}
+                attemptLabelPrefix={isRoundView ? 'Round Teste' : 'Tentativa'}
+                splitByRound={item.modality === 'FLL' && isRoundView}
+              />
+              {!isRoundView && (
+                <DataAnalysis attempts={Array.isArray(item.attempts) ? item.attempts : []} maximumScore={Number(item.maxScore || (item.modality === 'FLL' ? BIOGLOW_SEASON.maximumScore : 0))} />
+              )}
+            </>
           );
         })()}
-
-        {/* Gráfico de Evolução Geral (Pontos, Tempo e Falhas) */}
-        <DataAnalysis attempts={Array.isArray(item.attempts) ? item.attempts : []} maximumScore={Number(item.maxScore || (item.modality === 'FLL' ? BIOGLOW_SEASON.maximumScore : 0))} />
 
         <div className="attempt-results">{(item.attempts || []).map((attempt: Attempt, i: number) => {
           const attemptColor = ATTEMPT_COLORS[i % ATTEMPT_COLORS.length];

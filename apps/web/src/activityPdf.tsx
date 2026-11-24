@@ -969,7 +969,7 @@ export const ActivityDocument = ({ item, kind, team, media, teamLogo, competitio
                 ))}
               </View>
 
-              <PerformanceChart attempts={attempts} team={team} />
+              {!isRoundMode && <PerformanceChart attempts={attempts} team={team} />}
             </View>
 
             {/* ── PÁGINA 2: MÉDIAS CONSOLIDADAS POR MISSÃO + GRÁFICO DE MÉDIA ── */}
