@@ -45,12 +45,12 @@ export const BIOGLOW_SEASON = {
   ],
   missions: [
     { id: 'M01', name: 'Drone Survey', minimum: 20, maximum: 30, scoring: ['Drone fora do tapete: 20', 'Bônus LiDAR e marcador na área: +10'] },
-    { id: 'M02', name: 'Exploding Seeds', minimum: 10, maximum: 40, scoring: ['Sementes fora do caule: 10 cada'] },
+    { id: 'M02', name: 'Exploding Seeds', minimum: 10, maximum: 30, scoring: ['Sementes fora do caule: 10 cada (máx 3 sementes)'] },
     { id: 'M03', name: 'Flip the Rock', minimum: 20, maximum: 30, scoring: ['Bandeira de pesquisa abaixada: 20', 'Rocha na posição inicial: +10'] },
     { id: 'M04', name: 'Lucky Leaves', minimum: 10, maximum: 30, scoring: ['Uma folha removida: 10', 'Segunda folha removida e esperança na posição: +20', 'Esperança fora do habitat ao final: 0 na missão'], losable: true },
     { id: 'M05', name: 'Reaching Roots', minimum: 10, maximum: 20, scoring: ['Raiz parcialmente estendida: 10', 'Ou completamente estendida: 20'] },
     { id: 'M06', name: 'Leafcutter Frenzy', minimum: 10, maximum: 40, scoring: ['Formiga tocando o ninho e fragmentos contidos: 10 por fragmento'] },
-    { id: 'M07', name: 'Humongous Fungus', minimum: 20, maximum: 30, scoring: ['Micélio completamente estendido: 20', 'Conexão com a raiz adversária: +10 (duas bonificações são possíveis no conjunto das duas equipes)'], shared: true },
+    { id: 'M07', name: 'Humongous Fungus', minimum: 20, maximum: 40, scoring: ['Micélio completamente estendido: 20', 'Conexão com a raiz adversária: +10 cada (máx 2 bonificações = +20)'], shared: true },
     { id: 'M08', name: 'Tangled', minimum: 30, maximum: 30, scoring: ['Trepadeira tocando o tapete: 30'] },
     { id: 'M09', name: 'Research Platform', minimum: 10, maximum: 30, scoring: ['Plataforma elevada: 10', 'Câmera acionada: 10', 'Semente fora da árvore: 10'] },
     { id: 'M10', name: 'Fragile Microhabitats', minimum: 10, maximum: 20, scoring: ['Habitat da aranha na posição inicial: 10', 'Habitat do caracol na posição inicial: 10'], losable: true },
@@ -85,13 +85,13 @@ export const BIOGLOW_SCORING_RULES: Record<string, MissionScoringRule> = {
   M02: {
     id: 'M02',
     name: 'Exploding Seeds',
-    maximum: 40,
-    description: 'Sementes ejetadas fora do caule',
+    maximum: 30,
+    description: 'Sementes ejetadas fora do caule (máximo 3 sementes)',
     fields: [
-      { id: 'seedsCount', label: 'Sementes fora do caule (10 pts cada)', type: 'number', min: 0, max: 4, pointsPerUnit: 10 }
+      { id: 'seedsCount', label: 'Sementes fora do caule (10 pts cada, máx 3)', type: 'number', min: 0, max: 3, pointsPerUnit: 10 }
     ],
     calculate: (v) => {
-      const count = Math.max(0, Math.min(4, Number(v.seedsCount) || 0));
+      const count = Math.max(0, Math.min(3, Number(v.seedsCount) || 0));
       return count * 10;
     }
   },
@@ -171,16 +171,19 @@ export const BIOGLOW_SCORING_RULES: Record<string, MissionScoringRule> = {
   M07: {
     id: 'M07',
     name: 'Humongous Fungus',
-    maximum: 30,
-    description: 'Micélio estendido e conexão compartilhada com a raiz adversária',
+    maximum: 40,
+    description: 'Micélio estendido e conexões compartilhadas com a raiz adversária',
     fields: [
       { id: 'myceliumExtended', label: 'Micélio completamente estendido (20 pts)', type: 'boolean' },
-      { id: 'sharedRootConnection', label: 'Bônus Compartilhado: Conexão com raiz adversária (+10 pts)', type: 'boolean' }
+      { id: 'sharedConnections', label: 'Bônus Compartilhado: Conexões com raiz adversária (+10 pts cada, máx 2)', type: 'number', min: 0, max: 2, pointsPerUnit: 10 }
     ],
     calculate: (v) => {
       let pts = 0;
-      if (v.myceliumExtended) pts += 20;
-      if (v.myceliumExtended && v.sharedRootConnection) pts += 10;
+      if (v.myceliumExtended) {
+        pts += 20;
+        const count = Math.max(0, Math.min(2, Number(v.sharedConnections) || 0));
+        pts += count * 10;
+      }
       return pts;
     }
   },
