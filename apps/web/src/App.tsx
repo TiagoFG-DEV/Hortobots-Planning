@@ -1990,15 +1990,15 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
                 // No modo Round Teste: exibe a folha de pontuação completa oficial
                 if (notebook.modality === 'FLL' && testMode === 'round') {
                   return (
-                    <fieldset
+                    <div
                       key={i}
                       className="attempt-card round-card"
                       style={{ borderLeftColor: attemptColor, borderLeftWidth: '4px' }}
                     >
-                      <legend className="attempt-legend" style={{ color: attemptColor }}>
+                      <div className="attempt-card-header" style={{ color: attemptColor }}>
                         <span className="attempt-legend-dot" style={{ backgroundColor: attemptColor }} />
-                        Round Teste {i + 1}
-                      </legend>
+                        <span>Round Teste {i + 1}</span>
+                      </div>
 
                       <div className="round-top-fields">
                         <label>
@@ -2035,7 +2035,7 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
                         onUpdateRoundExtra={(field, val) => updateRoundExtra(i, field, val)}
                         onResetRound={() => resetRoundMissions(i)}
                       />
-                    </fieldset>
+                    </div>
                   );
                 }
 
@@ -2045,11 +2045,11 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
                 const missionMax = selectedMissionData ? selectedMissionData.maximum : (base.maxScore || 100);
 
                 return (
-                  <fieldset key={i} className="attempt-card" style={{ borderLeftColor: attemptColor, borderLeftWidth: '3px' }}>
-                    <legend className="attempt-legend" style={{ color: attemptColor }}>
+                  <div key={i} className="attempt-card" style={{ borderLeftColor: attemptColor, borderLeftWidth: '4px' }}>
+                    <div className="attempt-card-header" style={{ color: attemptColor }}>
                       <span className="attempt-legend-dot" style={{ backgroundColor: attemptColor }} />
-                      Tentativa {i + 1}
-                    </legend>
+                      <span>Tentativa {i + 1}</span>
+                    </div>
 
                     <div className="attempt-fields-grid">
                       <label>
@@ -2105,7 +2105,7 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
                         />
                       </label>
                     </div>
-                  </fieldset>
+                  </div>
                 );
               })}
             </div>

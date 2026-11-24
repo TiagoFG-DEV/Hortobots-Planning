@@ -7029,12 +7029,25 @@ textarea,
    ───────────────────────────────────────────────────────────────────────────── */
 
 .attempt-card {
-  border-radius: 12px;
-  background: rgba(15, 23, 42, 0.45);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  padding: 0.85rem;
+  border-radius: 14px;
+  background: rgba(10, 20, 15, 0.88);
+  border: 1.5px solid rgba(255, 255, 255, 0.09);
+  padding: 1rem 1.1rem;
   margin-bottom: 0.6rem;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.28);
+  position: relative;
+}
+
+.attempt-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font: 800 0.92rem 'Barlow Condensed', sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 0.8rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .attempt-legend {
@@ -7053,13 +7066,54 @@ textarea,
   border-radius: 50%;
   display: inline-block;
   box-shadow: 0 0 6px currentColor;
+  flex-shrink: 0;
 }
 
 .attempt-fields-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 0.55rem;
-  margin-bottom: 0.65rem;
+  gap: 0.65rem;
+  margin-bottom: 0.15rem;
+}
+
+.test-form .attempt-fields-grid label,
+.test-form .round-top-fields label {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.35rem;
+  margin: 0;
+  font: 700 0.76rem 'Barlow Condensed', sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #cbd5e1;
+}
+
+.test-form .attempt-fields-grid input,
+.test-form .round-top-fields input {
+  background: rgba(10, 18, 14, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  color: #f1f5f9;
+  padding: 0.5rem 0.75rem;
+  font: 700 1rem 'Barlow Condensed', sans-serif;
+  min-height: 42px;
+  width: 100%;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.test-form .attempt-fields-grid input:focus,
+.test-form .round-top-fields input:focus {
+  border-color: rgba(34, 211, 238, 0.55);
+  box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.15);
+  outline: none;
+}
+
+.test-form .round-top-fields input[readonly] {
+  color: #4ade80;
+  cursor: default;
+  border-color: rgba(74, 222, 128, 0.25);
+  background: rgba(5, 30, 18, 0.65);
 }
 
 .attempt-score-sync-hint {
