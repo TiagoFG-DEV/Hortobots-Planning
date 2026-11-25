@@ -811,6 +811,24 @@ export const ActivityDocument = ({ item, kind, team, media, teamLogo, competitio
   const avgTokenPct = Math.round((avgTokenPoints / 50) * 100);
   const configuredMaximum = Number(item.maxScore) > 0 ? Number(item.maxScore) : BIOGLOW_SEASON.maximumScore;
 
+  // Indicadores globais de assertividade (equivalentes aos cards do modo de leitura)
+  const allMissionPts = roundSeries.flatMap(s => s.pts);
+  const overallAssertivenessPct = allMissionPts.length > 0
+    ? allMissionPts.reduce((sum, p) => sum + p.pct, 0) / allMissionPts.length
+    : 0;
+  const missionStatsList = missionSummary.map(m => {
+    const pts = roundSeries.map(s => s.pts.find(p => p.mId === m.mId)?.pct ?? 0);
+    const bestPct = pts.length > 0 ? Math.max(...pts) : 0;
+    return { ...m, bestPct };
+  });
+  const missionsWithData = missionStatsList.filter(m => m.count > 0);
+  const bestMissionStat = missionsWithData.length > 0
+    ? [...missionsWithData].sort((a, b) => b.avgPct - a.avgPct)[0]
+    : null;
+  const lowestMissionStat = missionsWithData.length > 0
+    ? [...missionsWithData].sort((a, b) => a.avgPct - b.avgPct)[0]
+    : null;
+
   return (
     <Document
       title={String(item.title || 'Atividade')}
@@ -978,6 +996,51 @@ export const ActivityDocument = ({ item, kind, team, media, teamLogo, competitio
                 <Text style={[styles.sectionTitle, { color: identity.ink, borderBottomColor: identity.secondary }]}>
                   Médias Consolidadas por Missão ({isRoundMode ? 'M01 a M15' : 'Missões Avaliadas'})
                 </Text>
+
+                {/* Cards de Indicadores de Assertividade (mesmos do modo leitura) */}
+                <View style={styles.statsRow} wrap={false}>
+                  <View style={[styles.statCard, { width: isRoundMode ? '23.5%' : '32%' }]}>
+                    <Text style={styles.statLabel}>Assertividade Média</Text>
+                    <Text style={[styles.statValue, { color: '#0891b2' }]}>
+                      {overallAssertivenessPct.toFixed(1)}%
+                    </Text>
+                    <Text style={styles.statSub}>
+                      média entre as {missionIds.length} missões
+                    </Text>
+                  </View>
+
+                  {bestMissionStat && (
+                    <View style={[styles.statCard, { width: isRoundMode ? '23.5%' : '32%' }]}>
+                      <Text style={styles.statLabel}>Melhor Missão</Text>
+                      <Text style={[styles.statValue, { color: '#15803d', fontSize: 12.5 }]}>
+                        {bestMissionStat.mId} ({bestMissionStat.avgPct}%)
+                      </Text>
+                      <Text style={styles.statSub}>pico: {bestMissionStat.bestPct}%</Text>
+                    </View>
+                  )}
+
+                  {lowestMissionStat && (
+                    <View style={[styles.statCard, { width: isRoundMode ? '23.5%' : '32%' }]}>
+                      <Text style={styles.statLabel}>Oportunidade de Treino</Text>
+                      <Text style={[styles.statValue, { color: '#b45309', fontSize: 12.5 }]}>
+                        {lowestMissionStat.mId} ({lowestMissionStat.avgPct}%)
+                      </Text>
+                      <Text style={styles.statSub}>menor índice registrado</Text>
+                    </View>
+                  )}
+
+                  {isRoundMode && (
+                    <View style={[styles.statCard, { width: '23.5%' }]}>
+                      <Text style={styles.statLabel}>Média Discos Precisão</Text>
+                      <Text style={[styles.statValue, { color: '#0284c7', fontSize: 12.5 }]}>
+                        {avgTokenPoints.toFixed(1)}p ({avgTokenPct}%)
+                      </Text>
+                      <Text style={styles.statSub}>
+                        {avgTokens.toFixed(1)} de 6 discos restantes
+                      </Text>
+                    </View>
+                  )}
+                </View>
 
                 <View style={[styles.attemptsTable, { marginBottom: 12 }]} wrap={false}>
                   <View style={[styles.attemptRow, styles.attemptHeader, { backgroundColor: identity.primary }]}>
