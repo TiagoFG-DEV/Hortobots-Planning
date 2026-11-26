@@ -2,6 +2,188 @@
 
 As versões futuras devem ser acrescentadas no topo deste arquivo, preservando o histórico já publicado.
 
+## [3.2.0] — 2026-11-24 — Modos "Missão individual" e "Round Teste" Completo (FLL 2026/2027 BIOGLOW)
+
+### Novas Funcionalidades e Inovações
+
+#### 1. Seletor de Modo na Tela de Simulações e Testes (Cadernos FLL)
+- **Alternância entre Modos de Simulação:** Inserido seletor logo abaixo do campo de título do teste com duas opções exclusivas para equipes de FLL (SESI Hortobots e UnderConstruction):
+  - **"Missão individual"**: dedicado a testes repetitivos de precisão e acertividade em uma única missão isolada.
+  - **"Round Teste"**: simula o Desafio do Robô completo de 2min30s com todas as 15 missões da temporada, bônus de inspeção e discos de precisão.
+
+#### 2. Modo "Missão individual" com Teto Específico da Missão
+- **Gráfico Focado no Teto da Missão:** A escala e a porcentagem de assertividade agora comparam os pontos obtidos em relação à **pontuação máxima daquela missão específica** selecionada (ex: teto de 30 pts para M01 Drone Survey), e não mais em relação aos 530 pontos da mesa toda.
+- **Gráfico de Linha de Assertividade em Função das Tentativas:** Renderiza a assertividade (%) da missão ao longo das tentativas (`Tentativa 1`, `Tentativa 2`, etc.), com área sombreada, tooltips flutuantes e estatísticas de média e pico.
+
+#### 3. Modo "Round Teste" — Simulação Completa do Desafio do Robô FLL
+- **Score Sheet Oficial Completo por Round:** Cada tentativa passa a ser um **Round Teste** (`Round Teste 1`, `Round Teste 2`, etc.), contendo a avaliação de todas as 15 missões oficiais da temporada BIOGLOW:
+  - Checkboxes, botões de incremento/decremento e seletores para cada sub-objetivo e bônus da regra (ex: Drone elevado + LiDAR bônus; Sementes dispersadas 0 a 4; Rocha invertida e retornada; Esperança protegida; etc.).
+  - **Bônus de Inspeção de Equipamento (+20 pts)** com toggle switch dedicado.
+  - **Discos de Precisão Restantes (0 a 6)** substituindo o campo de falhas, calculando a pontuação oficial regressiva (6 discos = 50 pts, 5 = 50 pts, 4 = 35 pts, 3 = 25 pts, 2 = 15 pts, 1 = 10 pts, 0 = 0 pts).
+  - Cálculo e soma automáticos da pontuação total oficial de cada round (até 530 pontos).
+- **Gráfico de Assertividade em Função de Cada Missão (Linhas Coloridas Sobrepostas):**
+  - Eixo X com todas as 15 missões (`M01` a `M15`).
+  - Eixo Y com a acertividade em porcentagem (0% a 100%) calculada com base no total de pontos de cada missão.
+  - Cada Round Teste é representado por uma linha com cor distinta na legenda e no gráfico.
+  - Legenda interativa com capacidade de isolar cada Round Teste para análise aprofundada.
+
+#### 4. Visualização e Edição Integradas
+- Identificação automática do modo ao abrir testes salvos em `/:mod/teste/:id` e em `/:mod/testes/editar/:id`, preservando o modo escolhido e renderizando os componentes e gráficos correspondentes.
+
+
+
+### Novas Funcionalidades e Melhorias
+
+#### 1. Seleção e Pontuação Individual de Missões por Tentativa
+- **Desacoplamento do Modelo Global:** Em vez de definir apenas uma missão genérica para todas as tentativas, cada tentativa agora permite selecionar individualmente quais missões foram realizadas (`M01` a `M15`) e quantos pontos foram conquistados em cada uma delas.
+- **Integração com a Mesa Oficial FLL Challenge 2026/2027 (BIOGLOW):** Cadastro completo das 15 missões da mesa com pontuações mínimas e máximas oficiais (M01 Drone Survey máx 30 pts, M02 Exploding Seeds máx 40 pts, M03 Flip the Rock máx 30 pts, etc.), permitindo lançar a pontuação real obtida em cada desafio.
+- **Ações Rápidas de Produtividade nas Tentativas:**
+  - Botão **`+ Todas`**: adiciona instantaneamente todas as 15 missões da temporada na tentativa com um único clique, ideal para simulações completas de rodada oficial (2min30s).
+  - Botão **`Copiar T{i}`**: clona as missões e notas da tentativa anterior para a tentativa atual, agilizando testes iterativos de estratégia.
+  - Botão **`Limpar`**: remove todas as missões da tentativa caso necessário.
+  - Botões rápidos **`0`** e **`Máx`** por missão para zerar ou atribuir pontuação máxima (100%) com agilidade.
+- **Soma e Sincronização Inteligente:** A pontuação total da tentativa é calculada e sincronizada automaticamente a partir da soma dos pontos das missões concluídas, preservando a liberdade de ajuste fino e mantendo total retrocompatibilidade com testes antigos.
+
+#### 2. Gráfico de Assertividade por Missão com Curvas Sobrepostas (`MissionAssertivenessChart`)
+- **Linhas Sobrepostas por Tentativa:** Gráfico analítico vetorial em SVG onde cada tentativa é representada por uma linha contínua com cor exclusiva de alto contraste (`#22d3ee`, `#a78bfa`, `#fbbf24`, `#34d399`, `#f43f5e`, etc.).
+- **Eixo Y — Assertividade Percentual (0% a 100%):** Mede o quanto de cada missão foi concluído em porcentagem (`(pontos obtidos / pontuação máxima) * 100`), com linhas de grade e marcações visuais nos níveis 100%, 75%, 50%, 25% e 0%.
+- **Eixo X — Missões da Mesa:** Apresenta as missões testadas no eixo horizontal (`M01`, `M02`, `M03`, `M04`...) com indicação de teto de pontos por missão e botão para alternar entre "Apenas Testadas" e "Ver Todas (M01–M15)".
+- **Interatividade Completa:**
+  - **Tooltips dinâmicos:** exibem tentativa, ID da missão, nome, pontuação obtida, teto e porcentagem exata de assertividade.
+  - **Isolamento de Curvas na Legenda:** clicar em uma tentativa na legenda isola sua curva no gráfico e atenua as demais para análise focada de evolução.
+  - **Métricas e Destaques da Mesa:** cards informativos com Assertividade Média Geral, Melhor Missão da rodada e Oportunidade de Treino (missão com menor índice de conclusão).
+
+#### 3. Visualização Flexível e Ambos os Gráficos Sobrepostos
+- **Abas Analíticas no Painel de Testes:**
+  - **Assertividade p/ Missão:** foca no gráfico de curvas sobrepostas por missão.
+  - **Evolução Geral:** exibe o gráfico clássico com pontuação, tempo e falhas por tentativa.
+  - **Ambos Sobrepostos:** renderiza ambos os gráficos empilhados verticalmente na mesma tela para diagnóstico técnico completo da sessão.
+- **Atualização da Visualização de Testes Salvos (`TestView`):** Exibição do gráfico de assertividade por missão e detalhamento de cada tentativa com chips coloridos de missões concluídas, pontos e porcentagem.
+
+#### 4. Exportação Oficial para PDF com Assertividade
+- **Documento do Diário de Bordo Atualizado (`activityPdf.tsx`):** Inclusão de seção e tabela dedicada de assertividade por missão nas tentativas no PDF oficial gerado para bancas de avaliação e portfólio de engenharia.
+
+
+## [3.0.1] — 2026-11-13 — Manutenção e Melhorias de UX / Dados
+
+### Novas Funcionalidades
+
+#### Botões Inferiores da Home — Apenas Ícones
+- Removidos os labels de texto ("CALENDÁRIO" e "DOCUMENTOS DE COMPETIÇÃO") dos botões centralizados na tela inicial.
+- Substituídos por botões circulares ícone-only (`CalendarDays` e `FileText`) com tooltip via `title` e `aria-label`, visual em cinza e branco com sombra preta.
+
+#### Acesso Público aos Diários de Bordo
+- Usuários não autenticados agora podem visualizar diários de bordo no modo leitura clicando em qualquer um dos três cadernos na Home.
+- Adicionadas rotas `/:mod`, `/:mod/registros` e `/:mod/testes-salvos` no bloco público de rotas (sem autenticação).
+- Menu lateral (SideMenu) exibe "REGISTROS" e link de login para visitantes sem conta.
+
+#### Dados Sempre Disponíveis — Fallback Estático
+- Criado `apps/web/src/competitionData.ts` com catálogo estático local de 14 documentos oficiais e 9 atualizações reais.
+- `CompetitionDocumentsView` e `CompetitionUpdatesView` agora carregam a partir desse catálogo por padrão e, quando o servidor `/api` responde com dados, substituem com os dados mais atuais.
+- Elimina o bug crítico onde a tela de Documentos exibia "Nenhum documento encontrado" mesmo havendo documentos reais.
+
+#### Filtro "Estado de São Paulo"
+- Nova pill de filtro "Estado de São Paulo" na tela de Documentos e na tela de Atualizações.
+- Filtra documentos e comunicados de etapas regionais e estaduais de São Paulo (SESI-SP e OBR SP).
+- Exibição visual diferenciada com tag amarela "Estado de SP" nos cards.
+
+#### Visualizador em Tela Inteira para PDFs
+- Botão "Tela Inteira" no painel lateral de pré-visualização de documentos.
+- Abre modal fullscreen com iframe do PDF em 100vw / 100vh, barra de ações com download e botão de fechar.
+
+#### Correção de Títulos com Acentuação Correta
+- "Documentos de Competicao" → "Documentos de Competição"
+- "Atualizacoes das Competicoes" → "Atualizações das Competições"
+- "Feed de Atualizacoes" → "Feed de Atualizações"
+- "Olimpiada Brasileira de Robotica (OBR)" → "Olimpíada Brasileira de Robótica (OBR)"
+
+#### Contraste Visual Aprimorado
+- Adicionadas sombras pretas mais intensas em títulos de tela (`text-shadow: 0 2px 10px rgba(0,0,0,0.95)`).
+- Pills de filtro com `box-shadow: 0 2px 8px rgba(0,0,0,0.5)` e `text-shadow`.
+- Botão "Feed de Atualizações" com sombra reforçada para legibilidade sobre o fundo animado.
+
+#### Proxy de API Configurado no Vite
+- Adicionado proxy `/api` → `http://localhost:3333` no `vite.config.ts`, garantindo que o frontend no modo desenvolvimento consiga comunicar com o backend Express sem erros de CORS ou 404.
+
+---
+
+## [3.0.0] — 2026-11-13
+
+### Visão Geral da Versão 3.0.0
+
+A versão 3.0.0 consolida a evolução estrutural do Hortobots Planning através da execução dos Marcos 1 ao 11 do plano mestre de desenvolvimento. Esta entrega expande o sistema com Homepage Pública como rota inicial, Central Oficial de Documentos de Competição, feed de Atualizações Oficiais em tempo real com monitoramento de fontes, arquitetura de redundância e contingência de bancos de dados com failover, e gestão documental integrada no Painel Mentor.
+
+---
+
+### Novas Funcionalidades e Implementações (Marcos 4 a 11)
+
+#### 1. Homepage Pública como Padrão e Acesso Universal (Marco 4)
+- **Rota Raiz Pública (/):** Acesso inicial padrão sem necessidade de autenticação, exibindo os três cadernos (SESI Hortobots FLL, Under Construction FLL e Hortobots OBR) e ações rápidas.
+- **Isolamento da Tela de Login (/login):** Tela de autenticação movida para /login, com link contextualizado "Explorar cadernos, documentos e calendário".
+- **Controle de Sessão Contextual:** Menu lateral (Drawer) exibe botão "FAZER LOGIN" para visitantes e "SAIR DA CONTA ({USUÁRIO})" para usuários autenticados.
+- **Limpeza Visual:** Ocultação do botão flutuante de logout na Homepage (#root:has(.cover) .logout), eliminando redundância de controles.
+- **Ações Inferiores na Home:** Inclusão de botões em destaque para "CALENDÁRIO" e "DOCUMENTOS DE COMPETIÇÃO".
+
+#### 2. Central Oficial de Documentos de Competição (Marco 5)
+- **Interface Dedicada (/documentos):** Consulta pública e autenticada a rubricas, manuais e regras oficiais da FIRST LEGO League e da Olimpíada Brasileira de Robótica.
+- **Visualizador Integrado e Downloads:** Visualização direta de PDFs via iframe nativo e download direto sem depender de ferramentas externas.
+- **Filtros Combinados:** Filtragem instantânea por competição (FLL / OBR) e tipo documental (Rubricas, Regras e Manuais Complementares).
+- **Carga Inicial de Documentos:** 13 documentos oficiais catalogados, auditados e persistidos no banco de dados com metadados de temporada e modalidades (Challenge, Explore, Resgate, Artística, Simulação e Teórica).
+
+#### 3. Feed de Atualizações Oficiais e Monitoramento de Fontes (Marco 6)
+- **Linha do Tempo Cronológica (/documentos/atualizacoes):** Feed público ordenado da publicação mais recente para a mais antiga (published_at DESC).
+- **Serviço de Monitoramento (MonitoringService):** Checagem periódica e sob demanda de cabeçalhos HTTP, Last-Modified e integridade de fontes oficiais com controle estrito de duplicidade e idempotência.
+- **Destaque de Criticidade:** Identificação visual e filtro dedicado para comunicados urgentes/críticos e erratas oficiais.
+
+#### 4. Redundância, Contingência e Diagnóstico de Bancos (Marco 7)
+- **Arquitetura Ativo/Passivo com Failover:** Suporte configurado no backend entre a nova instância principal Supabase (gpqqqnhpadbgiolfyplx) e a secundária de backup (
+xfdjwdfinhqdwllzmcc).
+- **Serviço de Redundância (RedundancyService):** Métricas em tempo real de latência, disponibilidade e replicação tolerante a falhas (
+eplicateMutation).
+- **Segurança de Segredos:** Mascaramento obrigatório de credenciais e URLs de banco de dados nos endpoints da API e nas visualizações de diagnóstico.
+
+#### 5. Gestão de Documentos no Painel Mentor (Marco 8)
+- **Ferramenta Administrativa:** Seção exclusiva no Painel Mentor (/mentor/configuracoes) para cadastro manual de novos documentos (seleção de competição, modalidade, temporada, tipo documental, título, descrição e URL).
+- **Manutenção Segura:** Listagem de documentos ativos com abertura direta e exclusão auditada mediante confirmação modal.
+- **Autorização Servidor:** Blindagem de endpoints de escrita (POST /api/documentos, DELETE /api/documentos/:id, /sync) com HMAC e perfil mentor.
+
+#### 6. Segurança, Testes de Regressão e Permissões (Marco 9)
+- **Suíte de Testes Automatizados:** Criação de securityAndDocuments.test.ts, elevando a cobertura para 26 testes automatizados aprovados com 100% de sucesso em @hortobots/shared, @hortobots/api e @hortobots/web.
+- **Validação de Acesso:** Garantia de leitura pública para documentos/atualizações e isolamento estrito das contas privadas (gestao, mentor, obr, ll).
+
+#### 7. Responsividade Universal (Marco 10)
+- **Auditoria de Breakpoints:** Media queries refinadas em 
+esponsive.css para smartphones (<=640px e <=768px), tablets (769px a 1024px) e monitores ultrawide (>=1800px).
+- **Zero Overflow:** Eliminação completa de rolagem horizontal indevida ou corte de texto na grade de documentos, formulários administrativos e visualizadores.
+
+---
+
+### Guia para Continuidade do Projeto
+
+Para futuros desenvolvedores e sessões de IA continuarem o projeto:
+
+1. **Variáveis de Ambiente (.env):**
+   - Configure SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY para o banco de dados principal.
+   - Configure SUPABASE_BACKUP_URL e BACKUP_DATABASE_ENABLED=true para ativar redundância.
+   - Consulte .env.example para referências de variáveis completas e seguras.
+2. **Execução Local:**
+   - Instalação de dependências: 
+pm install
+   - Desenvolvimento: 
+pm run dev (API na porta 3333 e Web na porta 5173).
+   - Testes automatizados: 
+pm test
+   - Build de produção: 
+pm run build
+3. **Padrão de Autenticação e Perfis:**
+   - 4 contas de equipe em pps/api/data/accounts.json com senhas em scrypt.
+   - Tokens de sessão utilizam assinatura HMAC com segredo de ambiente.
+
+---
+# Histórico de versões
+
+As versões futuras devem ser acrescentadas no topo deste arquivo, preservando o histórico já publicado.
+
 ## [2.2.0] — 2026-10-15
 
 ### Orientações e Demandas do Usuário (Prompt Original na Íntegra)

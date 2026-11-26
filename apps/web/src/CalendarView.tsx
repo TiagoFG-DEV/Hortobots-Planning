@@ -453,8 +453,8 @@ export function CalendarView({ api, user }: CalendarViewProps) {
       className="calendar-page-pro page-transition"
     >
       <div className="cal-header-bar">
-        <Link to="/" className={`back-home-button ${user ? '' : 'guest-return-login'}`}>
-          <HomeIcon size={18} /> {user ? 'Início' : 'Voltar ao login'}
+        <Link to="/" className="back-home-button back-home-icon-only" aria-label="Ir para a página inicial" title="Página Inicial">
+          <HomeIcon size={20} />
         </Link>
         <div className="cal-title-section">
           <span className="cal-badge-pill">DIÁRIO & CRONOGRAMA OFICIAL</span>

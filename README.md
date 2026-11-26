@@ -19,12 +19,31 @@ Cada branch possui sua própria linha evolutiva, dependências adicionais e estr
 
 ## Versões
 
-- **[WebApp Android 1.0 Beta (`v1.0-beta`)](https://github.com/TiagoFG-DEV/Hortobots-Planning/releases/tag/v1.0-beta):** Portabilidade oficial da plataforma para aplicativo Android (`.apk`) e WebApp progressivo (PWA) com arquitetura **Offline-First**. O app mantém cache local inteligente de todas as informações do banco de dados (eventos, registros, testes e feedbacks), permitindo navegação fluida mesmo sem acesso à internet. Inclui indicador de status de conexão no topo da tela, sessão persistente no dispositivo, proteção contra edições acidentais offline e compilação automatizada do `.apk` via GitHub Actions com publicação direta nas [Releases](https://github.com/TiagoFG-DEV/Hortobots-Planning/releases).
-- **[2.2.0 — Persistência Total no Banco e E-mail Refinado](https://github.com/TiagoFG-DEV/Hortobots-Planning/releases/tag/2.2.0):** Todos os dados (eventos, registros, testes, feedbacks e configurações) passam a ser salvos e lidos diretamente do Supabase, eliminando a perda de informações ao recarregar a página. Autenticação de sessão migrada para tokens HMAC assinados (`createHmac`), com acesso seamless ao Painel Administrativo para o Mentor já autenticado sem exigir segunda senha. Template de e-mail de notificação redesenhado com paleta verde/calma e texto *"Um novo evento foi enviado!"*, sem uso de vermelho ou linguagem alarmante. Entregabilidade anti-spam aprimorada com formato MIME `multipart/alternative` (texto puro + HTML), headers RFC-compliant (`Date`, `Message-ID`, `X-Priority: 3`, `Auto-Submitted`, `Reply-To`) e remetente exibido como **"Hortobots Planning"** em todos os clientes de e-mail.
-- **[2.1.0 — Painel Administrativo, Menu Lateral e Groq AI](CHANGELOG.md#210--2026-10-15):** Menu lateral (Drawer) na Home com as cores das equipes na hierarquia solicitada, Painel Administrativo unificado com autenticação a cada recarga (F5), backup completo em `.zip`, limpeza de banco, alteração de senhas dos perfis, botão de salvar com alto contraste e suporte à Groq API no Estúdio de Banner.
-- **[2.0.0 — Notificações e Visualização Universal](CHANGELOG.md#200--2026-10-14):** Alertas por e-mail via API do Gmail, Lei Geral de Visualização Irrestrita de registros para todos os perfis, temporada FLL BIOGLOW 2026/2027 e OBR Resgate 2026 nos diários, e exportação de Banner Científico compatível com Canva.com.
-- **[1.1.0 — Colaboração e Desempenho](CHANGELOG.md#110--2026-10-14):** pontuação oficial BIOGLOW, aproveitamento por teste, banners editáveis no Canva, avisos de eventos importantes e feedbacks da Gestão.
-- **[1.0.0 — Lançamento Estável](https://github.com/TiagoFG-DEV/Hortobots-Planning/releases/tag/v1.0.0):** reúne autenticação e permissões, três cadernos de equipe, registros, testes, gráficos, calendário, pesquisa geral, mídias, PDFs, persistência local/nuvem e a primeira auditoria responsiva completa.
+- **[WebApp Offline-First & Android (`.apk`)](https://github.com/TiagoFG-DEV/Hortobots-Planning/releases):** Portabilidade da plataforma para aplicativo Android e PWA Offline-First via Capacitor e Service Worker, com sincronização automática em IndexedDB sempre que há conexão Wi-Fi, leitura offline completa (incluindo PDFs e Portal BIOGLOW / notícias de biologia) e download sob demanda de imagens e vídeos.
+- **3.2.0 — Modos "Missão individual" e "Round Teste" Completo (FLL 2026/2027 BIOGLOW):**
+  - **Seletor de Modo no Topo:** Opções "Missão individual" e "Round Teste" adicionadas logo abaixo do nome do teste exclusivamente para os cadernos FLL.
+  - **Modo "Missão individual":** Avaliação de precisão e acertividade com foco em uma missão por vez. Gráfico de linha de Assertividade em função das tentativas medido diretamente sobre a **pontuação máxima da missão selecionada** (e não mais pela pontuação máxima da mesa toda).
+  - **Modo "Round Teste":** Simulação completa do Desafio do Robô FLL (2min30s) em cada tentativa. Inclui Score Sheet oficial completo com as 15 missões da temporada BIOGLOW (sub-objetivos, bônus, checkboxes, seletores), Bônus de Inspeção (+20 pts) e Discos de Precisão restantes (0 a 6 discos, até 50 pts) substituindo o campo de falhas.
+  - **Gráfico de Assertividade por Missão do Round Teste:** Gráfico vetorial apresentando a assertividade percentual (0% a 100%) em função de cada uma das 15 missões (`M01` a `M15`), com cada Round Teste representado por uma linha colorida sobreposta com legenda interativa.
+  - **Visualização e Edição Integradas:** Detecção e renderização consistente entre modo individual e round teste ao editar ou consultar testes salvos.
+- **3.1.0 — Seleção de Missões por Tentativa e Gráfico de Assertividade Sobreposto (FLL 2026/2027 BIOGLOW):**
+  - **Seleção Individual por Tentativa:** Cada tentativa agora possui sua própria seleção de missões realizadas (`M01` a `M15`) com pontuação independente, substituindo a limitação anterior de missão única para todo o teste.
+  - **Ações Rápidas de Lançamento:** Botões `+ Todas` (adiciona as 15 missões da temporada BIOGLOW com 1 clique para simulações completas de rodada), `Copiar T{i}` (clona as missões e notas da tentativa anterior) e `Limpar`.
+  - **Gráfico de Assertividade por Missão (`MissionAssertivenessChart`):** Curvas de linhas coloridas sobrepostas onde cada linha representa uma tentativa específica. O eixo Y mede a assertividade percentual (0% a 100%, pontos obtidos sobre o teto da missão) e o eixo X apresenta as missões testadas (`M01`, `M02`, `M03`, `M04`...).
+  - **Visualização de Ambos os Gráficos Sobrepostos:** Seletor com abas para visualizar "Assertividade p/ Missão", "Evolução Geral" (pontos, tempo e falhas) ou "Ambos Sobrepostos" (ambos os gráficos empilhados na tela).
+  - **Relatório PDF Atualizado:** Tabela analítica de assertividade por missão nas tentativas integrada à exportação oficial em PDF.
+- **3.0.0 — Homepage Pública, Central de Documentos, Monitoramento Oficial e Redundância de Bancos:**
+  - **Acesso Público & Homepage Padrão:** A rota `/` abre diretamente a Homepage com acesso público e visualização aos cadernos e calendário. Login migrado para `/login` e botão flutuante contextualizado.
+  - **Central Oficial de Documentos de Competição:** Nova interface pública e autenticada (`/documentos`) catalogando rubricas de avaliação, regras e manuais de FLL (Challenge e Explore) e OBR (Resgate, Artística, Simulação e Teórica) com visualizador nativo e download de PDFs.
+  - **Feed de Atualizações Oficiais:** Linha do tempo cronológica (`/documentos/atualizacoes`) com comunicados oficiais em tempo real, badges de criticidade e monitoramento contínuo de fontes organizadoras.
+  - **Redundância e Contingência de Bancos:** Suporte a duas instâncias de banco de dados independentes (novo Supabase principal e banco anterior como contingência passiva/fallback) com medição de latência e replicação tolerante a falhas.
+  - **Painel Mentor Expandido:** Nova área administrativa para upload, cadastro manual e gerenciamento de documentos oficiais com auditoria estrita de permissões.
+  - **Auditoria de Responsividade Universal:** Ajustes em todos os breakpoints (smartphones, tablets, desktops e ultrawide).
+- **2.2.0 — Persistência Total no Banco e E-mail Refinado:** Todos os dados (eventos, registros, testes, feedbacks e configurações) passam a ser salvos e lidos diretamente do Supabase, eliminando a perda de informações ao recarregar a página. Autenticação de sessão migrada para tokens HMAC assinados (`createHmac`), com acesso seamless ao Painel Administrativo para o Mentor já autenticado sem exigir segunda senha. Template de e-mail de notificação redesenhado com paleta verde/calma e texto *"Um novo evento foi enviado!"*, sem uso de vermelho ou linguagem alarmante. Entregabilidade anti-spam aprimorada com formato MIME `multipart/alternative` (texto puro + HTML), headers RFC-compliant (`Date`, `Message-ID`, `X-Priority: 3`, `Auto-Submitted`, `Reply-To`) e remetente exibido como **"Hortobots Planning"** em todos os clientes de e-mail.
+- **2.1.0 — Painel Administrativo, Menu Lateral e Groq AI:** Menu lateral (Drawer) na Home com as cores das equipes na hierarquia solicitada, Painel Administrativo unificado com autenticação a cada recarga (F5), backup completo em `.zip`, limpeza de banco, alteração de senhas dos perfis, botão de salvar com alto contraste e suporte à Groq API no Estúdio de Banner.
+- **2.0.0 — Notificações e Visualização Universal:** Alertas por e-mail via API do Gmail, Lei Geral de Visualização Irrestrita de registros para todos os perfis, temporada FLL BIOGLOW 2026/2027 e OBR Resgate 2026 nos diários, e exportação de Banner Científico compatível com Canva.com.
+- **1.1.0 — Colaboração e desempenho:** pontuação oficial BIOGLOW, aproveitamento por teste, banners editáveis no Canva, avisos de eventos importantes e feedbacks da Gestão.
+- **[1.0.0 — Lançamento estável](CHANGELOG.md#100--2026-10-10):** reúne autenticação e permissões, três cadernos de equipe, registros, testes, gráficos, calendário, pesquisa geral, mídias, PDFs, persistência local/nuvem e a primeira auditoria responsiva completa.
 - O histórico completo e detalhado com todos os prompts na íntegra está disponível em [CHANGELOG.md](CHANGELOG.md).
 
 ---
@@ -101,10 +120,12 @@ hortobots-planning/
 
 - **Simulacoes e Testes de Robos:**
   - Registro de ciclos de testes com quantidade variavel de tentativas (3 a 15).
-  - Metricas de tempo, pontuacao observada e taxa de falhas.
-  - Visualizacao grafica de desempenho em linha, barras ou circular.
-  - Pontuação FLL vinculada ao teto oficial de 530 pontos da temporada BIOGLOW 2026/2027, com aproveitamento percentual, faixa de desempenho, pontos restantes e tabela detalhada de missões/discos de precisão.
-  - Pontuação máxima OBR configurável por teste, pois o teto depende da composição da arena, do nível e da fase.
+  - **Seleção Individual de Missões por Tentativa:** Em vez de definir apenas uma missão para todo o teste, cada tentativa permite selecionar quais missões foram realizadas (`M01` a `M15`) e quantos pontos foram feitos em cada uma delas.
+  - **Ações Rápidas de Automação:** Botões `+ Todas` (adiciona todas as 15 missões da temporada BIOGLOW com 1 clique), `Copiar T{i}` (clona as missões e notas da tentativa anterior) e `Limpar`.
+  - **Gráfico de Assertividade por Missão (Tentativas Sobrepostas):** Gráfico vetorial de linha onde cada tentativa é representada por uma curva colorida distinta sobreposta, medindo a assertividade percentual (0% a 100%, calculada por `(pontos obtidos / pontos máximos) * 100`) em função das missões (`M01`, `M02`, `M03`, `M04`...).
+  - **Visualização de Ambos os Gráficos Sobrepostos:** Abas no painel de resultados permitindo alternar entre "Assertividade p/ Missão", "Evolução Geral" (pontuação, tempo e falhas) e "Ambos Sobrepostos" (ambos os gráficos empilhados simultaneamente).
+  - **Pontuação da Temporada FLL BIOGLOW 2026/2027:** Vinculada ao teto oficial de 530 pontos (460 pontos das missões M01–M15, 20 pontos de inspeção de equipamento e até 50 pontos de discos de precisão), com cálculo de assertividade e faixa de desempenho.
+  - **Pontuação Máxima OBR:** Configurável por teste conforme a composição da arena da rodada.
 
 - **Banner científico A×B:**
   - Um banner persistente por equipe, criado pela pergunta-problema, registros do caderno, testes do robô e anexos DOCX, XLSX, PDF, TXT, MD ou CSV.
@@ -170,7 +191,9 @@ O usuário escolhe diretamente um dos quatro perfis fixos e informa a senha corr
 
 ### 4.3 Escolha do diário e Menu Lateral da Home
 
-A tela Home apresenta os três cadernos de forma limpa, espaçada e respirável, sem botões soltos na base.
+![Homepage pública e seletor de cadernos](docs/telas/home-v3.jpg)
+
+A tela Home apresenta os três cadernos de forma limpa, espaçada e respirável, com acesso direto público e botões circulares responsivos para Calendário e Central de Documentos.
 Toda a navegação da plataforma foi organizada em um **Menu Lateral (Drawer)** acionado pelo botão `MENU` no topo:
 
 - **Hierarquia Estrita do Menu:**
@@ -184,7 +207,25 @@ Toda a navegação da plataforma foi organizada em um **Menu Lateral (Drawer)** 
   5. **PORTAL BIOGLOW:** Acesso ao portal oficial da equipe.
   6. **PAINEL ADMINISTRATIVO:** Botão exclusivo para a conta **Mentor**, destacado com ícone `<Shield />`.
 
-### 4.4 Painel Administrativo do Sistema
+### 4.4 Central Oficial de Documentos de Competição
+
+![Central Oficial de Documentos de Competição](docs/telas/documentos-competicao-v3.jpg)
+
+Ambiente unificado para consulta de regras, rubricas e manuais técnicos de competições (FIRST LEGO League e Olimpíada Brasileira de Robótica). Inclui download direto, visualizador nativo de PDFs com suporte a tela inteira, filtros rápidos por competição (FLL / OBR), categoria (Rubricas, Regras, Manuais) e abrangência regional (Nacional / Estado de SP). O servidor realiza auto-download e cache local resiliente de todos os documentos oficiais em português brasileiro (SESI Brasil).
+
+### 4.5 Visualizador de Rúbricas Oficiais PT-BR (SESI)
+
+![Visualizador de Rúbricas Oficiais PT-BR em Tela Inteira](docs/telas/rubricas-avaliacao-ptbr-v3.png)
+
+Exibição e download em tela cheia das folhas oficiais de avaliação da FIRST LEGO League em português brasileiro (*Feedback da Sessão de Avaliação* - temporada BIOGLOW 2026/2027), com verificação e sincronização automática com o banco e cache local garantindo disponibilidade contínua sem depender de serviços externos.
+
+### 4.6 Feed Oficial de Atualizações das Competições
+
+![Feed Oficial de Atualizações das Competições](docs/telas/atualizacoes-competicoes-v3.jpg)
+
+Linha do tempo cronológica com monitoramento contínuo de novidades, comunicados e atualizações das organizações oficiais (SESI / FIRST e OBR), categorizadas com badges de prioridade e links para as fontes originais com contingência e alta disponibilidade.
+
+### 4.7 Painel Administrativo do Sistema
 
 Acesso exclusivo para manutenção e administração de dados (`/admin` e `/mentor/configuracoes`):
 
@@ -197,13 +238,13 @@ Acesso exclusivo para manutenção e administração de dados (`/admin` e `/ment
 - **Alteração de Senhas:** Redefinição de senha para qualquer perfil (`gestao`, `mentor`, `aluno_fll`, `aluno_obr`) e da própria senha mestra administrativa.
 - **Botão Voltar ao Início:** Retorno rápido à Home em qualquer estado do painel.
 
-### 4.5 Portal independente Hortobots BIOGLOW
+### 4.8 Portal independente Hortobots BIOGLOW
 
 O botão **Hortobots BIOGLOW** abre o site oficial da equipe SESI Hortobots FLL dentro de um host isolado e responsivo, renderizado pelo próprio Planner. Uma barra permanece disponível para voltar à plataforma. A integração aguarda o sinal de carregamento do site e fornece apenas os endereços necessários para o retorno e para o acervo público da equipe.
 
 O código-fonte continua pertencendo ao repositório oficial [Hortobots/BIOGLOW-site](https://github.com/Hortobots/BIOGLOW-site) e não importa componentes do Planner. Uma nova versão pode ser incorporada executando `npm run sync:bioglow` após atualizar o repositório irmão. O arquivo `source.json` incluído no bundle registra exatamente qual commit foi integrado.
 
-### 4.5 SESI Hortobots FLL
+### 4.9 SESI Hortobots FLL
 
 #### Navegação do caderno
 
@@ -223,7 +264,7 @@ O painel oferece três ações centrais: criar um registro, consultar registros 
 
 O formulário FLL registra de 3 a 15 tentativas, tempo, pontuação, falhas e missões oficiais realizadas. O painel complementar recebe até quatro imagens ou vídeos e gera análise gráfica em linha, barras ou formato circular antes do salvamento. Cada teste pode ser associado a registros do diário.
 
-### 4.6 Under Construction FLL
+### 4.10 Under Construction FLL
 
 #### Navegação do caderno
 
@@ -243,7 +284,7 @@ O hub da equipe disponibiliza novo registro, registros salvos e simulações e t
 
 A listagem oferece pesquisa por texto ou tag e filtro por data. Cada cartão resume data, título, conteúdo e identidade da equipe; usuários autorizados recebem também ações de edição e exclusão.
 
-### 4.7 Hortobots OBR
+### 4.11 Hortobots OBR
 
 #### Navegação do caderno
 
@@ -263,7 +304,7 @@ O painel centraliza novo registro, consulta do histórico e testes do robô. Log
 
 O teste OBR registra data, nome, objetivo e de 3 a 15 tentativas com tempo, valor observado e falhas. A análise mostra evolução, melhor tempo, média, falhas e tendência, além de aceitar fotos e vídeos. O gráfico pode ser ocultado para ampliar a área de preenchimento ou aberto em foco para inspeção.
 
-### 4.8 Recursos compartilhados
+### 4.12 Recursos compartilhados
 
 #### Editor de registro
 

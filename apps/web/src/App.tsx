@@ -8,17 +8,21 @@ import {
   ChevronUp,
   Edit3,
   Eye,
+  FileText,
   Home as HomeIcon,
   Image as ImageIcon,
+  Layers,
   Leaf,
   LayoutTemplate,
   List,
+  LogIn,
   LogOut,
   Mail,
   Menu,
   Plus,
   Search,
   Shield,
+  Target,
   Trash2,
   Video,
   Wifi,
@@ -26,23 +30,27 @@ import {
   X
 } from 'lucide-react';
 import { useOnlineStatus } from './offlineStorage';
+import { OfflineAwareMedia, OfflineMediaButton } from './OfflineMediaControl';
+import { initAutoOfflineSync } from './offlineSync';
 import logo from './assets/generated/Logo.webp';
 import fll from './assets/generated/fll_team_logo.webp';
 import obr from './assets/generated/obr_team_logo.webp';
 import fllBook from './assets/generated/fll_book.webp';
 import obrBook from './assets/generated/obr_book.webp';
-import underBook from './assets/originals/underconstruction_book.png';
-import underLogo from './assets/originals/underconstruction_logo.png';
+import underBook from './assets/generated/underconstruction_book.webp';
+import underLogo from './assets/generated/underconstruction_logo.webp';
 import novo from './assets/generated/novo_registro_button.webp';
 import salvos from './assets/generated/registros_salvos_button.webp';
-import testsButton from './assets/originals/simulacoes_e_testes_button.png';
+import testsButton from './assets/generated/simulacoes_e_testes_button.webp';
 import mascote from './assets/generated/mascote.webp';
 import fundo1280 from './assets/generated/fundo-1280.webp';
 import fundo1920 from './assets/generated/fundo-1920.webp';
 import fundoObr1920 from './assets/generated/fundo-obr-1920.webp';
-import fundoUnder from './assets/originals/fundo_underconstruction.png';
-import fundoNeutro from './assets/originals/fundo_neutro.png';
+import fundoUnder from './assets/generated/fundo-under-1920.webp';
+import fundoNeutro from './assets/generated/fundo-neutro-1920.webp';
 import { CalendarView } from './CalendarView';
+import { CompetitionDocumentsView } from './CompetitionDocumentsView';
+import { CompetitionUpdatesView } from './CompetitionUpdatesView';
 import { PdfDownloadButton } from './PdfDownloadButton';
 import { TeamPortalFrame } from './TeamPortalFrame';
 import { useOverlayAccessibility } from './useOverlayAccessibility';
@@ -53,7 +61,17 @@ import { MentorSettings } from './MentorSettings';
 import { AdminPanel } from './AdminPanel';
 import { FeedbackThread } from './FeedbackThread';
 import { PerformancePanel } from './PerformancePanel';
-import { BIOGLOW_SEASON } from '@hortobots/shared';
+import {
+  BIOGLOW_SEASON,
+  calculateMissionAssertiveness,
+  getMissionMaxScore,
+  getSeasonMission,
+  calculatePrecisionPoints,
+  type AttemptMission
+} from '@hortobots/shared';
+import { MissionAssertivenessChart, ATTEMPT_COLORS } from './MissionAssertivenessChart';
+import { SingleMissionChart } from './SingleMissionChart';
+import { RoundScoreSheet } from './RoundScoreSheet';
 import { TEAMS, getTeamKey, withTeamTag, isTeamTag, displayDate, teamFromRoute, notebookRoute } from './teams';
 import {
   canCreateTeamContent,
@@ -94,7 +112,15 @@ const MISSIONS = [
 ];
 
 type User = AccountUser;
-type Attempt = { time: number; score: number; failures: number; observed: number };
+type Attempt = {
+  time: number;
+  score: number;
+  failures: number;
+  observed: number;
+  inspectionBonus?: boolean;
+  precisionTokensRemaining?: number;
+  missions?: AttemptMission[];
+};
 
 const UserContext = createContext<User | null>(null);
 const useCurrentUser = () => useContext(UserContext);
@@ -266,7 +292,7 @@ function Login({ onLogin }: { onLogin: (u: User) => void }) {
             <img src={underBook} alt="Caderno Under Construction" />
             <img src={obrBook} alt="Caderno OBR" />
           </div>
-          <span className="login-version-tag" title="Hortobots Planning v2.2.0">v2.2.0</span>
+          <span className="login-version-tag" title="Hortobots Planning v3.0.0">v3.0.0</span>
         </div>
         <form onSubmit={submit}>
           <div className="login-team-icons">
@@ -322,9 +348,9 @@ function Login({ onLogin }: { onLogin: (u: User) => void }) {
             ENTRAR NA PLATAFORMA
           </button>
           <div className="login-public-links">
-            <Link className="visitor-calendar-link" to="/calendario">
+            <Link className="visitor-calendar-link" to="/">
               <Eye size={19} />
-              <span><strong>Somente visualizar</strong><small>Calendário e pesquisar registros</small></span>
+              <span><strong>Somente visualizar</strong><small>Explorar cadernos, documentos e calendário</small></span>
             </Link>
             <Link className="visitor-calendar-link bioglow-access-link" to={SESI_BIOGLOW_PORTAL.route}>
               <Leaf size={19} />
@@ -341,7 +367,7 @@ function Login({ onLogin }: { onLogin: (u: User) => void }) {
   );
 }
 
-function Home() {
+function Home({ onLogout }: { onLogout: () => void }) {
   const user = useCurrentUser();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [showRecordsTeams, setShowRecordsTeams] = useState(false);
@@ -365,7 +391,7 @@ function Home() {
       <div
         className={`home-drawer-layer ${drawerOpen ? 'open' : ''}`}
         onClick={() => setDrawerOpen(false)}
-        aria-hidden={!drawerOpen}
+        {...(!drawerOpen ? { inert: '' } : {})}
       >
         <aside
           className="home-drawer-panel"
@@ -391,7 +417,17 @@ function Home() {
           </header>
 
           <nav className="home-drawer-nav">
-            {/* 1. Calendário */}
+            {/* 1. Documentos de Competição */}
+            <Link
+              to="/documentos"
+              className="home-drawer-link"
+              onClick={() => setDrawerOpen(false)}
+            >
+              <FileText size={20} />
+              <span>DOCUMENTOS DE COMPETIÇÃO</span>
+            </Link>
+
+            {/* 2. Calendário */}
             <Link
               to="/calendario"
               className="home-drawer-link"
@@ -401,7 +437,7 @@ function Home() {
               <span>CALENDÁRIO</span>
             </Link>
 
-            {/* 2. Pesquisar Registros */}
+            {/* 3. Pesquisar Registros */}
             <Link
               to="/calendario?view=list"
               className="home-drawer-link"
@@ -411,7 +447,7 @@ function Home() {
               <span>PESQUISAR REGISTROS</span>
             </Link>
 
-            {/* 3. Ver Registros (simplificado em 1 botão com expansão para as 3 equipes) */}
+            {/* 4. Ver Registros (simplificado em 1 botão com expansão para as 3 equipes) */}
             <div className="home-drawer-group">
               <button
                 type="button"
@@ -529,6 +565,32 @@ function Home() {
                 </Link>
               </div>
             )}
+
+            <div className="home-drawer-divider" style={{ marginTop: '0.8rem' }} />
+
+            {/* Acesso / Saída Contextual */}
+            {user ? (
+              <button
+                type="button"
+                className="home-drawer-link drawer-auth-btn logout-variant"
+                onClick={() => {
+                  setDrawerOpen(false);
+                  onLogout();
+                }}
+              >
+                <LogOut size={20} />
+                <span>SAIR DA CONTA ({user.username.toUpperCase()})</span>
+              </button>
+            ) : (
+              <Link
+                to="/login"
+                className="home-drawer-link drawer-auth-btn login-variant"
+                onClick={() => setDrawerOpen(false)}
+              >
+                <LogIn size={20} />
+                <span>FAZER LOGIN</span>
+              </Link>
+            )}
           </nav>
         </aside>
       </div>
@@ -543,7 +605,7 @@ function Home() {
             const team = TEAMS[key];
             const canWrite = canCreateTeamContent(user, team.modality);
             return (
-              <Link className="notebook-logo" data-team={key} to={`/${team.route}`} key={key}>
+              <Link className="notebook-logo" data-team={key} to={canWrite ? `/${team.route}` : `/${team.route}/registros`} key={key}>
                 <img src={teamBooks[key]} alt={`Caderno ${team.short}`} />
                 <strong>{team.short}</strong>
                 <small>{team.modality}{canWrite ? '' : ' • VISUALIZAR'}</small>
@@ -552,9 +614,28 @@ function Home() {
           })}
         </div>
 
-        <Link className="global-calendar" to="/calendario">
-          <CalendarDays />
-        </Link>
+        {/* Botões inferiores da Home: Calendário, Documentos de Competição e Login/Logoff (círculos idênticos em cinza e branco) */}
+        <div className="home-bottom-actions">
+          <Link className="home-bottom-btn global-calendar-btn" to="/calendario" aria-label="Acessar Calendário" title="Calendário Geral">
+            <CalendarDays size={22} />
+          </Link>
+          <Link className="home-bottom-btn competition-docs-btn" to="/documentos" aria-label="Acessar Documentos de Competição" title="Documentos de Competição">
+            <FileText size={22} />
+          </Link>
+          <Link
+            className="home-bottom-btn home-auth-btn"
+            to="/login"
+            aria-label={user ? 'Desconectar da conta' : 'Fazer Login'}
+            title={user ? 'Desconectar da conta' : 'Fazer Login'}
+            onClick={() => {
+              if (user) {
+                onLogout();
+              }
+            }}
+          >
+            {user ? <LogOut size={22} /> : <LogIn size={22} />}
+          </Link>
+        </div>
       </section>
     </main>
   );
@@ -583,16 +664,21 @@ function SideMenu({ mod }: { mod: string }) {
             </button>
           </header>
           <nav>
-            <Link to="/"><HomeIcon />{user ? 'HOME' : 'VOLTAR AO LOGIN'}</Link>
+            <Link to="/"><HomeIcon />{user ? 'HOME' : 'HOME'}</Link>
+            <Link to="/documentos"><FileText />DOCUMENTOS DE COMPETIÇÃO</Link>
             <Link to="/calendario"><CalendarDays />CALENDÁRIO GERAL</Link>
-            {user && <Link to={`/${mod}/registros`}><List />REGISTROS</Link>}
+            <Link to={`/${mod}/registros`}><List />REGISTROS</Link>
             {user && canWrite && <Link to={`/${mod}/testes`}><ChartNoAxesCombined />SIMULAÇÕES E TESTES</Link>}
-            {user && <Link to={`/${mod}/testes-salvos`}><List />TESTES SALVOS</Link>}
+            <Link to={`/${mod}/testes-salvos`}><List />TESTES SALVOS</Link>
             {user && <Link to={`/${mod}/banner`}><LayoutTemplate />BANNER A × B</Link>}
             {notebook.key === 'fll' && <Link to={SESI_BIOGLOW_PORTAL.route}><Leaf />PORTAL BIOGLOW</Link>}
+            {!user && <Link to="/login"><LogIn />ENTRAR / LOGIN</Link>}
           </nav>
           <footer>
-            <Link to={user ? '/' : '/calendario?view=list'}>{user ? 'Trocar de caderno' : 'Voltar a pesquisar registros'}</Link>
+            {user
+              ? <Link to="/">Trocar de caderno</Link>
+              : <Link to="/" className="side-menu-home-icon-only" aria-label="Ir para pagina inicial"><HomeIcon size={22} /></Link>
+            }
           </footer>
         </aside>
       </div>
@@ -627,7 +713,7 @@ function Hub() {
         <div className="stamp">{notebook.modality}</div>
         <h1>Diário de Bordo</h1>
         <NotebookIdentity hub />
-        <div className={`action-grid ${canWrite ? 'three' : 'two'}`}>
+        <div className={`action-grid ${canWrite ? 'three' : 'one'}`}>
           {canWrite && (
             <Link to={`/${mod}/novo`} aria-label="Novo registro">
               <img src={novo} alt="Novo Registro" />
@@ -636,11 +722,13 @@ function Hub() {
           <Link to={`/${mod}/registros`} aria-label="Registros salvos">
             <img src={salvos} alt="Registros Salvos" />
           </Link>
-          <Link to={canWrite ? `/${mod}/testes` : `/${mod}/testes-salvos`} aria-label={canWrite ? "Simulações e testes" : "Testes salvos"}>
-            <img src={testsButton} alt={canWrite ? "Simulações e Testes" : "Testes Salvos"} />
-          </Link>
+          {canWrite && (
+            <Link to={`/${mod}/testes`} aria-label="Simulações e testes">
+              <img src={testsButton} alt="Simulações e Testes" />
+            </Link>
+          )}
         </div>
-        <Link className="hub-banner-link" to={`/${mod}/banner`}><LayoutTemplate /> Criar ou consultar Banner A × B</Link>
+        {user && <Link className="hub-banner-link" to={`/${mod}/banner`}><LayoutTemplate /> Criar ou consultar Banner A × B</Link>}
       </section>
     </Shell>
   );
@@ -1369,16 +1457,258 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
   const user = useCurrentUser();
   const [loaded, setLoaded] = useState(!isEdit);
   const [count, setCount] = useState(3);
+  const [testMode, setTestMode] = useState<'individual' | 'round'>('individual');
   const [attempts, setAttempts] = useState<Attempt[]>(
-    Array.from({ length: 15 }, () => ({ time: 150, score: 0, failures: 0, observed: 0 }))
+    Array.from({ length: 15 }, () => ({
+      time: 150,
+      score: 0,
+      failures: 0,
+      observed: 0,
+      inspectionBonus: false,
+      precisionTokensRemaining: 6,
+      missions: []
+    }))
   );
+  const [chartTab, setChartTab] = useState<'both' | 'assertiveness' | 'evolution'>('both');
   const [media, setMedia] = useState<MediaSlot[]>([]);
   const [focusSlot, setFocusSlot] = useState<MediaSlot | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [celebration, setCelebration] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
-  const [base, setBase] = useState({ date: today, title: '', objective: '', comments: '', mission: '', maxScore: notebook.modality === 'FLL' ? BIOGLOW_SEASON.maximumScore : 0 });
-  const [showAnalysis, setShowAnalysis] = useState(false);
+  const [base, setBase] = useState({
+    date: today,
+    title: '',
+    objective: '',
+    comments: '',
+    mission: '',
+    testMode: 'individual',
+    maxScore: notebook.modality === 'FLL' ? BIOGLOW_SEASON.maximumScore : 0
+  });
+  const [showAnalysis, setShowAnalysis] = useState(true);
+
+  // Adiciona missão a uma tentativa (Modo Individual)
+  const addMissionToAttempt = (attIndex: number, missionId: string) => {
+    if (!missionId) return;
+    const seasonM = getSeasonMission(missionId);
+    const maxScore = seasonM ? seasonM.maximum : 0;
+    setAttempts(prev => {
+      const copy = [...prev];
+      const att = copy[attIndex];
+      if (!att) return prev;
+      const currentMissions = att.missions || [];
+      if (currentMissions.some(m => m.missionId.toUpperCase() === missionId.toUpperCase())) return prev;
+      const newMissions = [
+        ...currentMissions,
+        {
+          missionId: missionId.toUpperCase(),
+          name: seasonM?.name || missionId,
+          score: 0,
+          maxScore
+        }
+      ].sort((a, b) => {
+        const numA = parseInt(a.missionId.replace(/\D/g, ''), 10) || 0;
+        const numB = parseInt(b.missionId.replace(/\D/g, ''), 10) || 0;
+        return numA - numB;
+      });
+      const missionTotal = newMissions.reduce((s, m) => s + (Number(m.score) || 0), 0);
+      copy[attIndex] = { ...att, missions: newMissions, score: missionTotal };
+      return copy;
+    });
+  };
+
+  // Atualiza pontuação de missão no Round Teste ou Individual
+  const updateMissionScoreInAttempt = (
+    attIndex: number,
+    missionId: string,
+    score: number,
+    answers?: Record<string, any>
+  ) => {
+    setAttempts(prev => {
+      const copy = [...prev];
+      const att = copy[attIndex];
+      if (!att) return prev;
+      const seasonM = getSeasonMission(missionId);
+      const maxScore = seasonM ? seasonM.maximum : 0;
+      const currentMissions = att.missions || [];
+      const exists = currentMissions.some(m => m.missionId.toUpperCase() === missionId.toUpperCase());
+
+      let newMissions: AttemptMission[];
+      if (exists) {
+        newMissions = currentMissions.map(m => {
+          if (m.missionId.toUpperCase() === missionId.toUpperCase()) {
+            return {
+              ...m,
+              score,
+              answers: answers || m.answers
+            };
+          }
+          return m;
+        });
+      } else {
+        newMissions = [
+          ...currentMissions,
+          {
+            missionId: missionId.toUpperCase(),
+            name: seasonM?.name || missionId,
+            score,
+            maxScore,
+            answers
+          }
+        ];
+      }
+
+      const missionsTotal = newMissions.reduce((s, m) => s + (Number(m.score) || 0), 0);
+      const precisionBonus = calculatePrecisionPoints(att.precisionTokensRemaining ?? 6);
+      const inspectionBonus = att.inspectionBonus ? BIOGLOW_SEASON.equipmentInspectionPoints : 0;
+      const finalScore = missionsTotal + precisionBonus + inspectionBonus;
+
+      copy[attIndex] = {
+        ...att,
+        missions: newMissions,
+        score: testMode === 'round' ? finalScore : missionsTotal
+      };
+      return copy;
+    });
+  };
+
+  // Atualiza extra do Round Teste (inspeção ou discos de precisão)
+  const updateRoundExtra = (
+    attIndex: number,
+    field: 'inspectionBonus' | 'precisionTokensRemaining',
+    value: any
+  ) => {
+    setAttempts(prev => {
+      const copy = [...prev];
+      const att = copy[attIndex];
+      if (!att) return prev;
+      const updatedAtt: Attempt = {
+        ...att,
+        [field]: value
+      };
+      const missionsTotal = (updatedAtt.missions || []).reduce((s, m) => s + (Number(m.score) || 0), 0);
+      const precisionBonus = calculatePrecisionPoints(updatedAtt.precisionTokensRemaining ?? 6);
+      const inspectionBonus = updatedAtt.inspectionBonus ? BIOGLOW_SEASON.equipmentInspectionPoints : 0;
+      const finalScore = missionsTotal + precisionBonus + inspectionBonus;
+      copy[attIndex] = {
+        ...updatedAtt,
+        score: finalScore,
+        failures: field === 'precisionTokensRemaining' ? Math.max(0, 6 - Number(value)) : att.failures
+      };
+      return copy;
+    });
+  };
+
+  // Zerar missões de um Round Teste
+  const resetRoundMissions = (attIndex: number) => {
+    setAttempts(prev => {
+      const copy = [...prev];
+      const att = copy[attIndex];
+      if (!att) return prev;
+      const zeroedMissions: AttemptMission[] = BIOGLOW_SEASON.missions.map(m => ({
+        missionId: m.id,
+        name: m.name,
+        score: 0,
+        maxScore: m.maximum,
+        answers: {}
+      }));
+      const precisionBonus = calculatePrecisionPoints(att.precisionTokensRemaining ?? 6);
+      const inspectionBonus = att.inspectionBonus ? BIOGLOW_SEASON.equipmentInspectionPoints : 0;
+      copy[attIndex] = {
+        ...att,
+        missions: zeroedMissions,
+        score: precisionBonus + inspectionBonus
+      };
+      return copy;
+    });
+  };
+
+  // Adiciona todas as 15 missões da temporada BIOGLOW a uma tentativa
+  const addAllMissionsToAttempt = (attIndex: number) => {
+    setAttempts(prev => {
+      const copy = [...prev];
+      const att = copy[attIndex];
+      if (!att) return prev;
+      const currentMap = new Map((att.missions || []).map(m => [m.missionId.toUpperCase(), m]));
+      const newMissions: AttemptMission[] = BIOGLOW_SEASON.missions.map(m => {
+        const existing = currentMap.get(m.id.toUpperCase());
+        return {
+          missionId: m.id,
+          name: m.name,
+          score: existing ? existing.score : 0,
+          maxScore: m.maximum
+        };
+      });
+      const missionTotal = newMissions.reduce((s, m) => s + (Number(m.score) || 0), 0);
+      copy[attIndex] = { ...att, missions: newMissions, score: missionTotal };
+      return copy;
+    });
+  };
+
+  // Remove missão de uma tentativa
+  const removeMissionFromAttempt = (attIndex: number, missionId: string) => {
+    setAttempts(prev => {
+      const copy = [...prev];
+      const att = copy[attIndex];
+      if (!att) return prev;
+      const newMissions = (att.missions || []).filter(
+        m => m.missionId.toUpperCase() !== missionId.toUpperCase()
+      );
+      const missionTotal = newMissions.reduce((s, m) => s + (Number(m.score) || 0), 0);
+      copy[attIndex] = { ...att, missions: newMissions, score: missionTotal };
+      return copy;
+    });
+  };
+
+  // Atualiza pontuação de uma missão
+  const updateMissionScore = (attIndex: number, missionId: string, score: number) => {
+    setAttempts(prev => {
+      const copy = [...prev];
+      const att = copy[attIndex];
+      if (!att) return prev;
+      const newMissions = (att.missions || []).map(m => {
+        if (m.missionId.toUpperCase() === missionId.toUpperCase()) {
+          const clamped = Math.max(0, Math.min(m.maxScore, score));
+          return { ...m, score: clamped };
+        }
+        return m;
+      });
+      const missionTotal = newMissions.reduce((s, m) => s + (Number(m.score) || 0), 0);
+      copy[attIndex] = { ...att, missions: newMissions, score: missionTotal };
+      return copy;
+    });
+  };
+
+  // Copia missões da tentativa anterior
+  const copyMissionsFromPrevious = (attIndex: number) => {
+    if (attIndex <= 0) return;
+    setAttempts(prev => {
+      const copy = [...prev];
+      const source = copy[attIndex - 1];
+      const current = copy[attIndex];
+      if (!source || !current) return prev;
+      const clonedMissions = (source.missions || []).map(m => ({ ...m }));
+      const missionTotal = clonedMissions.reduce((s, m) => s + (Number(m.score) || 0), 0);
+      copy[attIndex] = {
+        ...current,
+        missions: clonedMissions,
+        score: missionTotal,
+        time: source.time,
+        failures: source.failures
+      };
+      return copy;
+    });
+  };
+
+  // Limpa missões de uma tentativa
+  const clearMissionsFromAttempt = (attIndex: number) => {
+    setAttempts(prev => {
+      const copy = [...prev];
+      const att = copy[attIndex];
+      if (!att) return prev;
+      copy[attIndex] = { ...att, missions: [] };
+      return copy;
+    });
+  };
 
   // Aviso de alterações não salvas ao fechar ou recarregar
   useEffect(() => {
@@ -1410,12 +1740,15 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
               navigate(`/${mod}/teste/${id}`, { replace: true });
               return;
             }
+            const loadedMode = t.testMode || (t.attempts?.[0]?.missions?.length > 1 && !t.mission ? 'round' : 'individual');
+            setTestMode(loadedMode);
             setBase({
               date: t.date || today,
               title: t.title || '',
               objective: t.objective || '',
               comments: t.comments || '',
               mission: t.mission || '',
+              testMode: loadedMode,
               maxScore: Number(t.maxScore || (notebook.modality === 'FLL' ? BIOGLOW_SEASON.maximumScore : 0))
             });
             setLoaded(true);
@@ -1425,7 +1758,27 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
               setAttempts(prev => {
                 const copy = [...prev];
                 t.attempts.forEach((att: any, idx: number) => {
-                  if (idx < copy.length) copy[idx] = att;
+                  if (idx < copy.length) {
+                    let attMissions: AttemptMission[] = Array.isArray(att.missions) ? att.missions : [];
+                    if (attMissions.length === 0 && t.mission) {
+                      const mId = t.mission.slice(0, 3);
+                      const sm = getSeasonMission(mId);
+                      if (sm) {
+                        attMissions = [{
+                          missionId: sm.id,
+                          name: sm.name,
+                          score: Number(att.score) || 0,
+                          maxScore: sm.maximum
+                        }];
+                      }
+                    }
+                    copy[idx] = {
+                      ...att,
+                      inspectionBonus: Boolean(att.inspectionBonus),
+                      precisionTokensRemaining: att.precisionTokensRemaining ?? 6,
+                      missions: attMissions
+                    };
+                  }
                 });
                 return copy;
               });
@@ -1476,8 +1829,17 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
       // 1. Upload seguro e direto de todas as mídias para a nuvem Supabase Storage
       const processedMedia = await uploadMediaList(media, 'testes', notebook.modality);
 
+      const selectedMissionId = base.mission ? base.mission.slice(0, 3) : '';
+      const selectedMissionData = selectedMissionId ? getSeasonMission(selectedMissionId) : null;
+      const effectiveMaxScore =
+        notebook.modality === 'FLL'
+          ? (testMode === 'round' ? BIOGLOW_SEASON.maximumScore : (selectedMissionData?.maximum || BIOGLOW_SEASON.maximumScore))
+          : base.maxScore;
+
       const payload = {
         ...base,
+        testMode,
+        maxScore: effectiveMaxScore,
         modality: notebook.modality,
         team: notebook.storedName,
         attempts: attempts.slice(0, count),
@@ -1541,18 +1903,60 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
               Nome do teste
               <input value={base.title} onChange={e => setBase({ ...base, title: e.target.value })} />
             </label>
+
+            {/* Seletor de Modo: Missão Individual vs Round Teste (Exclusivo FLL) */}
+            {notebook.modality === 'FLL' && (
+              <div className="test-mode-selector-group">
+                <span className="test-mode-selector-label">Modo da Simulação</span>
+                <div className="test-mode-options-bar">
+                  <button
+                    type="button"
+                    className={`test-mode-btn ${testMode === 'individual' ? 'active' : ''}`}
+                    onClick={() => {
+                      setTestMode('individual');
+                      setBase(prev => ({ ...prev, testMode: 'individual' }));
+                    }}
+                  >
+                    <Target size={16} /> Missão individual
+                  </button>
+                  <button
+                    type="button"
+                    className={`test-mode-btn round ${testMode === 'round' ? 'active' : ''}`}
+                    onClick={() => {
+                      setTestMode('round');
+                      setBase(prev => ({ ...prev, testMode: 'round' }));
+                    }}
+                  >
+                    <Layers size={16} /> Round Teste
+                  </button>
+                </div>
+              </div>
+            )}
+
             <label>
               Objetivo
               <AutoArea value={base.objective} onChange={e => setBase({ ...base, objective: e.target.value })} />
             </label>
-            {notebook.modality === 'FLL' && (
+            {notebook.modality === 'FLL' && testMode === 'individual' && (
               <>
                 <label>
-                  Missão BIOGLOW (Temporada 2026/2027 • Teto 530 pts)
-                  <select value={base.mission} onChange={e => setBase({ ...base, mission: e.target.value })}>
-                    <option value="">Selecione a missão</option>
+                  Missão testada (FLL BIOGLOW • Teto específico da missão)
+                  <select
+                    value={base.mission}
+                    onChange={e => {
+                      const mVal = e.target.value;
+                      const mId = mVal.slice(0, 3);
+                      const sm = getSeasonMission(mId);
+                      setBase({
+                        ...base,
+                        mission: mVal,
+                        maxScore: sm ? sm.maximum : BIOGLOW_SEASON.maximumScore
+                      });
+                    }}
+                  >
+                    <option value="">Selecione a missão testada...</option>
                     {MISSIONS.map(m => (
-                      <option key={m}>{m}</option>
+                      <option key={m} value={m}>{m}</option>
                     ))}
                   </select>
                 </label>
@@ -1563,7 +1967,7 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
                   return (
                     <div className="season-mission-hint" style={{ padding: '0.8rem', background: 'rgba(11, 43, 25, 0.85)', border: '1px solid #16794b', borderRadius: '8px', marginBottom: '0.9rem', fontSize: '0.88rem' }}>
                       <strong style={{ color: '#9fe870', display: 'block', marginBottom: '0.3rem' }}>
-                        {missionData.id} — {missionData.name} ({missionData.minimum === missionData.maximum ? `${missionData.maximum} pts` : `${missionData.minimum} a ${missionData.maximum} pts`})
+                        {missionData.id} — {missionData.name} (Teto: {missionData.maximum} pts)
                       </strong>
                       <p style={{ margin: '0 0 0.4rem', color: '#dceadf', fontSize: '0.82rem', lineHeight: 1.4 }}>
                         {missionData.scoring.join(' • ')}
@@ -1571,7 +1975,7 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
                       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                         {missionData.shared && <span style={{ background: '#2563eb', color: '#fff', fontSize: '0.72rem', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold' }}>COMPARTILHADA</span>}
                         {missionData.losable && <span style={{ background: '#d97706', color: '#fff', fontSize: '0.72rem', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold' }}>PONTOS PERDÍVEIS</span>}
-                        <span style={{ background: '#16794b', color: '#fff', fontSize: '0.72rem', padding: '2px 8px', borderRadius: '4px' }}>Teto Oficial: 530 pts</span>
+                        <span style={{ background: '#16794b', color: '#fff', fontSize: '0.72rem', padding: '2px 8px', borderRadius: '4px' }}>Teto Desta Missão: {missionData.maximum} pts</span>
                       </div>
                     </div>
                   );
@@ -1583,50 +1987,151 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
               <input type="number" min="1" value={base.maxScore || ''} onChange={e => setBase({ ...base, maxScore: Number(e.target.value) })} placeholder="Varia conforme a arena da rodada" />
               <small>Na OBR 2026, a referência máxima é definida pela composição da arena.</small>
             </label>}
-            <div className="attempts">
-              {activeAttempts.map((a, i) => (
-                <fieldset key={i}>
-                  <legend>Tentativa {i + 1}</legend>
-                  <label>
-                    Tempo (s)
-                    <input
-                      type="number"
-                      value={a.time}
-                      onChange={e => {
-                        const n = [...attempts];
-                        n[i] = { ...a, time: +e.target.value };
-                        setAttempts(n);
-                      }}
-                    />
-                  </label>
-                  <label>
-                    {notebook.modality === 'FLL' ? 'Pontuação' : 'Valor observado'}
-                    <input
-                      type="number"
-                      min="0"
-                      max={base.maxScore || undefined}
-                      value={notebook.modality === 'FLL' ? a.score : a.observed}
-                      onChange={e => {
-                        const n = [...attempts];
-                        n[i] = { ...a, [notebook.modality === 'FLL' ? 'score' : 'observed']: +e.target.value, score: +e.target.value };
-                        setAttempts(n);
-                      }}
-                    />
-                  </label>
-                  <label>
-                    Falhas
-                    <input
-                      type="number"
-                      value={a.failures}
-                      onChange={e => {
-                        const n = [...attempts];
-                        n[i] = { ...a, failures: +e.target.value };
-                        setAttempts(n);
-                      }}
-                    />
-                  </label>
-                </fieldset>
-              ))}
+
+            <div className={`attempts${testMode === 'round' && notebook.modality === 'FLL' ? ' attempts-round-list' : ''}`}>
+              {activeAttempts.map((a, i) => {
+                const attemptColor = ATTEMPT_COLORS[i % ATTEMPT_COLORS.length];
+                const attemptMissions = a.missions || [];
+                const missionsTotalScore = attemptMissions.reduce((sum, m) => sum + (Number(m.score) || 0), 0);
+
+                // No modo Round Teste: exibe a folha de pontuação completa oficial
+                if (notebook.modality === 'FLL' && testMode === 'round') {
+                  return (
+                    <div
+                      key={i}
+                      className="attempt-card round-card"
+                      style={{
+                        borderLeftColor: attemptColor,
+                        borderLeftWidth: '4px',
+                        '--attempt-color': attemptColor
+                      } as React.CSSProperties}
+                    >
+                      <div className="attempt-card-header" style={{ color: attemptColor }}>
+                        <span className="attempt-legend-dot" style={{ backgroundColor: attemptColor }} />
+                        <span>Round Teste {i + 1}</span>
+                      </div>
+
+                      <div className="round-top-fields">
+                        <label style={{ color: attemptColor }}>
+                          Tempo de Round (s)
+                          <input
+                            type="number"
+                            value={a.time}
+                            style={{ color: attemptColor }}
+                            onChange={e => {
+                              const n = [...attempts];
+                              n[i] = { ...a, time: +e.target.value };
+                              setAttempts(n);
+                            }}
+                          />
+                        </label>
+                        <label style={{ color: attemptColor }}>
+                          Pontuação do Round
+                          <input
+                            type="number"
+                            readOnly
+                            value={a.score}
+                            style={{ color: attemptColor }}
+                          />
+                        </label>
+                      </div>
+
+                      <RoundScoreSheet
+                        roundIndex={i}
+                        color={attemptColor || '#22d3ee'}
+                        missions={a.missions || []}
+                        inspectionBonus={a.inspectionBonus}
+                        precisionTokensRemaining={a.precisionTokensRemaining ?? 6}
+                        onUpdateMission={(mId, score, answers) =>
+                          updateMissionScoreInAttempt(i, mId, score, answers)
+                        }
+                        onUpdateRoundExtra={(field, val) => updateRoundExtra(i, field, val)}
+                        onResetRound={() => resetRoundMissions(i)}
+                      />
+                    </div>
+                  );
+                }
+
+                // Modo Missão Individual (ou OBR)
+                const selectedMissionId = base.mission ? base.mission.slice(0, 3) : '';
+                const selectedMissionData = selectedMissionId ? getSeasonMission(selectedMissionId) : null;
+                const missionMax = selectedMissionData ? selectedMissionData.maximum : (base.maxScore || 100);
+
+                return (
+                  <div
+                    key={i}
+                    className="attempt-card"
+                    style={{
+                      borderLeftColor: attemptColor,
+                      borderLeftWidth: '4px',
+                      '--attempt-color': attemptColor
+                    } as React.CSSProperties}
+                  >
+                    <div className="attempt-card-header" style={{ color: attemptColor }}>
+                      <span className="attempt-legend-dot" style={{ backgroundColor: attemptColor }} />
+                      <span>Tentativa {i + 1}</span>
+                    </div>
+
+                    <div className="attempt-fields-grid">
+                      <label style={{ color: attemptColor }}>
+                        Tempo (s)
+                        <input
+                          type="number"
+                          value={a.time}
+                          style={{ color: attemptColor }}
+                          onChange={e => {
+                            const n = [...attempts];
+                            n[i] = { ...a, time: +e.target.value };
+                            setAttempts(n);
+                          }}
+                        />
+                      </label>
+                      <label style={{ color: attemptColor }}>
+                        {notebook.modality === 'FLL' ? `Pontuação (máx ${missionMax} pts)` : 'Valor observado'}
+                        <input
+                          type="number"
+                          min="0"
+                          max={notebook.modality === 'FLL' ? missionMax : (base.maxScore || undefined)}
+                          value={notebook.modality === 'FLL' ? a.score : a.observed}
+                          style={{ color: attemptColor }}
+                          onChange={e => {
+                            const val = +e.target.value;
+                            const clamped = notebook.modality === 'FLL' ? Math.max(0, Math.min(missionMax, val)) : val;
+                            const n = [...attempts];
+                            const sm = selectedMissionData;
+                            const mList: AttemptMission[] = sm ? [{
+                              missionId: sm.id,
+                              name: sm.name,
+                              score: clamped,
+                              maxScore: sm.maximum
+                            }] : [];
+                            n[i] = {
+                              ...a,
+                              [notebook.modality === 'FLL' ? 'score' : 'observed']: clamped,
+                              score: clamped,
+                              missions: mList
+                            };
+                            setAttempts(n);
+                          }}
+                        />
+                      </label>
+                      <label style={{ color: attemptColor }}>
+                        Falhas
+                        <input
+                          type="number"
+                          value={a.failures}
+                          style={{ color: attemptColor }}
+                          onChange={e => {
+                            const n = [...attempts];
+                            n[i] = { ...a, failures: +e.target.value };
+                            setAttempts(n);
+                          }}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
             <label>
               Comentários opcionais
@@ -1665,7 +2170,77 @@ function Tests({ isEdit }: { isEdit?: boolean }) {
             </div>
 
             <PerformancePanel attempts={activeAttempts} modality={notebook.modality} maximum={base.maxScore} />
-            {showAnalysis && <DataAnalysis attempts={activeAttempts} maximumScore={base.maxScore} />}
+
+            {showAnalysis && (
+              <div className="analytics-tabs-wrapper">
+                {notebook.modality === 'FLL' && testMode === 'individual' ? (
+                  /* Modo Missão Individual FLL: Gráfico de Assertividade em função das tentativas com teto da missão */
+                  (() => {
+                    const selMId = base.mission ? base.mission.slice(0, 3) : '';
+                    const selMData = selMId ? getSeasonMission(selMId) : null;
+                    const mMax = selMData ? selMData.maximum : (base.maxScore || 30);
+                    return (
+                      <SingleMissionChart
+                        missionId={selMId || 'M01'}
+                        missionName={selMData?.name}
+                        maxScore={mMax}
+                        attempts={activeAttempts}
+                      />
+                    );
+                  })()
+                ) : notebook.modality === 'FLL' && testMode === 'round' ? (
+                  /* Modo Round Teste FLL: Gráfico de todas as 15 missões com linhas coloridas por round */
+                  <div className="round-test-charts">
+                    <MissionAssertivenessChart
+                      attempts={activeAttempts}
+                      modality={notebook.modality}
+                      title="Assertividade do Desafio do Robô (M01 a M15)"
+                      forceAllMissions={true}
+                      attemptLabelPrefix="Round Teste"
+                      splitByRound={true}
+                    />
+                  </div>
+                ) : (
+                  /* Modo OBR ou fallback */
+                  <>
+                    <div className="analytics-view-tabs">
+                      <button
+                        type="button"
+                        className={`analytics-tab-btn ${chartTab === 'assertiveness' ? 'active' : ''}`}
+                        onClick={() => setChartTab('assertiveness')}
+                      >
+                        Assertividade p/ Missão
+                      </button>
+                      <button
+                        type="button"
+                        className={`analytics-tab-btn ${chartTab === 'evolution' ? 'active' : ''}`}
+                        onClick={() => setChartTab('evolution')}
+                      >
+                        Evolução Geral
+                      </button>
+                      <button
+                        type="button"
+                        className={`analytics-tab-btn ${chartTab === 'both' ? 'active' : ''}`}
+                        onClick={() => setChartTab('both')}
+                      >
+                        Ambos Sobrepostos
+                      </button>
+                    </div>
+
+                    {(chartTab === 'assertiveness' || chartTab === 'both') && (
+                      <MissionAssertivenessChart
+                        attempts={activeAttempts}
+                        modality={notebook.modality}
+                      />
+                    )}
+
+                    {(chartTab === 'evolution' || chartTab === 'both') && (
+                      <DataAnalysis attempts={activeAttempts} maximumScore={base.maxScore} />
+                    )}
+                  </>
+                )}
+              </div>
+            )}
 
             <div style={{ marginTop: '1.2rem' }}>
               <span className="paper-label test-media-label">MÍDIAS DO TESTE</span>
@@ -1916,22 +2491,24 @@ function RecordView() {
                   const url = resolveUrl(m);
                   const isVideo = isVideoItem(m, url);
                   return (
-                    <button
-                      key={i}
-                      type="button"
-                      className="record-media-cell"
-                      onClick={() => setFocusMedia({ ...m, resolvedUrl: url, isVideo })}
-                      aria-label={`Ver ${m.name}`}
-                    >
-                      {isVideo ? (
-                        <div className="record-media-video-thumb">
-                          <video src={url} muted playsInline preload="metadata" />
-                          <div className="media-slot-play-icon"><Video /></div>
-                        </div>
-                      ) : (
-                        <img src={url} alt={m.name} loading="lazy" />
-                      )}
-                    </button>
+                    <div key={i} className="record-media-item-wrap">
+                      <button
+                        type="button"
+                        className="record-media-cell"
+                        onClick={() => setFocusMedia({ ...m, resolvedUrl: url, isVideo })}
+                        aria-label={`Ver ${m.name}`}
+                      >
+                        {isVideo ? (
+                          <div className="record-media-video-thumb">
+                            <OfflineAwareMedia url={url} name={m.name} isVideo muted playsInline preload="metadata" />
+                            <div className="media-slot-play-icon"><Video /></div>
+                          </div>
+                        ) : (
+                          <OfflineAwareMedia url={url} name={m.name} isVideo={false} loading="lazy" />
+                        )}
+                      </button>
+                      <OfflineMediaButton url={url} name={m.name} compact />
+                    </div>
                   );
                 })}
               </div>
@@ -1948,11 +2525,16 @@ function RecordView() {
               <button className="focus-close-btn" aria-label="Fechar mídia" onClick={() => setFocusMedia(null)}>
                 <X size={20} />
               </button>
-              {focusMedia.isVideo || isVideoItem(focusMedia, focusMedia.resolvedUrl || focusMedia.url) ? (
-                <video controls autoPlay src={focusMedia.resolvedUrl || focusMedia.url} />
-              ) : (
-                <img src={focusMedia.resolvedUrl || focusMedia.url} alt={focusMedia.name} />
-              )}
+              <OfflineAwareMedia
+                url={focusMedia.resolvedUrl || focusMedia.url}
+                name={focusMedia.name}
+                isVideo={Boolean(focusMedia.isVideo || isVideoItem(focusMedia, focusMedia.resolvedUrl || focusMedia.url))}
+                controls
+                autoPlay
+              />
+              <div className="focus-media-actions">
+                <OfflineMediaButton url={focusMedia.resolvedUrl || focusMedia.url} name={focusMedia.name} />
+              </div>
             </div>
           </div>
         )}
@@ -1999,15 +2581,118 @@ function TestView() {
         </div>
       </article>
       <section className="test-detail-analysis" aria-label="Resultados das tentativas">
-        <h2>Resultados</h2>
+        <h2>Resultados e Desempenho</h2>
         <PerformancePanel attempts={Array.isArray(item.attempts) ? item.attempts : []} modality={item.modality} maximum={item.maxScore} />
-        <DataAnalysis attempts={Array.isArray(item.attempts) ? item.attempts : []} maximumScore={Number(item.maxScore || (item.modality === 'FLL' ? BIOGLOW_SEASON.maximumScore : 0))} />
-        <div className="attempt-results">{(item.attempts || []).map((attempt: Attempt, i: number) => <article key={i}><strong>Tentativa {i + 1}</strong><span>Tempo: {attempt.time} s</span><span>Pontuação: {attempt.score}</span><span>Falhas: {attempt.failures}</span>{mod === 'obr' && <span>Valor observado: {attempt.observed}</span>}</article>)}</div>
+
+        {/* Gráfico correspondente ao Modo (Missão Individual vs Round Teste) */}
+        {(() => {
+          const isRoundView =
+            item.testMode === 'round' ||
+            (item.modality === 'FLL' &&
+              item.testMode !== 'individual' &&
+              !item.mission &&
+              Array.isArray(item.attempts) &&
+              item.attempts.some((a: Attempt) => Array.isArray(a?.missions) && a.missions.length > 1));
+
+          if (item.modality === 'FLL' && !isRoundView && (item.testMode === 'individual' || item.mission)) {
+            const selMId = item.mission ? item.mission.slice(0, 3) : '';
+            const selMData = selMId ? getSeasonMission(selMId) : null;
+            const mMax = selMData ? selMData.maximum : (item.maxScore || 30);
+            return (
+              <>
+                <SingleMissionChart
+                  missionId={selMId || 'M01'}
+                  missionName={selMData?.name}
+                  maxScore={mMax}
+                  attempts={Array.isArray(item.attempts) ? item.attempts : []}
+                />
+                <DataAnalysis attempts={Array.isArray(item.attempts) ? item.attempts : []} maximumScore={Number(item.maxScore || BIOGLOW_SEASON.maximumScore)} />
+              </>
+            );
+          }
+
+          return (
+            <>
+              <MissionAssertivenessChart
+                attempts={Array.isArray(item.attempts) ? item.attempts : []}
+                modality={item.modality}
+                title={item.modality === 'FLL' ? 'Assertividade do Desafio do Robô (M01 a M15)' : 'Assertividade por Missão'}
+                forceAllMissions={item.modality === 'FLL'}
+                attemptLabelPrefix={isRoundView ? 'Round Teste' : 'Tentativa'}
+                splitByRound={item.modality === 'FLL' && isRoundView}
+              />
+              {!isRoundView && (
+                <DataAnalysis attempts={Array.isArray(item.attempts) ? item.attempts : []} maximumScore={Number(item.maxScore || (item.modality === 'FLL' ? BIOGLOW_SEASON.maximumScore : 0))} />
+              )}
+            </>
+          );
+        })()}
+
+        <div className="attempt-results">{(item.attempts || []).map((attempt: Attempt, i: number) => {
+          const attemptColor = ATTEMPT_COLORS[i % ATTEMPT_COLORS.length];
+          const missions = Array.isArray(attempt.missions) ? attempt.missions : [];
+          const isRound =
+            item.testMode === 'round' ||
+            (item.modality === 'FLL' &&
+              item.testMode !== 'individual' &&
+              !item.mission &&
+              Array.isArray(item.attempts) &&
+              item.attempts.some((a: Attempt) => Array.isArray(a?.missions) && a.missions.length > 1));
+          const precisionPts = calculatePrecisionPoints(attempt.precisionTokensRemaining ?? 6);
+          const inspectionPts = attempt.inspectionBonus ? BIOGLOW_SEASON.equipmentInspectionPoints : 0;
+
+          return (
+            <article key={i} className="test-view-attempt-card" style={{ borderLeftColor: attemptColor }}>
+              <div className="test-view-attempt-head">
+                <span className="test-view-attempt-dot" style={{ backgroundColor: attemptColor }} />
+                <strong>{isRound ? `Round Teste ${i + 1}` : `Tentativa ${i + 1}`}</strong>
+              </div>
+              <div className="test-view-attempt-metrics">
+                <span><strong>Tempo:</strong> {attempt.time} s</span>
+                <span><strong>Pontuação:</strong> {attempt.score} pts</span>
+                {!isRound && <span><strong>Falhas:</strong> {attempt.failures}</span>}
+                {isRound && (
+                  <>
+                    <span><strong>Discos Restantes:</strong> {attempt.precisionTokensRemaining ?? 6} (+{precisionPts}p)</span>
+                    <span><strong>Inspeção:</strong> {attempt.inspectionBonus ? '+20p' : '0p'}</span>
+                  </>
+                )}
+                {mod === 'obr' && <span><strong>Valor observado:</strong> {attempt.observed}</span>}
+              </div>
+
+              {missions.length > 0 && (
+                <div className="test-view-attempt-missions">
+                  <small>{isRound ? 'Missões Avaliadas:' : `Missões Realizadas (${missions.length}):`}</small>
+                  <div className="test-view-mission-chips">
+                    {missions.map(m => {
+                      const max = m.maxScore || getMissionMaxScore(m.missionId) || 1;
+                      const pct = calculateMissionAssertiveness(m.score, max);
+                      const pctColor = pct >= 100 ? '#4ade80' : pct >= 50 ? '#38bdf8' : pct > 0 ? '#fbbf24' : '#94a3b8';
+                      return (
+                        <span key={m.missionId} className="test-view-mission-chip">
+                          <b>{m.missionId}</b> {m.score}/{max}p <i style={{ color: pctColor }}>({pct.toFixed(0)}%)</i>
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </article>
+          );
+        })}</div>
       </section>
       {item.media?.length > 0 && <section className="test-detail-media" aria-label="Mídias do teste">{item.media.map((media: any, i: number) => {
         const url = resolveTestMediaUrl(media);
         const video = String(media.type || '').startsWith('video') || /\.(mp4|webm|mov|ogg|m4v)(\?|$)/i.test(url) || /\.(mp4|webm|mov|ogg|m4v)$/i.test(media.name || '');
-        return <button key={i} aria-label={`Abrir ${media.name}`} onClick={() => setFocus({ url, name: media.name, video })}>{video ? <video src={url} muted playsInline preload="metadata" /> : <img src={url} alt={media.name} loading="lazy" />}<span>{media.name}</span></button>;
+        return (
+          <div key={i} className="test-media-item-wrap">
+            <button aria-label={`Abrir ${media.name}`} onClick={() => setFocus({ url, name: media.name, video })}>
+              <OfflineAwareMedia url={url} name={media.name} isVideo={video} muted playsInline preload="metadata" loading="lazy" />
+              <span>{media.name}</span>
+            </button>
+            <OfflineMediaButton url={url} name={media.name} compact />
+          </div>
+        );
       })}</section>}
       {id && <FeedbackThread targetKind="testes" targetId={id} user={user} />}
     </>}
@@ -2017,11 +2702,10 @@ function TestView() {
           <button className="focus-close-btn" aria-label="Fechar mídia" onClick={() => setFocus(null)}>
             <X size={20} />
           </button>
-          {focus.video ? (
-            <video src={focus.url} controls autoPlay playsInline />
-          ) : (
-            <img src={focus.url} alt={focus.name} />
-          )}
+          <OfflineAwareMedia url={focus.url} name={focus.name} isVideo={focus.video} controls autoPlay playsInline />
+          <div className="focus-media-actions">
+            <OfflineMediaButton url={focus.url} name={focus.name} />
+          </div>
         </div>
       </div>
     )}
@@ -2165,6 +2849,7 @@ function OfflineNotice() {
 
 export function App() {
   useOverlayAccessibility();
+  useEffect(() => initAutoOfflineSync(), []);
   // Restaura sessao anterior da sessionStorage ou localStorage (WebApp offline), se existir
   const [user, setUser] = useState<User | null>(() => {
     try {
@@ -2187,35 +2872,47 @@ export function App() {
     if (bootLoader) bootLoader.remove();
 
     let mounted = true;
-    const plannerAssets = [
-      mascote,
+    // Apenas ativos essenciais para renderizar a Home imediatamente
+    const homeAssets = [
       logo,
       fllBook,
       underBook,
-      obrBook,
-      fll,
-      underLogo,
-      obr,
-      fundo1280,
-      fundo1920,
-      fundoObr1920,
-      fundoUnder,
-      fundoNeutro,
-      novo,
-      salvos,
-      testsButton
+      obrBook
     ];
     const criticalAssets = location.pathname === SESI_BIOGLOW_PORTAL.route
       ? [mascote, logo]
-      : plannerAssets;
+      : location.pathname === '/' || location.pathname === '/login'
+      ? homeAssets
+      : [logo, fllBook, underBook, obrBook];
+
+    // Preload em background dos demais ativos secundários sem bloquear a inicialização da tela
+    window.setTimeout(() => {
+      const backgroundAssets = [
+        fll,
+        underLogo,
+        obr,
+        novo,
+        salvos,
+        testsButton,
+        fundo1280,
+        fundo1920,
+        fundoObr1920,
+        fundoUnder,
+        fundoNeutro
+      ];
+      backgroundAssets.forEach(src => {
+        const img = new Image();
+        img.src = src;
+      });
+    }, 500);
 
     const safetyTimer = window.setTimeout(() => {
       if (mounted) setIsInitialLoading(false);
-    }, 10000);
+    }, 3500);
 
     waitForRenderComplete(criticalAssets, {
-      minimumMs: location.pathname === SESI_BIOGLOW_PORTAL.route ? 360 : 1250,
-      timeoutMs: location.pathname === SESI_BIOGLOW_PORTAL.route ? 2400 : 9000
+      minimumMs: location.pathname === SESI_BIOGLOW_PORTAL.route ? 200 : 250,
+      timeoutMs: location.pathname === SESI_BIOGLOW_PORTAL.route ? 1500 : 3000
     }).then(() => {
       if (mounted) {
         clearTimeout(safetyTimer);
@@ -2307,12 +3004,17 @@ export function App() {
           <OfflineNotice />
           <TransitionScreen active={isOverlayActive} />
           <Routes>
-            <Route path="/" element={<Login onLogin={handleLoginSuccess} />} />
+            <Route path="/" element={<Home onLogout={() => { }} />} />
             <Route path="/login" element={<Login onLogin={handleLoginSuccess} />} />
             <Route path="/calendario" element={<CalendarView api={api} user={null} />} />
+            <Route path="/documentos" element={<CompetitionDocumentsView user={null} />} />
+            <Route path="/documentos/atualizacoes" element={<CompetitionUpdatesView user={null} />} />
             <Route path={SESI_BIOGLOW_PORTAL.route} element={<TeamPortalFrame />} />
             <Route path="/:mod/teste/:id" element={<TestView key={location.pathname} />} />
             <Route path="/:mod/registro/:id" element={<RecordView key={location.pathname} />} />
+            <Route path="/:mod" element={<Hub />} />
+            <Route path="/:mod/registros" element={<Records key={location.pathname} />} />
+            <Route path="/:mod/testes-salvos" element={<SavedTests key={location.pathname} />} />
             <Route path="/admin" element={<AdminPanel />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
@@ -2337,10 +3039,12 @@ export function App() {
         </button>
 
         <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/home" element={<Home />} />
+          <Route path="/" element={<Home onLogout={handleLogout} />} />
+          <Route path="/home" element={<Home onLogout={handleLogout} />} />
           <Route path="/login" element={<Navigate to={safeReturnTo} replace />} />
           <Route path="/calendario" element={<CalendarView api={api} user={user} />} />
+          <Route path="/documentos" element={<CompetitionDocumentsView user={user} />} />
+          <Route path="/documentos/atualizacoes" element={<CompetitionUpdatesView user={user} />} />
           <Route path="/mentor/configuracoes" element={user.role === 'mentor' ? <AdminPanel /> : <Navigate to="/" replace />} />
           <Route path="/admin" element={<AdminPanel />} />
           <Route path={SESI_BIOGLOW_PORTAL.route} element={<TeamPortalFrame />} />
@@ -2354,7 +3058,7 @@ export function App() {
           <Route path="/:mod/banner" element={<BannerPage key={location.pathname} />} />
           <Route path="/:mod/teste/:id" element={<TestView key={location.pathname} />} />
           <Route path="/:mod/registro/:id" element={<RecordView key={location.pathname} />} />
-          <Route path="*" element={<Home />} />
+          <Route path="*" element={<Home onLogout={handleLogout} />} />
         </Routes>
       </DialogProvider>
     </UserContext.Provider>

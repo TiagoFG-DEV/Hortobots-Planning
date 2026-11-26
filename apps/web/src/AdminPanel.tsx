@@ -13,7 +13,10 @@ import {
   CheckCircle2,
   Save,
   RefreshCw,
-  ChevronLeft
+  ChevronLeft,
+  FileText,
+  Plus,
+  ExternalLink
 } from 'lucide-react';
 import { useDialog } from './App';
 
@@ -128,7 +131,7 @@ function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
 function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const navigate = useNavigate();
 
-  const { showError } = useDialog();
+  const { showError, confirm } = useDialog();
 
   // DB Status
   const [dbStatus, setDbStatus] = useState<any>(null);
@@ -146,6 +149,21 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [pwdMsg, setPwdMsg] = useState('');
   const [pwdSaving, setPwdSaving] = useState(false);
   const [profiles, setProfiles] = useState<Array<{username: string; role: string}>>([]);
+
+  // Document Management (Marco 8)
+  const [adminDocs, setAdminDocs] = useState<any[]>([]);
+  const [docsLoading, setDocsLoading] = useState(false);
+  const [docsMsg, setDocsMsg] = useState('');
+  const [docForm, setDocForm] = useState({
+    id: '',
+    competition: 'FLL',
+    modality: 'Challenge',
+    season_year: '2026/2027',
+    doc_type: 'rubrica',
+    title: '',
+    description: '',
+    url_oficial: ''
+  });
 
   // Admin password change
   const [adminPwdForm, setAdminPwdForm] = useState({ newPassword: '', confirmPassword: '' });
@@ -187,11 +205,66 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     } catch { /* silencioso */ }
   }, []);
 
+  const loadAdminDocs = useCallback(async () => {
+    setDocsLoading(true);
+    try {
+      const res = await fetch('/api/documentos');
+      if (res.ok) {
+        const data = await res.json();
+        setAdminDocs(data);
+      }
+    } catch (err: any) {
+      setDocsMsg('Erro ao carregar lista de documentos.');
+    } finally {
+      setDocsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     loadDbStatus();
     loadEmails();
     loadProfiles();
-  }, [loadDbStatus, loadEmails, loadProfiles]);
+    loadAdminDocs();
+  }, [loadDbStatus, loadEmails, loadProfiles, loadAdminDocs]);
+
+  const handleDocSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setDocsMsg('');
+    try {
+      const docId = docForm.id || `${docForm.competition.toLowerCase()}-${docForm.modality.toLowerCase()}-${Date.now().toString(36)}`;
+      await adminFetch('/api/documentos', {
+        method: 'POST',
+        body: JSON.stringify({ ...docForm, id: docId })
+      });
+      setDocsMsg('Documento salvo com sucesso no banco de dados!');
+      setDocForm({
+        id: '',
+        competition: 'FLL',
+        modality: 'Challenge',
+        season_year: '2026/2027',
+        doc_type: 'rubrica',
+        title: '',
+        description: '',
+        url_oficial: ''
+      });
+      loadAdminDocs();
+    } catch (err: any) {
+      setDocsMsg(err.message || 'Falha ao salvar documento.');
+    }
+  };
+
+  const handleDocDelete = async (id: string, title: string) => {
+    const ok = await confirm(`Tem certeza que deseja excluir o documento "${title}"?`);
+    if (!ok) return;
+
+    try {
+      await adminFetch(`/api/documentos/${id}`, { method: 'DELETE' });
+      setDocsMsg('Documento excluido com sucesso.');
+      loadAdminDocs();
+    } catch (err: any) {
+      setDocsMsg(err.message || 'Erro ao excluir documento.');
+    }
+  };
 
   const handleEmailSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -373,6 +446,37 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
               <div className="admin-db-stat">
                 <span className="admin-db-badge">{dbStatus.storage === 'supabase' ? 'Supabase Nuvem' : 'Local'}</span>
                 <span>Modo ativo</span>
+              </div>
+            </div>
+          )}
+
+          {dbStatus?.redundancy && (
+            <div className="admin-redundancy-section">
+              <h3 className="admin-redundancy-title">Redundancia e Contingencia de Bancos</h3>
+              <div className="admin-redundancy-grid">
+                <div className={`admin-instance-card ${dbStatus.redundancy.primary?.connected ? 'online' : 'offline'}`}>
+                  <div className="instance-header">
+                    <strong>{dbStatus.redundancy.primary?.name}</strong>
+                    <span className="instance-role-badge primary">Principal</span>
+                  </div>
+                  <p className="instance-url">{dbStatus.redundancy.primary?.url}</p>
+                  <div className="instance-status-row">
+                    <span className={`status-dot ${dbStatus.redundancy.primary?.connected ? 'online' : 'offline'}`} />
+                    <span>{dbStatus.redundancy.primary?.connected ? `Conectado (${dbStatus.redundancy.primary.latencyMs}ms)` : 'Desconectado'}</span>
+                  </div>
+                </div>
+
+                <div className={`admin-instance-card ${dbStatus.redundancy.backup?.connected ? 'online' : 'offline'}`}>
+                  <div className="instance-header">
+                    <strong>{dbStatus.redundancy.backup?.name}</strong>
+                    <span className="instance-role-badge backup">Backup</span>
+                  </div>
+                  <p className="instance-url">{dbStatus.redundancy.backup?.url}</p>
+                  <div className="instance-status-row">
+                    <span className={`status-dot ${dbStatus.redundancy.backup?.connected ? 'online' : 'offline'}`} />
+                    <span>{dbStatus.redundancy.backup?.connected ? `Conectado (${dbStatus.redundancy.backup.latencyMs}ms)` : 'Standby / Nao respondendo'}</span>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -561,6 +665,149 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
               <Shield size={17} /> {adminPwdSaving ? 'Salvando...' : 'Alterar Senha Administrativa'}
             </button>
           </form>
+        </section>
+
+        {/* Gerenciamento de Documentos de Competicao (Marco 8) */}
+        <section className="admin-card" aria-labelledby="admin-docs-title">
+          <header className="admin-card-header">
+            <FileText size={22} aria-hidden="true" />
+            <div>
+              <h2 id="admin-docs-title">Central de Documentos de Competicao</h2>
+              <p>Cadastrar, atualizar e gerenciar documentos oficiais de FLL e OBR</p>
+            </div>
+            <button className="admin-icon-btn" onClick={loadAdminDocs} disabled={docsLoading} title="Recarregar documentos" aria-label="Recarregar documentos">
+              <RefreshCw size={16} className={docsLoading ? 'admin-spin' : ''} />
+            </button>
+          </header>
+
+          {docsMsg && (
+            <p className={docsMsg.includes('sucesso') ? 'admin-success' : 'admin-error'} role="status">
+              {docsMsg}
+            </p>
+          )}
+
+          <form className="admin-form" onSubmit={handleDocSubmit} style={{ marginBottom: '2rem' }}>
+            <h3 style={{ fontSize: '0.95rem', color: '#86efac', margin: '0.5rem 0' }}>Cadastrar Novo Documento Oficial</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+              <label className="admin-label">
+                <span>Competicao:</span>
+                <select
+                  className="admin-input"
+                  value={docForm.competition}
+                  onChange={(e) => setDocForm({ ...docForm, competition: e.target.value })}
+                >
+                  <option value="FLL">FLL (FIRST LEGO League)</option>
+                  <option value="OBR">OBR (Olimpiada Brasileira de Robotica)</option>
+                </select>
+              </label>
+
+              <label className="admin-label">
+                <span>Modalidade:</span>
+                <input
+                  type="text"
+                  className="admin-input"
+                  placeholder="Ex: Challenge, Resgate, Artistica"
+                  value={docForm.modality}
+                  onChange={(e) => setDocForm({ ...docForm, modality: e.target.value })}
+                  required
+                />
+              </label>
+
+              <label className="admin-label">
+                <span>Temporada / Ano:</span>
+                <input
+                  type="text"
+                  className="admin-input"
+                  placeholder="Ex: 2026/2027 ou 2026"
+                  value={docForm.season_year}
+                  onChange={(e) => setDocForm({ ...docForm, season_year: e.target.value })}
+                  required
+                />
+              </label>
+
+              <label className="admin-label">
+                <span>Tipo Documental:</span>
+                <select
+                  className="admin-input"
+                  value={docForm.doc_type}
+                  onChange={(e) => setDocForm({ ...docForm, doc_type: e.target.value })}
+                >
+                  <option value="rubrica">Rubrica de Avaliacao</option>
+                  <option value="regras">Regras e Instrucoes</option>
+                  <option value="complementar">Manual / Complementar</option>
+                </select>
+              </label>
+            </div>
+
+            <label className="admin-label">
+              <span>Titulo do Documento:</span>
+              <input
+                type="text"
+                className="admin-input"
+                placeholder="Ex: FLL Challenge BIOGLOW - Rubricas Oficiais"
+                value={docForm.title}
+                onChange={(e) => setDocForm({ ...docForm, title: e.target.value })}
+                required
+              />
+            </label>
+
+            <label className="admin-label">
+              <span>Descricao Resumida:</span>
+              <input
+                type="text"
+                className="admin-input"
+                placeholder="Ex: Rubricas completas de avaliacao oficial para juizes e equipes"
+                value={docForm.description}
+                onChange={(e) => setDocForm({ ...docForm, description: e.target.value })}
+              />
+            </label>
+
+            <label className="admin-label">
+              <span>URL Oficial de Origem (PDF):</span>
+              <input
+                type="url"
+                className="admin-input"
+                placeholder="https://exemplo.com/manual.pdf"
+                value={docForm.url_oficial}
+                onChange={(e) => setDocForm({ ...docForm, url_oficial: e.target.value })}
+                required
+              />
+            </label>
+
+            <button className="admin-save-btn" type="submit">
+              <Plus size={17} /> Salvar Documento
+            </button>
+          </form>
+
+          {/* Tabela de Documentos Cadastrados */}
+          <div className="admin-docs-table-wrapper">
+            <h3 style={{ fontSize: '0.95rem', color: '#94a3b8', marginBottom: '0.8rem' }}>
+              Documentos Cadastrados ({adminDocs.length})
+            </h3>
+            <div className="admin-docs-table">
+              {adminDocs.map((doc) => (
+                <div key={doc.id} className="admin-doc-row">
+                  <div className="admin-doc-info">
+                    <strong>{doc.title}</strong>
+                    <span>{doc.competition} • {doc.modality} • {doc.season_year} • {doc.doc_type.toUpperCase()}</span>
+                  </div>
+                  <div className="admin-doc-actions">
+                    <a href={doc.url_oficial} target="_blank" rel="noopener noreferrer" className="admin-btn-view" title="Abrir link oficial">
+                      <ExternalLink size={15} />
+                    </a>
+                    <button
+                      type="button"
+                      className="admin-btn-delete"
+                      onClick={() => handleDocDelete(doc.id, doc.title)}
+                      title="Excluir documento"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </section>
 
       </div>
