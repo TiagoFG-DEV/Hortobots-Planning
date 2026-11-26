@@ -12,10 +12,13 @@ import {
   Minimize2,
   MapPin,
   Sparkles,
+  WifiOff,
   X
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { api } from './client';
+import { API, api } from './client';
+import { useOfflineMedia, useOnlineStatus } from './offlineStorage';
+import { OfflineMediaButton } from './OfflineMediaControl';
 import {
   type CompetitionDoc,
   INITIAL_OFFICIAL_DOCUMENTS
@@ -33,6 +36,15 @@ export function CompetitionDocumentsView({ user }: CompetitionDocumentsViewProps
   const [selectedRegion, setSelectedRegion] = useState<'TODAS' | 'SP'>('TODAS');
   const [selectedDoc, setSelectedDoc] = useState<CompetitionDoc | null>(INITIAL_OFFICIAL_DOCUMENTS[0] || null);
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const { isOnline } = useOnlineStatus();
+
+  const getDocViewerUrl = (doc: CompetitionDoc) => {
+    return `${API}/api/documentos/download/${doc.id}?v=ptbr_sesi_v3`;
+  };
+
+  const selectedDocUrl = selectedDoc ? getDocViewerUrl(selectedDoc) : '';
+  const { localUrl: offlineDocUrl } = useOfflineMedia(selectedDocUrl);
+  const effectiveDocSrc = offlineDocUrl || (isOnline ? selectedDocUrl : '');
 
   useEffect(() => {
     let isMounted = true;
@@ -56,8 +68,9 @@ export function CompetitionDocumentsView({ user }: CompetitionDocumentsViewProps
       }
     }
     loadDocs();
-    // Verificação e download automático de todos os PDFs oficiais da temporada
-    fetch('/api/documentos/sync-storage', { method: 'POST' }).catch(() => {});
+    if (isOnline) {
+      fetch(`${API}/api/documentos/sync-storage`, { method: 'POST' }).catch(() => {});
+    }
     return () => {
       isMounted = false;
     };
@@ -65,13 +78,9 @@ export function CompetitionDocumentsView({ user }: CompetitionDocumentsViewProps
 
   const handleSelectDoc = (doc: CompetitionDoc) => {
     setSelectedDoc(doc);
-    // Verificação ativa de download sob demanda ao selecionar a rubrica/documento
-    fetch(`/api/documentos/download/${doc.id}`, { method: 'HEAD' }).catch(() => {});
-  };
-
-  const getDocViewerUrl = (doc: CompetitionDoc) => {
-    // Adiciona timestamp/versão para garantir que o navegador nunca use cache de arquivos antigos
-    return `/api/documentos/download/${doc.id}?v=ptbr_sesi_v3`;
+    if (isOnline) {
+      fetch(`${API}/api/documentos/download/${doc.id}`, { method: 'HEAD' }).catch(() => {});
+    }
   };
 
   const filteredDocs = documents.filter((doc) => {
@@ -290,8 +299,12 @@ export function CompetitionDocumentsView({ user }: CompetitionDocumentsViewProps
                   </div>
 
                   <div className="preview-action-buttons">
+                    <OfflineMediaButton
+                      url={selectedDocUrl}
+                      name={`${selectedDoc.title}.pdf`}
+                    />
                     <a
-                      href={getDocViewerUrl(selectedDoc)}
+                      href={effectiveDocSrc || selectedDocUrl}
                       download
                       target="_blank"
                       rel="noopener noreferrer"
@@ -321,11 +334,19 @@ export function CompetitionDocumentsView({ user }: CompetitionDocumentsViewProps
                   </div>
 
                   <div className="preview-frame-container">
-                    <iframe
-                      src={`${getDocViewerUrl(selectedDoc)}#toolbar=1&navpanes=0`}
-                      title={selectedDoc.title}
-                      className="preview-iframe"
-                    />
+                    {effectiveDocSrc ? (
+                      <iframe
+                        src={`${effectiveDocSrc}#toolbar=1&navpanes=0`}
+                        title={selectedDoc.title}
+                        className="preview-iframe"
+                      />
+                    ) : (
+                      <div className="offline-media-placeholder" style={{ minHeight: '340px' }}>
+                        <WifiOff size={28} />
+                        <strong>Esse recurso precisa de conexão com internet</strong>
+                        <span>Conecte-se à internet para visualizar ou baixar este PDF para acesso offline.</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </aside>
@@ -343,8 +364,12 @@ export function CompetitionDocumentsView({ user }: CompetitionDocumentsViewProps
               <h2>{selectedDoc.title}</h2>
             </div>
             <div className="doc-fullscreen-actions">
+              <OfflineMediaButton
+                url={selectedDocUrl}
+                name={`${selectedDoc.title}.pdf`}
+              />
               <a
-                href={getDocViewerUrl(selectedDoc)}
+                href={effectiveDocSrc || selectedDocUrl}
                 download
                 target="_blank"
                 rel="noopener noreferrer"
@@ -364,11 +389,19 @@ export function CompetitionDocumentsView({ user }: CompetitionDocumentsViewProps
               </button>
             </div>
           </div>
-          <iframe
-            src={`${getDocViewerUrl(selectedDoc)}#toolbar=1`}
-            title={selectedDoc.title}
-            className="doc-fullscreen-iframe"
-          />
+          {effectiveDocSrc ? (
+            <iframe
+              src={`${effectiveDocSrc}#toolbar=1`}
+              title={selectedDoc.title}
+              className="doc-fullscreen-iframe"
+            />
+          ) : (
+            <div className="offline-media-placeholder" style={{ flex: 1, minHeight: '60vh', color: '#fff' }}>
+              <WifiOff size={36} />
+              <strong>Esse recurso precisa de conexão com internet</strong>
+              <span>Conecte-se à internet para visualizar ou baixar este PDF para uso offline.</span>
+            </div>
+          )}
         </div>
       )}
     </div>

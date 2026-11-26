@@ -380,3 +380,83 @@ export function subscribeSyncStatus(listener: Listener): () => void {
   syncListeners.add(listener);
   return () => syncListeners.delete(listener);
 }
+
+const PREF_MOBILE_DATA_KEY = 'hb_pref_mobile_data';
+const PREF_ONBOARDING_KEY = 'hb_pref_onboarding_done';
+const prefListeners = new Set<Listener>();
+
+function notifyPrefListeners() {
+  prefListeners.forEach(fn => {
+    try { fn(); } catch {}
+  });
+}
+
+export const offlinePrefs = {
+  getMobileDataAllowed(): boolean {
+    try {
+      const raw = localStorage.getItem(PREF_MOBILE_DATA_KEY);
+      return raw === null ? true : raw === 'true';
+    } catch {
+      return true;
+    }
+  },
+  setMobileDataAllowed(allowed: boolean): void {
+    try {
+      localStorage.setItem(PREF_MOBILE_DATA_KEY, String(allowed));
+    } catch {}
+    notifyPrefListeners();
+  },
+  isOnboardingDone(): boolean {
+    try {
+      return localStorage.getItem(PREF_ONBOARDING_KEY) === 'true';
+    } catch {
+      return true;
+    }
+  },
+  markOnboardingDone(): void {
+    try {
+      localStorage.setItem(PREF_ONBOARDING_KEY, 'true');
+    } catch {}
+    notifyPrefListeners();
+  },
+  isOnCellular(): boolean {
+    try {
+      const conn = (navigator as any)?.connection || (navigator as any)?.mozConnection || (navigator as any)?.webkitConnection;
+      return conn?.type === 'cellular';
+    } catch {
+      return false;
+    }
+  },
+  shouldAllowNetworkSync(): boolean {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) return false;
+    if (!this.getMobileDataAllowed() && this.isOnCellular()) return false;
+    return true;
+  },
+  subscribe(listener: Listener): () => void {
+    prefListeners.add(listener);
+    return () => prefListeners.delete(listener);
+  }
+};
+
+export function useMobileDataPreference() {
+  const [mobileDataAllowed, setAllowed] = useState(() => offlinePrefs.getMobileDataAllowed());
+  const [onboardingDone, setOnboardingDone] = useState(() => offlinePrefs.isOnboardingDone());
+
+  useEffect(() => {
+    return offlinePrefs.subscribe(() => {
+      setAllowed(offlinePrefs.getMobileDataAllowed());
+      setOnboardingDone(offlinePrefs.isOnboardingDone());
+    });
+  }, []);
+
+  const updateMobileData = useCallback((allowed: boolean) => {
+    offlinePrefs.setMobileDataAllowed(allowed);
+  }, []);
+
+  const completeOnboarding = useCallback((allowed: boolean) => {
+    offlinePrefs.setMobileDataAllowed(allowed);
+    offlinePrefs.markOnboardingDone();
+  }, []);
+
+  return { mobileDataAllowed, onboardingDone, updateMobileData, completeOnboarding };
+}

@@ -29,7 +29,7 @@ import {
   WifiOff,
   X
 } from 'lucide-react';
-import { useOnlineStatus } from './offlineStorage';
+import { useMobileDataPreference, useOnlineStatus } from './offlineStorage';
 import { OfflineAwareMedia, OfflineMediaButton } from './OfflineMediaControl';
 import { initAutoOfflineSync } from './offlineSync';
 import logo from './assets/generated/Logo.webp';
@@ -551,6 +551,9 @@ function Home({ onLogout }: { onLogout: () => void }) {
               <span>PORTAL BIOGLOW</span>
             </Link>
 
+            {/* Preferência de Dados Móveis (WebApp) */}
+            <DrawerMobileDataToggle />
+
             {/* 6. Painel Administrativo (Exclusivo Mentor) */}
             {user?.role === 'mentor' && (
               <div className="home-drawer-admin-section">
@@ -740,16 +743,30 @@ function Records() {
   const user = useCurrentUser();
   const [q, setQ] = useState('');
   const [date, setDate] = useState('');
+  const [kindFilter, setKindFilter] = useState<'all' | 'registro' | 'teste'>('all');
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionMsg, setActionMsg] = useState('');
 
   const loadRecords = () => {
     setLoading(true);
-    void api('/api/registros')
-      .then((all: any[]) => {
-        const filtered = Array.isArray(all) ? all.filter(x => getTeamKey(x) === notebook.key) : [];
-        setItems(filtered);
+    void Promise.all([
+      api('/api/registros').catch(() => []),
+      api('/api/testes').catch(() => [])
+    ])
+      .then(([allRecords, allTests]) => {
+        const recs = (Array.isArray(allRecords) ? allRecords : [])
+          .filter(x => getTeamKey(x) === notebook.key)
+          .map(x => ({ ...x, _kind: 'registro' as const }));
+        const tests = (Array.isArray(allTests) ? allTests : [])
+          .filter(x => getTeamKey(x) === notebook.key)
+          .map(x => ({ ...x, _kind: 'teste' as const }));
+        const combined = [...recs, ...tests].sort((a, b) => {
+          const byDate = String(b.date || '').localeCompare(String(a.date || ''));
+          if (byDate !== 0) return byDate;
+          return String(b.createdAt || '').localeCompare(String(a.createdAt || ''));
+        });
+        setItems(combined);
       })
       .catch(() => setItems([]))
       .finally(() => setLoading(false));
@@ -761,30 +778,38 @@ function Records() {
 
   const { confirm, showError } = useDialog();
 
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
+  const handleDelete = async (item: any, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const ok = await confirm('Tem certeza que deseja excluir este registro?');
+    const isTest = item._kind === 'teste';
+    const ok = await confirm(
+      isTest ? 'Tem certeza que deseja excluir este teste?' : 'Tem certeza que deseja excluir este registro?'
+    );
     if (!ok) return;
     try {
-      await api(`/api/registros/${id}`, { method: 'DELETE' });
-      setItems(prev => prev.filter(r => r.id !== id));
+      await api(isTest ? `/api/testes/${item.id}` : `/api/registros/${item.id}`, { method: 'DELETE' });
+      setItems(prev => prev.filter(r => !(r.id === item.id && r._kind === item._kind)));
       setActionMsg('Excluído com sucesso!');
       setTimeout(() => setActionMsg(''), 4000);
     } catch (err: any) {
-      showError(err.message || 'Erro ao excluir registro');
+      showError(err.message || (isTest ? 'Erro ao excluir teste' : 'Erro ao excluir registro'));
     }
   };
 
   const shown = items
+    .filter(r => kindFilter === 'all' || r._kind === kindFilter)
     .filter(r => !date || r.date === date)
-    .filter(r => `${r.title || ''} ${r.summary || ''} ${(r.tags || []).join(' ')}`.toLowerCase().includes(q.toLowerCase()));
+    .filter(r =>
+      `${r.title || ''} ${r.summary || ''} ${r.objective || ''} ${r.mission || ''} ${(r.tags || []).join(' ')}`
+        .toLowerCase()
+        .includes(q.toLowerCase())
+    );
 
   return (
     <Shell>
       <main className="content page-transition">
         <div className="page-title">
-          <div><span className="kicker">{notebook.short}</span><h1>Registros salvos</h1></div>
+          <div><span className="kicker">{notebook.short}</span><h1>Registros e testes salvos</h1></div>
         </div>
 
         {actionMsg && (
@@ -797,57 +822,80 @@ function Records() {
         <div className="filters">
           <label>
             <Search />
-            <input aria-label="Pesquisar registros por texto ou tag" value={q} onChange={e => setQ(e.target.value)} placeholder="Pesquisar texto ou tag" />
+            <input aria-label="Pesquisar registros e testes por texto, missão ou tag" value={q} onChange={e => setQ(e.target.value)} placeholder="Pesquisar texto, missão ou tag" />
           </label>
           <label>
             <CalendarDays />
-            <input aria-label="Filtrar registros por data" type="date" value={date} onChange={e => setDate(e.target.value)} />
+            <input aria-label="Filtrar por data" type="date" value={date} onChange={e => setDate(e.target.value)} />
+          </label>
+          <label>
+            <Layers />
+            <select aria-label="Filtrar por tipo" value={kindFilter} onChange={e => setKindFilter(e.target.value as 'all' | 'registro' | 'teste')}>
+              <option value="all">Registros e Testes</option>
+              <option value="registro">Somente Registros</option>
+              <option value="teste">Somente Testes e Simulações</option>
+            </select>
           </label>
         </div>
         <div className="record-list">
-          {shown.length > 0 ? (
-            shown.map(r => (
-              <div className="record-card-container" key={r.id} style={{ position: 'relative' }}>
-                <Link className="record-card" to={`/${mod}/registro/${r.id}`}>
-                  <div className="date-tab">
-                    {String(r.date || '').slice(8)}
-                    <small>
-                      {String(r.date || '').slice(5, 7)}/{String(r.date || '').slice(0, 4)}
-                    </small>
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <span className="kicker">{(r.tags || []).join(' · ')}</span>
-                    <h2>{r.title}</h2>
-                    <p>{r.summary}</p>
-                  </div>
-                </Link>
-                {canMutateTeamContent(user, r) && (
-                  <div className="record-card-actions">
-                    <Link
-                      to={`/${mod}/editar/${r.id}`}
-                      className="btn-action-edit"
-                      style={{ padding: '0.4rem 0.6rem' }}
-                      title="Editar"
-                    >
-                      <Edit3 size={13} />
-                    </Link>
-                    <button
-                      type="button"
-                      className="btn-action-delete"
-                      style={{ padding: '0.4rem 0.6rem' }}
-                      onClick={(e) => handleDelete(r.id, e)}
-                      title="Excluir"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))
+          {loading ? (
+            <div className="empty-public">
+              <h2>Carregando diário...</h2>
+              <p>Buscando registros, testes e simulações da equipe.</p>
+            </div>
+          ) : shown.length > 0 ? (
+            shown.map(r => {
+              const isTest = r._kind === 'teste';
+              const viewPath = isTest ? `/${mod}/teste/${r.id}` : `/${mod}/registro/${r.id}`;
+              const editPath = isTest ? `/${mod}/testes/editar/${r.id}` : `/${mod}/editar/${r.id}`;
+              const kickerText = isTest
+                ? `TESTE / SIMULAÇÃO · ${r.mission || 'TESTE TÉCNICO'}`
+                : `REGISTRO${(r.tags || []).length ? ` · ${(r.tags || []).join(' · ')}` : ''}`;
+              const description = isTest ? (r.objective || r.comments || '') : (r.summary || '');
+
+              return (
+                <div className="record-card-container" key={`${r._kind}-${r.id}`} style={{ position: 'relative' }}>
+                  <Link className="record-card" to={viewPath}>
+                    <div className="date-tab">
+                      {String(r.date || '').slice(8)}
+                      <small>
+                        {String(r.date || '').slice(5, 7)}/{String(r.date || '').slice(0, 4)}
+                      </small>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <span className="kicker">{kickerText}</span>
+                      <h2>{r.title}</h2>
+                      <p>{description}</p>
+                    </div>
+                  </Link>
+                  {canMutateTeamContent(user, r) && (
+                    <div className="record-card-actions">
+                      <Link
+                        to={editPath}
+                        className="btn-action-edit"
+                        style={{ padding: '0.4rem 0.6rem' }}
+                        title="Editar"
+                      >
+                        <Edit3 size={13} />
+                      </Link>
+                      <button
+                        type="button"
+                        className="btn-action-delete"
+                        style={{ padding: '0.4rem 0.6rem' }}
+                        onClick={(e) => handleDelete(r, e)}
+                        title="Excluir"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })
           ) : (
             <div className="empty-public">
-              <h2>Nenhum registro encontrado</h2>
-              <p>Comece adicionando novos registros na aba Novo Registro.</p>
+              <h2>Nenhum registro ou teste encontrado</h2>
+              <p>Os registros e testes salvos deste caderno aparecerão aqui.</p>
             </div>
           )}
         </div>
@@ -2825,6 +2873,62 @@ function TransitionScreen({ active }: { active: boolean }) {
   );
 }
 
+function DrawerMobileDataToggle() {
+  const { mobileDataAllowed, updateMobileData } = useMobileDataPreference();
+  return (
+    <button
+      type="button"
+      className="home-drawer-link"
+      onClick={() => updateMobileData(!mobileDataAllowed)}
+      title="Alternar carregamento de conteúdos via Dados Móveis"
+    >
+      <div className="drawer-link-left">
+        {mobileDataAllowed ? <Wifi size={20} /> : <WifiOff size={20} />}
+        <span>{mobileDataAllowed ? 'DADOS MÓVEIS: ATIVADO' : 'SOMENTE WI-FI'}</span>
+      </div>
+    </button>
+  );
+}
+
+function OfflineOnboardingModal() {
+  const { onboardingDone, completeOnboarding } = useMobileDataPreference();
+  if (onboardingDone) return null;
+
+  return (
+    <div className="hb-dialog-overlay" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
+      <div className="hb-dialog-card" style={{ maxWidth: '460px', textAlign: 'left' }}>
+        <div className="hb-dialog-icon" aria-hidden="true">
+          <Wifi size={28} />
+        </div>
+        <h2 id="onboarding-title" className="hb-dialog-title">Preferências do WebApp</h2>
+        <p className="hb-dialog-message" style={{ lineHeight: 1.55 }}>
+          Os registros, testes, eventos e documentos são salvos localmente para uso offline.
+          Fotos, vídeos e PDFs de competição podem ser baixados sob demanda quando desejar.
+          Como prefere carregar conteúdos pela rede?
+        </p>
+        <div className="hb-dialog-actions" style={{ flexDirection: 'column', gap: '0.6rem' }}>
+          <button
+            type="button"
+            className="hb-dialog-btn confirm"
+            style={{ width: '100%' }}
+            onClick={() => completeOnboarding(true)}
+          >
+            Usar Wi-Fi e Dados Móveis (Padrão)
+          </button>
+          <button
+            type="button"
+            className="hb-dialog-btn cancel"
+            style={{ width: '100%' }}
+            onClick={() => completeOnboarding(false)}
+          >
+            Carregar somente no Wi-Fi (Economizar dados)
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function OfflineNotice() {
   const { isOnline, wasOffline } = useOnlineStatus();
   if (isOnline && !wasOffline) return null;
@@ -3002,6 +3106,7 @@ export function App() {
       <UserContext.Provider value={null}>
         <DialogProvider>
           <OfflineNotice />
+          <OfflineOnboardingModal />
           <TransitionScreen active={isOverlayActive} />
           <Routes>
             <Route path="/" element={<Home onLogout={() => { }} />} />
@@ -3009,7 +3114,8 @@ export function App() {
             <Route path="/calendario" element={<CalendarView api={api} user={null} />} />
             <Route path="/documentos" element={<CompetitionDocumentsView user={null} />} />
             <Route path="/documentos/atualizacoes" element={<CompetitionUpdatesView user={null} />} />
-            <Route path={SESI_BIOGLOW_PORTAL.route} element={<TeamPortalFrame />} />
+            <Route path={SESI_BIOGLOW_PORTAL.route} element={<TeamPortalFrame user={null} />} />
+            <Route path={`${SESI_BIOGLOW_PORTAL.route}/projeto`} element={<TeamPortalFrame user={null} initialTab="projeto" />} />
             <Route path="/:mod/teste/:id" element={<TestView key={location.pathname} />} />
             <Route path="/:mod/registro/:id" element={<RecordView key={location.pathname} />} />
             <Route path="/:mod" element={<Hub />} />
@@ -3028,6 +3134,7 @@ export function App() {
     <UserContext.Provider value={user}>
       <DialogProvider>
         <OfflineNotice />
+        <OfflineOnboardingModal />
         <TransitionScreen active={isOverlayActive} />
         <button
           className="logout"
@@ -3047,7 +3154,8 @@ export function App() {
           <Route path="/documentos/atualizacoes" element={<CompetitionUpdatesView user={user} />} />
           <Route path="/mentor/configuracoes" element={user.role === 'mentor' ? <AdminPanel /> : <Navigate to="/" replace />} />
           <Route path="/admin" element={<AdminPanel />} />
-          <Route path={SESI_BIOGLOW_PORTAL.route} element={<TeamPortalFrame />} />
+          <Route path={SESI_BIOGLOW_PORTAL.route} element={<TeamPortalFrame user={user} />} />
+          <Route path={`${SESI_BIOGLOW_PORTAL.route}/projeto`} element={<TeamPortalFrame user={user} initialTab="projeto" />} />
           <Route path="/:mod" element={<Hub />} />
           <Route path="/:mod/registros" element={<Records key={location.pathname} />} />
           <Route path="/:mod/novo" element={<Editor key={location.pathname} />} />

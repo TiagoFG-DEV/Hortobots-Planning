@@ -12,7 +12,7 @@ on:
       tag_name:
         description: 'Tag de release'
         required: false
-        default: 'v3.2.0-webapp'
+        default: 'v3.3.0-webapp'
 
 permissions:
   contents: write
@@ -45,6 +45,8 @@ jobs:
         run: npm ci
 
       - name: Build Web Application and Sync Capacitor
+        env:
+          VITE_API_BASE_URL: https://hortobots-planning.onrender.com
         run: npm run mobile:build
 
       - name: Make Gradlew Executable
@@ -61,24 +63,24 @@ jobs:
       - name: Prepare APK Asset
         run: |
           mkdir -p release-assets
-          cp apps/web/android/app/build/outputs/apk/debug/app-debug.apk release-assets/Hortobots-Planning-v3.2.0-webapp.apk
+          cp apps/web/android/app/build/outputs/apk/debug/app-debug.apk release-assets/Hortobots-Planning-v3.3.0-webapp.apk
           ls -la release-assets/
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: hortobots-planning-apk
-          path: release-assets/Hortobots-Planning-v3.2.0-webapp.apk
+          path: release-assets/Hortobots-Planning-v3.3.0-webapp.apk
           retention-days: 30
 
-      - name: Publish GitHub Release (v3.2.0-webapp)
+      - name: Publish GitHub Release (v3.3.0-webapp)
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.ref_name == 'WebApp' || github.event_name == 'workflow_dispatch'
         with:
-          tag_name: ${{ inputs.tag_name || 'v3.2.0-webapp' }}
-          name: 'Hortobots Planning WebApp v3.2.0 (Offline-First)'
+          tag_name: ${{ inputs.tag_name || 'v3.3.0-webapp' }}
+          name: 'Hortobots Planning WebApp v3.3.0 (Offline-First)'
           prerelease: true
-          files: release-assets/Hortobots-Planning-v3.2.0-webapp.apk
+          files: release-assets/Hortobots-Planning-v3.3.0-webapp.apk
           body: |
             # Hortobots Planning — WebApp Android v3.2.0 (Offline-First)
 

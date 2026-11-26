@@ -13,7 +13,7 @@
  */
 
 import { API, auth } from './client';
-import { offlineStorage } from './offlineStorage';
+import { offlinePrefs, offlineStorage } from './offlineStorage';
 
 const PUBLIC_SYNC_ROUTES = [
   '/api/registros',
@@ -25,7 +25,8 @@ const PUBLIC_SYNC_ROUTES = [
   '/api/banners/sesi-hortobots-fll',
   '/api/banners/under-construction-fll',
   '/api/banners/hortobots-obr',
-  '/api/public/teams/sesi-hortobots-fll'
+  '/api/public/teams/sesi-hortobots-fll',
+  '/api/projeto-temporada'
 ];
 
 const BIOLOGY_FEEDS = [
@@ -140,6 +141,7 @@ async function warmOfficialDocsPdfs(): Promise<void> {
 
 export async function runFullOfflineSync(force = false): Promise<void> {
   if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+  if (!force && !offlinePrefs.shouldAllowNetworkSync()) return;
   const now = Date.now();
   if (!force && now - lastSyncAttemptAt < MIN_SYNC_INTERVAL_MS) return;
   if (syncInFlight) return syncInFlight;

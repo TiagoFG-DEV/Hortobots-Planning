@@ -16,6 +16,7 @@ import { createBannerPptx, extractBannerFiles, synthesizeBanner, type BannerCont
 import { sendImportantEventEmail, sendComumEventEmail } from './notificationService.js';
 import { monitoringService } from './monitoringService.js';
 import { redundancyService } from './redundancyService.js';
+import { seasonProjectService, projectMediaRoot } from './seasonProjectService.js';
 import {
   canCreateFeedback,
   canConfirmEvent,
@@ -1490,6 +1491,75 @@ app.patch('/api/eventos/:id/recusar', authMiddleware, async (req: AuthRequest, r
   }
   const updated = await storageService.updateEventStatus(String(req.params.id || ''), 'RECUSADO');
   res.json(updated);
+});
+
+// ─── Projeto da Temporada BIOGLOW (Artigo Científico & Testes Jataí) ──────────
+app.get('/api/projeto-temporada', async (_req: Request, res: Response) => {
+  try {
+    const data = await seasonProjectService.get();
+    res.json(data);
+  } catch (err) {
+    console.error('Erro ao carregar Projeto da Temporada:', err);
+    res.status(500).json({ error: { message: 'Não foi possível carregar o Projeto da Temporada.' } });
+  }
+});
+
+app.put('/api/projeto-temporada', authMiddleware, async (req: AuthRequest, res: Response) => {
+  const user = req.user!;
+  if (user.role !== 'fll') {
+    res.status(403).json({ error: { message: 'Apenas o perfil Aluno FLL pode editar o Projeto da Temporada.' } });
+    return;
+  }
+  const body = req.body;
+  if (!body || !body.article || !Array.isArray(body.article.sections) || !Array.isArray(body.tests)) {
+    res.status(400).json({ error: { message: 'Estrutura inválida do Projeto da Temporada.' } });
+    return;
+  }
+  try {
+    const saved = await seasonProjectService.save(body, user.username);
+    res.json(saved);
+  } catch (err) {
+    console.error('Erro ao salvar Projeto da Temporada:', err);
+    res.status(500).json({ error: { message: 'Não foi possível salvar o Projeto da Temporada.' } });
+  }
+});
+
+app.post('/api/projeto-temporada/media', authMiddleware, async (req: AuthRequest, res: Response) => {
+  const user = req.user!;
+  if (user.role !== 'fll') {
+    res.status(403).json({ error: { message: 'Apenas o perfil Aluno FLL pode enviar anexos para o Projeto da Temporada.' } });
+    return;
+  }
+  const { name, type, data } = req.body || {};
+  if (!name || !data) {
+    res.status(400).json({ error: { message: 'Arquivo e conteúdo são obrigatórios.' } });
+    return;
+  }
+  try {
+    const attachment = await seasonProjectService.saveMedia(
+      String(name),
+      String(type || 'application/octet-stream'),
+      String(data)
+    );
+    res.status(201).json(attachment);
+  } catch (err) {
+    console.error('Erro ao enviar anexo do Projeto da Temporada:', err);
+    res.status(500).json({ error: { message: 'Erro ao salvar anexo.' } });
+  }
+});
+
+app.get('/api/projeto-temporada/media/:file', (req: Request, res: Response): void => {
+  const safeFile = path.basename(String(req.params['file'] ?? ''));
+  if (!safeFile) {
+    res.status(404).json({ error: { message: 'Anexo não encontrado.' } });
+    return;
+  }
+  const filePath = path.join(projectMediaRoot, safeFile);
+  if (!existsSync(filePath)) {
+    res.status(404).json({ error: { message: 'Anexo não encontrado.' } });
+    return;
+  }
+  res.sendFile(filePath);
 });
 
 // ─── Servir mídias locais ─────────────────────────────────────────────────────

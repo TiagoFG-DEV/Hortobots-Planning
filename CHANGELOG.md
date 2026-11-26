@@ -2,6 +2,46 @@
 
 As versões futuras devem ser acrescentadas no topo deste arquivo, preservando o histórico já publicado.
 
+## [TRABALHO ATUAL] — Planejamento de Evolução (Site Principal + WebApp)
+
+### Fase 1 — Aplicação Web Principal (Prioridade Imediata)
+
+1. **Unificação de Registros, Testes e Simulações no Modo Leitura e Listagem (`/:mod/registros`)**
+   - Incluir **Testes e Simulações** junto aos **Registros** na tela de exibição dos cadernos (`Records`) para **todos os perfis** (incluindo usuários não autenticados em modo leitura).
+   - Manter filtros, busca e abertura direta para leitura/exportação em PDF de ambos os tipos na mesma visualização.
+
+2. **Nova Sessão "Projeto da Temporada" (Portal BIOGLOW / The Beezy Box)**
+   - Criar uma aba/sessão dedicada **"Projeto da Temporada"** integrada ao contexto do **Portal BIOGLOW (SESI Hortobots FLL — BIOGLOW 2026/2027)**, estruturada como um artigo científico colaborativo no estilo Wikipédia.
+   - **Conteúdo e Estrutura:**
+     - Apresentação do projeto **The Beezy Box (TBB)** (buzzer com frequência inspirada no voo das abelhas + câmera com IA para detecção e contagem de visitação, com foco nas **abelhas jataí**).
+     - **Aba/Seção de Conscientização sobre Abelhas:** informações gerais sobre preservação e biodiversidade, destaque para **abelhas jataí** (nativas sem ferrão) e guia prático do que fazer caso encontre abelhas em casa (sem extermínio, manejo/resgate seguro).
+     - **Aba/Seção Científica de Testes da Placa:** estrutura preparada para registrar testes reais correlacionados com **planilhas de aparecimento de abelhas** e **parâmetros climáticos** (**clima, umidade, temperatura e vento**), além de anexos em **PDF**, **imagens**, **vídeos** e **geração de gráficos** a partir dos dados mensurados.
+     - **Transparência de Dados:** não simular dados fictícios; manter claramente sinalizadas as áreas em aberto que dependem dos dados reais dos testes e do projeto da equipe.
+   - **Controle de Acesso:**
+     - **Autenticado como `ALUNO FLL` (`role === 'fll'`):** modo completo de edição (adicionar/editar textos, datas, anexar imagens, vídeos, PDFs e alimentar dados/gráficos).
+     - **Não autenticado ou demais perfis:** modo **estritamente leitura** (sem qualquer opção de adicionar, editar ou remover conteúdo).
+
+---
+
+### Fase 2 — WebApp Offline-First e Android APK (Após conclusão da Fase 1)
+
+Lista de correções e requisitos levantados para o WebApp (não implementar antes da Fase 1):
+
+1. **Exibição e Download Sob Demanda de PDFs de Competição (`CompetitionDocumentsView`)**
+   - **Correção do erro de fundo infinito:** quando offline e sem PDF em cache, o `iframe` acaba carregando o fallback da SPA (`index.html`), gerando recursão visual da própria aplicação. Substituir por aviso claro: *"Esse recurso precisa de conexão com internet"*.
+   - **Download sob demanda em tela cheia:** adicionar botão **Baixar / Salvo offline** (mesmo padrão de fotos e vídeos) também para PDFs de competição quando visualizados em tela cheia, permitindo consulta offline posterior sem exigir download obrigatório quando houver internet.
+   - **Geração local de PDFs:** garantir que a geração de PDFs de registros e testes (`@react-pdf/renderer`) continue funcionando 100% offline, sem conexão prévia.
+2. **Controle de Uso de Dados Móveis**
+   - Adicionar configuração no app para permitir ou bloquear o carregamento de conteúdos via **Dados Móveis** (habilitado por padrão, com opção para restringir apenas ao Wi-Fi).
+3. **Onboarding de Preferências no Primeiro Início**
+   - Perguntar e salvar localmente as preferências do usuário na primeira inicialização do WebApp (ex.: uso de dados móveis e comportamento de sincronização offline).
+4. **Ícone do Aplicativo sem Fundo Branco (Android / iOS)**
+   - Utilizar o mesmo ícone/favicon do site **sem fundo branco padrão** nos ícones adaptativos de celular e tablet.
+5. **Segurança e Confiabilidade do APK**
+   - Configurar assinatura de release e boas práticas de empacotamento/manifesto para que o APK seja reconhecido como seguro ao ser baixado e instalado.
+6. **Correção de Endpoints no WebView (Capacitor)**
+   - Garantir que todas as chamadas `/api/...` (incluindo `CompetitionDocumentsView`) utilizem o prefixo `API` (`VITE_API_BASE_URL`) no build mobile para comunicação correta com o servidor em produção.
+
 ## [3.2.0] — 2026-11-24 — Modos "Missão individual" e "Round Teste" Completo (FLL 2026/2027 BIOGLOW)
 
 ### Novas Funcionalidades e Inovações

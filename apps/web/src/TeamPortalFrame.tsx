@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Leaf, RefreshCw } from 'lucide-react';
+import { ArrowLeft, FlaskConical, Leaf, RefreshCw } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import type { AccountUser } from '@hortobots/shared/permissions';
 import { SESI_BIOGLOW_PORTAL } from './teamPortals';
+import { SeasonProjectView } from './SeasonProjectView';
+import './seasonProject.css';
 
 const apiBase = import.meta.env.VITE_API_BASE_URL || window.location.origin;
 
@@ -13,9 +16,16 @@ function connectedPortalUrl() {
   return url.href;
 }
 
-export function TeamPortalFrame() {
+export function TeamPortalFrame({
+  user = null,
+  initialTab = 'portal'
+}: {
+  user?: AccountUser | null;
+  initialTab?: 'portal' | 'projeto';
+}) {
   const navigate = useNavigate();
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [activeTab, setActiveTab] = useState<'portal' | 'projeto'>(initialTab);
   const [reloadKey, setReloadKey] = useState(0);
   const [ready, setReady] = useState(false);
   const [slow, setSlow] = useState(false);
@@ -23,6 +33,11 @@ export function TeamPortalFrame() {
   const portalOrigin = useMemo(() => new URL(portalUrl).origin, [portalUrl]);
 
   useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
+
+  useEffect(() => {
+    if (activeTab !== 'portal') return;
     setReady(false);
     setSlow(false);
     const timer = window.setTimeout(() => setSlow(true), 12000);
@@ -45,29 +60,58 @@ export function TeamPortalFrame() {
     };
     window.addEventListener('message', receive);
     return () => { window.clearTimeout(timer); window.removeEventListener('message', receive); };
-  }, [navigate, portalOrigin, reloadKey]);
+  }, [activeTab, navigate, portalOrigin, reloadKey]);
 
   const reload = useCallback(() => setReloadKey(value => value + 1), []);
 
   return <main className="team-portal-host page-transition">
     <header className="team-portal-toolbar">
       <Link to="/" className="team-portal-return"><ArrowLeft /> <span>Voltar ao Planner</span></Link>
-      <div><Leaf /><span><strong>Hortobots BIOGLOW</strong><small>Site independente do SESI Hortobots FLL</small></span></div>
+      <div className="team-portal-brand">
+        <Leaf />
+        <span><strong>Hortobots BIOGLOW</strong><small>Portal e Projeto da Temporada · SESI Hortobots FLL</small></span>
+      </div>
+      <div className="team-portal-tabs" role="tablist" aria-label="Seções do Portal BIOGLOW">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'portal'}
+          className={activeTab === 'portal' ? 'active' : ''}
+          onClick={() => setActiveTab('portal')}
+        >
+          <Leaf size={15} /> <span>Portal BIOGLOW</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'projeto'}
+          className={activeTab === 'projeto' ? 'active' : ''}
+          onClick={() => setActiveTab('projeto')}
+        >
+          <FlaskConical size={15} /> <span>Projeto da Temporada</span>
+        </button>
+      </div>
     </header>
-    <iframe
-      key={reloadKey}
-      ref={iframeRef}
-      className={ready ? 'ready' : ''}
-      src={portalUrl}
-      title="Portal Hortobots BIOGLOW"
-      onLoad={() => window.setTimeout(() => setReady(true), 180)}
-      sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation allow-top-navigation-by-user-activation"
-      allow="fullscreen"
-    />
-    {!ready && <div className="team-portal-loading" role="status">
-      <Leaf />
-      <strong>{slow ? 'O portal está demorando para responder.' : 'Abrindo portal da equipe…'}</strong>
-      {slow && <><span>Confira se o BIOGLOW está publicado ou abra a versão externa.</span><button type="button" onClick={reload}><RefreshCw /> Tentar novamente</button></>}
-    </div>}
+    {activeTab === 'portal' ? (
+      <>
+        <iframe
+          key={reloadKey}
+          ref={iframeRef}
+          className={ready ? 'ready' : ''}
+          src={portalUrl}
+          title="Portal Hortobots BIOGLOW"
+          onLoad={() => window.setTimeout(() => setReady(true), 180)}
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation allow-top-navigation-by-user-activation"
+          allow="fullscreen"
+        />
+        {!ready && <div className="team-portal-loading" role="status">
+          <Leaf />
+          <strong>{slow ? 'O portal está demorando para responder.' : 'Abrindo portal da equipe…'}</strong>
+          {slow && <><span>Confira se o BIOGLOW está publicado ou abra a versão externa.</span><button type="button" onClick={reload}><RefreshCw /> Tentar novamente</button></>}
+        </div>}
+      </>
+    ) : (
+      <SeasonProjectView user={user} />
+    )}
   </main>;
 }
