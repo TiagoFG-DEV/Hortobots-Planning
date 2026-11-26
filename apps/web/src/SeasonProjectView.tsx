@@ -87,6 +87,64 @@ function resolveMediaUrl(url: string): string {
   return `${API}${url.startsWith('/') ? '' : '/'}${url}`;
 }
 
+const DEFAULT_SEASON_PROJECT: SeasonProjectData = {
+  version: 1,
+  updatedAt: new Date().toISOString(),
+  updatedBy: 'sistema',
+  article: {
+    title: 'The Beezy Box (TBB) — Projeto da Temporada BIOGLOW 2026/2027',
+    subtitle: 'SESI Hortobots FLL · Polinização Acústica, Abelhas Jataí e Biodiversidade',
+    summary:
+      'Artigo científico vivo do projeto de inovação da equipe SESI Hortobots FLL na temporada FIRST LEGO League Challenge BIOGLOW 2026/2027. O dispositivo The Beezy Box combina um buzzer de frequência inspirada no voo das abelhas com câmera e visão computacional para observar a aproximação e visitação de abelhas jataí.',
+    sections: [
+      {
+        id: 'sec-projeto',
+        title: '1. O Projeto: The Beezy Box (TBB)',
+        category: 'projeto',
+        status: 'em_aberto',
+        body:
+          'O projeto investiga como preservar e fortalecer espécies de abelhas para a manutenção da biodiversidade e da polinização. Inspirado em pesquisas científicas da Universidade de Tel Aviv — que demonstraram que certas flores percebem vibrações sonoras de polinizadores e aumentam a concentração de açúcar do néctar —, o protótipo utiliza um buzzer para reproduzir frequências semelhantes ao zumbido das abelhas e uma câmera com IA para registrar e contar visitações.\n\n[Em aberto: detalhar aqui o circuito final da placa, especificações do buzzer, modelo da câmera/IA e fotos de antes e depois das iterações do protótipo.]',
+        openNote: 'Aguardando preenchimento pela equipe com especificações da placa, fotos de iteração e fontes da pesquisa.',
+        updatedAt: new Date().toISOString(),
+        attachments: []
+      },
+      {
+        id: 'sec-conscientizacao',
+        title: '2. Conscientização: O que fazer se encontrar abelhas em casa?',
+        category: 'conscientizacao',
+        status: 'completo',
+        body:
+          'As abelhas são essenciais para a polinização de plantas silvestres e culturas agrícolas, sustentando a biodiversidade e a produção de alimentos. A redução de habitats, uso inadequado de agrotóxicos e desinformação colocam diversas espécies em risco.\n\nSe houver um enxame ou colmeia em casa ou próximo à escola:\n• Não tente exterminar, queimar ou aplicar venenos e inseticidas — além de prejudicar o meio ambiente, muitas espécies nativas são protegidas por lei.\n• Mantenha distância segura e evite ruídos ou vibrações próximas ao ninho.\n• Para abelhas com ferrão (Apis mellifera) em área de risco, acione o Corpo de Bombeiros (193), a Defesa Civil ou um apicultor/resgatista credenciado da região.\n• Para abelhas sem ferrão (como a jataí), procure um meliponicultor autorizado para orientações de manejo ou transferência segura apenas quando houver risco real à colônia.',
+        updatedAt: new Date().toISOString(),
+        attachments: []
+      },
+      {
+        id: 'sec-jatai',
+        title: '3. Foco Científico: Abelha Jataí (Tetragonisca angustula)',
+        category: 'jatai',
+        status: 'em_aberto',
+        body:
+          'A abelha jataí (Tetragonisca angustula) é uma abelha nativa brasileira sem ferrão, dócil, de pequeno porte e de grande importância ecológica na polinização de flores nativas e urbanas. Por sua relevância ambiental e segurança para observação em campo, os testes do The Beezy Box têm foco na visitação das jataís.\n\n[Em aberto: adicionar observações de campo da equipe, localização dos pontos de observação e referências bibliográficas utilizadas.]',
+        openNote: 'A equipe pode complementar com observações locais das colônias monitoradas e referências.',
+        updatedAt: new Date().toISOString(),
+        attachments: []
+      },
+      {
+        id: 'sec-metodologia',
+        title: '4. Metodologia e Parâmetros dos Testes da Placa',
+        category: 'metodologia',
+        status: 'em_aberto',
+        body:
+          'Para validar a eficiência do The Beezy Box em campo, os testes devem comparar o comportamento e a frequência de aparecimento das abelhas jataí com e sem o estímulo sonoro do buzzer, registrando sempre as condições ambientais de cada sessão: condição do clima, temperatura (°C), umidade relativa (%), velocidade do vento (km/h) e contagem de aparições/visitas.\n\n[Em aberto: definir duração padrão de cada coleta, distância da caixa até as flores/colmeia e protocolo de registro na planilha de aparecimento de abelhas.]',
+        openNote: 'Protocolo exato de coleta e planilhas de campo serão anexados pela equipe na aba de Testes Científicos.',
+        updatedAt: new Date().toISOString(),
+        attachments: []
+      }
+    ]
+  },
+  tests: []
+};
+
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -317,10 +375,24 @@ export function SeasonProjectView({ user }: { user: AccountUser | null }) {
             subtitle: res.article.subtitle,
             summary: res.article.summary
           });
+        } else if (active) {
+          setData(DEFAULT_SEASON_PROJECT);
+          setHeaderDraft({
+            title: DEFAULT_SEASON_PROJECT.article.title,
+            subtitle: DEFAULT_SEASON_PROJECT.article.subtitle,
+            summary: DEFAULT_SEASON_PROJECT.article.summary
+          });
         }
       })
       .catch(() => {
-        if (active) setErrorMsg('Não foi possível carregar os dados do Projeto da Temporada.');
+        if (active) {
+          setData(DEFAULT_SEASON_PROJECT);
+          setHeaderDraft({
+            title: DEFAULT_SEASON_PROJECT.article.title,
+            subtitle: DEFAULT_SEASON_PROJECT.article.subtitle,
+            summary: DEFAULT_SEASON_PROJECT.article.summary
+          });
+        }
       })
       .finally(() => {
         if (active) setLoading(false);
