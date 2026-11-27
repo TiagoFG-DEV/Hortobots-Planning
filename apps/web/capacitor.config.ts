@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'br.org.sesisp.hortobots.planning',
-  appName: 'Hortobots Planning',
+  appName: 'Planner',
   webDir: 'dist',
   server: {
     androidScheme: 'https',

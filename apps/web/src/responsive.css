@@ -1333,3 +1333,116 @@ button:active, .home-drawer-link:active, .action-grid a:active {
   }
 }
 
+
+/* ==========================================================================
+   v3.3.2 Mobile UX: Fullscreen, Touch-first, Swipe Panels & Drawer Footer
+   ========================================================================== */
+
+html, body, #root {
+  width: 100%;
+  max-width: 100vw;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Desativa animações/efeitos de hover em dispositivos touch */
+@media (hover: none) and (pointer: coarse) {
+  *:hover {
+    transform: none !important;
+  }
+  .notebook-logo:hover,
+  .home-drawer-link:hover,
+  .hb-notif-trigger:hover,
+  .hb-notif-item:hover {
+    transform: none !important;
+  }
+}
+
+/* Gestos de swipe naturais nos painéis */
+.home-drawer-panel,
+.hb-notif-panel {
+  touch-action: pan-y;
+}
+
+/* Animação de deslizar da direita para a esquerda no painel de notificações */
+@keyframes hbSlideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0.6;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.hb-notif-panel {
+  animation: hbSlideInRight 0.24s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Rodapé fixo do menu lateral (Canto direito inferior: Notificações + Online/Offline) */
+.home-drawer-footer {
+  margin-top: auto;
+  padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  background: rgba(9, 12, 9, 0.65);
+}
+
+.home-drawer-footer-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.home-drawer-notif-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e2e8f0;
+  cursor: pointer;
+}
+
+.home-drawer-net-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.home-drawer-net-status.online {
+  color: #4ade80;
+}
+
+.home-drawer-net-status.offline {
+  color: #f87171;
+}
+
+.net-wifi-icon-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.net-wifi-x {
+  position: absolute;
+  right: -3px;
+  bottom: -2px;
+  color: #ef4444;
+  background: #090c09;
+  border-radius: 999px;
+}

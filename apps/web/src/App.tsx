@@ -1,6 +1,7 @@
 import { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, createContext } from 'react';
 import { Routes, Route, Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
+  Bell,
   CalendarDays,
   ChartNoAxesCombined,
   CheckCircle2,
@@ -400,6 +401,19 @@ function Home({ onLogout }: { onLogout: () => void }) {
         <aside
           className="home-drawer-panel"
           onClick={e => e.stopPropagation()}
+          onTouchStart={e => {
+            (e.currentTarget as HTMLElement).dataset.touchStartX = String(e.touches[0]?.clientX ?? '');
+          }}
+          onTouchEnd={e => {
+            const raw = (e.currentTarget as HTMLElement).dataset.touchStartX;
+            if (!raw) return;
+            const startX = Number(raw);
+            const endX = e.changedTouches[0]?.clientX ?? startX;
+            if (startX - endX > 55) {
+              setDrawerOpen(false);
+            }
+            delete (e.currentTarget as HTMLElement).dataset.touchStartX;
+          }}
           aria-label="Menu principal de navegação"
         >
           <header className="home-drawer-header">
@@ -599,6 +613,10 @@ function Home({ onLogout }: { onLogout: () => void }) {
               </Link>
             )}
           </nav>
+          <DrawerFooterStatus onOpenNotifications={() => {
+            setDrawerOpen(false);
+            window.dispatchEvent(new CustomEvent('hortobots:open-notifications'));
+          }} />
         </aside>
       </div>
 
@@ -2933,26 +2951,39 @@ function OfflineOnboardingModal() {
   );
 }
 
-function OfflineNotice() {
-  const { isOnline, wasOffline } = useOnlineStatus();
-  if (isOnline && !wasOffline) return null;
-
+function DrawerFooterStatus({ onOpenNotifications }: { onOpenNotifications: () => void }) {
+  const { isOnline } = useOnlineStatus();
   return (
-    <aside
-      className={`offline-banner ${isOnline ? 'online' : 'offline'}`}
-      role="status"
-      aria-live="polite"
-    >
-      <div className="offline-banner-content">
-        {isOnline ? <Wifi size={14} /> : <WifiOff size={14} />}
-        <span>
-          {isOnline
-            ? 'Conexão restabelecida · Dados atualizados'
-            : 'Modo Offline · Exibindo dados locais sincronizados'}
-        </span>
+    <footer className="home-drawer-footer">
+      <div className="home-drawer-footer-right">
+        <button
+          type="button"
+          className="home-drawer-notif-btn"
+          onClick={onOpenNotifications}
+          aria-label="Abrir Notificações"
+          title="Notificações"
+        >
+          <Bell size={18} />
+        </button>
+        <div
+          className={`home-drawer-net-status ${isOnline ? 'online' : 'offline'}`}
+          role="status"
+          aria-live="polite"
+          title={isOnline ? 'Online' : 'Offline'}
+        >
+          <span className="net-wifi-icon-wrap">
+            <Wifi size={18} />
+            {!isOnline && <X size={11} className="net-wifi-x" strokeWidth={3} />}
+          </span>
+          <span className="net-status-label">{isOnline ? 'Online' : 'Offline'}</span>
+        </div>
       </div>
-    </aside>
+    </footer>
   );
+}
+
+function OfflineNotice() {
+  return null;
 }
 
 export function App() {

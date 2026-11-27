@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Bell,
   BellRing,
@@ -69,14 +69,21 @@ function formatRelative(iso: string): string {
 
 export function NotificationCenter({ hasLogoutButton }: { hasLogoutButton: boolean }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<AppNotificationItem[]>(() => getNotificationHistory());
   const [toast, setToast] = useState<AppNotificationItem | null>(null);
   const [checking, setChecking] = useState(false);
+  const touchStartX = useRef<number | null>(null);
   const [permGranted, setPermGranted] = useState<boolean>(() => {
     if (typeof Notification !== 'undefined') return Notification.permission === 'granted';
     return false;
   });
+
+  const showFloatingTrigger =
+    location.pathname === '/' ||
+    location.pathname === '/home' ||
+    location.pathname === '/calendario';
 
   useEffect(() => {
     const syncList = () => setItems(getNotificationHistory());
@@ -86,11 +93,14 @@ export function NotificationCenter({ hasLogoutButton }: { hasLogoutButton: boole
         setToast(detail);
       }
     };
+    const onOpenPanel = () => setOpen(true);
     window.addEventListener(NOTIFICATIONS_EVENT, syncList);
     window.addEventListener(TOAST_EVENT, onToast);
+    window.addEventListener('hortobots:open-notifications', onOpenPanel);
     return () => {
       window.removeEventListener(NOTIFICATIONS_EVENT, syncList);
       window.removeEventListener(TOAST_EVENT, onToast);
+      window.removeEventListener('hortobots:open-notifications', onOpenPanel);
     };
   }, []);
 
@@ -125,18 +135,20 @@ export function NotificationCenter({ hasLogoutButton }: { hasLogoutButton: boole
 
   return (
     <>
-      <button
-        type="button"
-        className={`hb-notif-trigger ${hasLogoutButton ? 'with-logout' : ''}`}
-        onClick={() => setOpen(v => !v)}
-        aria-label={`Notificações${unreadCount > 0 ? ` (${unreadCount} não lidas)` : ''}`}
-        title="Central de Notificações"
-      >
-        <Bell size={19} />
-        {unreadCount > 0 && (
-          <span className="hb-notif-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>
-        )}
-      </button>
+      {showFloatingTrigger && (
+        <button
+          type="button"
+          className={`hb-notif-trigger ${hasLogoutButton ? 'with-logout' : ''}`}
+          onClick={() => setOpen(v => !v)}
+          aria-label={`Notificações${unreadCount > 0 ? ` (${unreadCount} não lidas)` : ''}`}
+          title="Central de Notificações"
+        >
+          <Bell size={19} />
+          {unreadCount > 0 && (
+            <span className="hb-notif-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>
+          )}
+        </button>
+      )}
 
       {toast && !open && (
         <button
@@ -164,6 +176,17 @@ export function NotificationCenter({ hasLogoutButton }: { hasLogoutButton: boole
           <aside
             className="hb-notif-panel"
             onClick={e => e.stopPropagation()}
+            onTouchStart={e => {
+              touchStartX.current = e.touches[0]?.clientX ?? null;
+            }}
+            onTouchEnd={e => {
+              if (touchStartX.current === null) return;
+              const endX = e.changedTouches[0]?.clientX ?? touchStartX.current;
+              if (endX - touchStartX.current > 55) {
+                setOpen(false);
+              }
+              touchStartX.current = null;
+            }}
             aria-label="Central de Notificações"
           >
             <header className="hb-notif-header">
