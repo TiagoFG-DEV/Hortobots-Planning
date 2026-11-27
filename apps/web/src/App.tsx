@@ -393,6 +393,25 @@ function Home({ onLogout }: { onLogout: () => void }) {
         <span>MENU</span>
       </button>
 
+      {/* Botões de ação no header — só visíveis em modo paisagem mobile */}
+      <div className="home-landscape-header-actions">
+        <Link className="home-landscape-action-btn" to="/calendario" aria-label="Calendário" title="Calendário Geral">
+          <CalendarDays size={19} />
+        </Link>
+        <Link className="home-landscape-action-btn" to="/documentos" aria-label="Documentos" title="Documentos de Competição">
+          <FileText size={19} />
+        </Link>
+        <Link
+          className="home-landscape-action-btn"
+          to="/login"
+          aria-label={user ? 'Sair' : 'Entrar'}
+          title={user ? 'Sair' : 'Fazer Login'}
+          onClick={() => { if (user) onLogout(); }}
+        >
+          {user ? <LogOut size={19} /> : <LogIn size={19} />}
+        </Link>
+      </div>
+
       {/* Menu Lateral Estilizado com Cores das Equipes (Drawer) */}
       <div
         className={`home-drawer-layer ${drawerOpen ? 'open' : ''}`}

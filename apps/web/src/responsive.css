@@ -1349,74 +1349,118 @@ html, body, #root {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Home Mobile (Retrato): Logo enorme centralizado + cadernos verticais gigantes (imagem, título, subtítulo) */
+/* ============================================================
+   HOME MOBILE — RETRATO
+   Lista vertical: imagem grande → título → subtítulo → próximo
+   ============================================================ */
 @media (max-width: 900px) and (orientation: portrait) {
-  .home-screen {
-    width: 100%;
-    min-height: 100dvh;
-    padding: calc(3.2rem + env(safe-area-inset-top, 0px)) 1rem calc(2.5rem + env(safe-area-inset-bottom, 0px));
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 1.25rem;
+  /* Oculta botões inferiores circulares no retrato (sobrepõem conteúdo) */
+  .home-bottom-actions {
+    display: none !important;
   }
 
+  .home-screen {
+    width: 100% !important;
+    min-height: 100dvh !important;
+    padding: calc(3.5rem + env(safe-area-inset-top, 0px)) 0 calc(1.5rem + env(safe-area-inset-bottom, 0px)) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 0 !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  /* Logo grande no topo */
   .home-screen .brand {
-    width: min(88vw, 380px) !important;
-    max-width: 100% !important;
+    width: min(82vw, 320px) !important;
     height: auto !important;
-    margin: 0.25rem auto 0.25rem !important;
+    margin: 0.5rem auto 0.25rem !important;
     display: block !important;
-    object-fit: contain;
+    object-fit: contain !important;
   }
 
   .home-eyebrow {
-    font-size: 0.95rem !important;
-    letter-spacing: 0.14em;
-    margin: 0 !important;
-    text-align: center;
+    font-size: 0.85rem !important;
+    letter-spacing: 0.16em !important;
+    margin: 0 0 1rem !important;
+    text-align: center !important;
+    padding: 0 1rem !important;
   }
 
+  /* Container dos cadernos: coluna, sem padding lateral */
   .notebook-select.three-notebooks {
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
-    gap: 1.75rem !important;
+    gap: 2rem !important;
     width: 100% !important;
-    max-width: 440px !important;
-    padding: 0 0.5rem 2rem !important;
+    max-width: 100% !important;
+    padding: 0 1rem 2.5rem !important;
   }
 
+  /* Cada caderno: coluna (imagem em cima, título no meio, subtítulo embaixo) */
   .notebook-select.three-notebooks .notebook-logo {
     width: 100% !important;
-    padding: 1.25rem 1rem !important;
+    max-width: 420px !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
-    justify-content: center !important;
-    gap: 0.65rem !important;
+    justify-content: flex-start !important;
+    gap: 0.75rem !important;
     text-align: center !important;
-    border-radius: 22px !important;
+    padding: 1.25rem 1rem 1.5rem !important;
+    border-radius: 20px !important;
+    text-decoration: none !important;
   }
 
+  /* Imagem do caderno: grande, ocupa quase toda a largura */
   .notebook-select.three-notebooks .notebook-logo img {
-    width: min(74vw, 300px) !important;
-    max-width: 100% !important;
+    width: min(78vw, 320px) !important;
     height: auto !important;
+    max-width: 100% !important;
+    display: block !important;
     margin: 0 auto !important;
+    border-radius: 10px !important;
+  }
+
+  /* Título do caderno */
+  .notebook-select.three-notebooks .notebook-logo strong {
+    font-size: 1.65rem !important;
+    line-height: 1.15 !important;
     display: block !important;
   }
 
-  .notebook-select.three-notebooks .notebook-logo strong {
-    font-size: 1.5rem !important;
-    line-height: 1.2;
-    margin-top: 0.25rem;
+  /* Subtítulo/modalidade */
+  .notebook-select.three-notebooks .notebook-logo small {
+    font-size: 1rem !important;
+    display: block !important;
+    opacity: 0.85 !important;
+  }
+}
+
+/* ============================================================
+   HOME MOBILE — PAISAGEM
+   Botões inferiores sobem para o header (mesmo estilo do botão de notificações)
+   ============================================================ */
+@media (orientation: landscape) and (max-height: 500px) {
+  /* Oculta os botões na posição original (bottom) */
+  .home-bottom-actions {
+    display: none !important;
   }
 
-  .notebook-select.three-notebooks .notebook-logo small {
-    font-size: 0.95rem !important;
-    opacity: 0.9;
+  /* Exibe os botões no header fixo da home em modo paisagem */
+  .home-landscape-header-actions {
+    display: flex !important;
+    gap: 0.5rem !important;
+    align-items: center !important;
+  }
+}
+
+@media (orientation: portrait), (min-height: 501px) and (orientation: landscape) {
+  .home-landscape-header-actions {
+    display: none !important;
   }
 }
 
@@ -1539,4 +1583,20 @@ html, body, #root {
   color: #ef4444;
   background: #090c09;
   border-radius: 999px;
+}
+
+/* Botões de ação no header da Home — modo paisagem mobile */
+.home-landscape-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.07);
+  color: #e2e8f0;
+  text-decoration: none;
+  flex-shrink: 0;
+  cursor: pointer;
 }
