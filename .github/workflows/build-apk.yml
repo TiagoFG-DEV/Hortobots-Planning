@@ -12,7 +12,7 @@ on:
       tag_name:
         description: 'Tag de release'
         required: false
-        default: 'v3.4.5-webapp'
+        default: 'v3.4.6-webapp'
 
 permissions:
   contents: write
@@ -79,24 +79,24 @@ jobs:
       - name: Prepare APK Asset
         run: |
           mkdir -p release-assets
-          cp apps/web/android/app/build/outputs/apk/release/app-release.apk release-assets/Planner-v3.4.5-webapp.apk
+          cp apps/web/android/app/build/outputs/apk/release/app-release.apk release-assets/Planner-v3.4.6-webapp.apk
           ls -la release-assets/
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: hortobots-planning-apk
-          path: release-assets/Planner-v3.4.5-webapp.apk
+          path: release-assets/Planner-v3.4.6-webapp.apk
           retention-days: 30
 
-      - name: Publish GitHub Release (v3.4.5-webapp)
+      - name: Publish GitHub Release (v3.4.6-webapp)
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.ref_name == 'WebApp' || github.event_name == 'workflow_dispatch'
         with:
-          tag_name: ${{ inputs.tag_name || 'v3.4.5-webapp' }}
-          name: 'Planner WebApp v3.4.5 — Scroll Mobile Corrigido'
+          tag_name: ${{ inputs.tag_name || 'v3.4.6-webapp' }}
+          name: 'Planner WebApp v3.4.6 — Home v3.3.2 Restaurada'
           prerelease: true
-          files: release-assets/Planner-v3.4.5-webapp.apk
+          files: release-assets/Planner-v3.4.6-webapp.apk
           body: |
             # Hortobots Planning — WebApp Android v3.4.5
 
