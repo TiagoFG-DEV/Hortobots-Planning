@@ -14,6 +14,7 @@
 
 import { API, auth } from './client';
 import { offlinePrefs, offlineStorage } from './offlineStorage';
+import { processSyncSnapshots, type SyncSnapshots } from './appNotifications';
 
 const PUBLIC_SYNC_ROUTES = [
   '/api/registros',
@@ -44,13 +45,13 @@ let syncInFlight: Promise<void> | null = null;
 let lastSyncAttemptAt = 0;
 const MIN_SYNC_INTERVAL_MS = 15_000;
 
-async function fetchAndCacheJson(route: string): Promise<boolean> {
+async function fetchAndCacheJson(route: string): Promise<{ ok: boolean; data?: unknown }> {
   try {
     const token = auth();
     const res = await fetch(`${API}${route}`, {
       headers: token ? { authorization: `Bearer ${token}` } : {}
     });
-    if (!res.ok) return false;
+    if (!res.ok) return { ok: false };
     const data = await res.json();
     await offlineStorage.save(route, data);
 
@@ -71,23 +72,24 @@ async function fetchAndCacheJson(route: string): Promise<boolean> {
         );
       }
     }
-    return true;
+    return { ok: true, data };
   } catch {
-    return false;
+    return { ok: false };
   }
 }
 
-async function warmCacheUrl(url: string): Promise<boolean> {
+async function warmCacheUrl(url: string): Promise<{ ok: boolean; text?: string }> {
   try {
     const res = await fetch(`${API}${url}`);
-    if (!res.ok) return false;
+    if (!res.ok) return { ok: false };
     if (typeof caches !== 'undefined') {
       const cache = await caches.open('hortobots-api-public-v1');
       await cache.put(new Request(`${API}${url}`), res.clone());
     }
-    return true;
+    const text = await res.text();
+    return { ok: true, text };
   } catch {
-    return false;
+    return { ok: false };
   }
 }
 
@@ -150,18 +152,46 @@ export async function runFullOfflineSync(force = false): Promise<void> {
   syncInFlight = (async () => {
     let syncedRoutes = 0;
     let failedRoutes = 0;
+    const snapshots: SyncSnapshots = { biologyFeeds: [] };
 
-    const results = await Promise.allSettled([
-      ...PUBLIC_SYNC_ROUTES.map(r => fetchAndCacheJson(r)),
-      ...BIOLOGY_FEEDS.map(f => warmCacheUrl(f))
-    ]);
+    const jsonResults = await Promise.allSettled(
+      PUBLIC_SYNC_ROUTES.map(async route => ({ route, res: await fetchAndCacheJson(route) }))
+    );
 
-    for (const r of results) {
-      if (r.status === 'fulfilled' && r.value) syncedRoutes += 1;
-      else failedRoutes += 1;
+    for (const r of jsonResults) {
+      if (r.status === 'fulfilled' && r.value.res.ok) {
+        syncedRoutes += 1;
+        const { route, res } = r.value;
+        if (route === '/api/registros') snapshots.registros = res.data as SyncSnapshots['registros'];
+        else if (route === '/api/testes') snapshots.testes = res.data as SyncSnapshots['testes'];
+        else if (route === '/api/eventos') snapshots.eventos = res.data as SyncSnapshots['eventos'];
+        else if (route === '/api/feedbacks') snapshots.feedbacks = res.data as SyncSnapshots['feedbacks'];
+        else if (route === '/api/documentos') snapshots.documentos = res.data as SyncSnapshots['documentos'];
+        else if (route === '/api/documentos/atualizacoes') snapshots.atualizacoes = res.data as SyncSnapshots['atualizacoes'];
+        else if (route === '/api/projeto-temporada') snapshots.seasonProject = res.data as SyncSnapshots['seasonProject'];
+      } else {
+        failedRoutes += 1;
+      }
+    }
+
+    const bioResults = await Promise.allSettled(
+      BIOLOGY_FEEDS.map(async url => ({ url, res: await warmCacheUrl(url) }))
+    );
+
+    for (const r of bioResults) {
+      if (r.status === 'fulfilled' && r.value.res.ok) {
+        syncedRoutes += 1;
+        if (r.value.res.text) {
+          const feed = r.value.url.split('/').pop() || 'biology';
+          snapshots.biologyFeeds!.push({ feed, xml: r.value.res.text });
+        }
+      } else {
+        failedRoutes += 1;
+      }
     }
 
     await Promise.allSettled([warmBioglowShell(), warmOfficialDocsPdfs()]);
+    await processSyncSnapshots(snapshots).catch(() => {});
 
     await offlineStorage.setSyncStats({
       timestamp: Date.now(),
@@ -189,6 +219,11 @@ export function initAutoOfflineSync(): () => void {
 
   // Sincroniza logo após a inicialização da UI
   const initTimer = window.setTimeout(trigger, 1200);
+  const pollTimer = window.setInterval(() => {
+    if (document.visibilityState === 'visible' && navigator.onLine) {
+      void runFullOfflineSync(false);
+    }
+  }, 90_000);
   window.addEventListener('online', trigger);
 
   // Re-sincroniza ao voltar para a aba/app se estiver online
@@ -201,6 +236,7 @@ export function initAutoOfflineSync(): () => void {
 
   return () => {
     window.clearTimeout(initTimer);
+    window.clearInterval(pollTimer);
     window.removeEventListener('online', trigger);
     document.removeEventListener('visibilitychange', onVisibility);
   };

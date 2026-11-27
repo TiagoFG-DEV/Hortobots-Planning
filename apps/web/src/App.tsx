@@ -32,6 +32,10 @@ import {
 import { useMobileDataPreference, useOnlineStatus } from './offlineStorage';
 import { OfflineAwareMedia, OfflineMediaButton } from './OfflineMediaControl';
 import { initAutoOfflineSync } from './offlineSync';
+import { Capacitor } from '@capacitor/core';
+import { App as CapacitorApp } from '@capacitor/app';
+import { NotificationCenter } from './NotificationCenter';
+import { ensureNotificationPermission, initNativeNotificationNavigation } from './appNotifications';
 import logo from './assets/generated/Logo.webp';
 import fll from './assets/generated/fll_team_logo.webp';
 import obr from './assets/generated/obr_team_logo.webp';
@@ -2970,6 +2974,32 @@ export function App() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Notificações nativas + navegação por toque + botão voltar físico do Android
+  useEffect(() => {
+    const cleanupNotifNav = initNativeNotificationNavigation(route => navigate(route));
+    if (Capacitor.isNativePlatform()) {
+      void ensureNotificationPermission();
+    }
+    let backHandle: { remove: () => Promise<void> } | null = null;
+    if (Capacitor.isNativePlatform()) {
+      CapacitorApp.addListener('backButton', ({ canGoBack }) => {
+        if (window.location.pathname !== '/' && canGoBack) {
+          navigate(-1);
+        } else if (window.location.pathname !== '/') {
+          navigate('/');
+        } else {
+          CapacitorApp.exitApp();
+        }
+      }).then(h => {
+        backHandle = h;
+      }).catch(() => {});
+    }
+    return () => {
+      cleanupNotifNav();
+      backHandle?.remove().catch(() => {});
+    };
+  }, [navigate]);
+
   // Bloqueio e mascaramento na inicialização: só libera quando a página inicial estiver 100% pronta
   useEffect(() => {
     const bootLoader = document.getElementById('initial-loader');
@@ -3108,6 +3138,7 @@ export function App() {
           <OfflineNotice />
           <OfflineOnboardingModal />
           <TransitionScreen active={isOverlayActive} />
+          <NotificationCenter hasLogoutButton={false} />
           <Routes>
             <Route path="/" element={<Home onLogout={() => { }} />} />
             <Route path="/login" element={<Login onLogin={handleLoginSuccess} />} />
@@ -3136,6 +3167,7 @@ export function App() {
         <OfflineNotice />
         <OfflineOnboardingModal />
         <TransitionScreen active={isOverlayActive} />
+        <NotificationCenter hasLogoutButton={true} />
         <button
           className="logout"
           onClick={handleLogout}
