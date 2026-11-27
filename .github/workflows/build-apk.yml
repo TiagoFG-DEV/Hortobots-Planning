@@ -12,7 +12,7 @@ on:
       tag_name:
         description: 'Tag de release'
         required: false
-        default: 'v3.4.1b-webapp'
+        default: 'v3.4.5-webapp'
 
 permissions:
   contents: write
@@ -79,40 +79,39 @@ jobs:
       - name: Prepare APK Asset
         run: |
           mkdir -p release-assets
-          cp apps/web/android/app/build/outputs/apk/release/app-release.apk release-assets/Planner-v3.4.1b-webapp.apk
+          cp apps/web/android/app/build/outputs/apk/release/app-release.apk release-assets/Planner-v3.4.5-webapp.apk
           ls -la release-assets/
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: hortobots-planning-apk
-          path: release-assets/Planner-v3.4.1b-webapp.apk
+          path: release-assets/Planner-v3.4.5-webapp.apk
           retention-days: 30
 
-      - name: Publish GitHub Release (v3.4.1b-webapp)
+      - name: Publish GitHub Release (v3.4.5-webapp)
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.ref_name == 'WebApp' || github.event_name == 'workflow_dispatch'
         with:
-          tag_name: ${{ inputs.tag_name || 'v3.4.1b-webapp' }}
-          name: 'Planner WebApp v3.4.1b (Offline-First)'
+          tag_name: ${{ inputs.tag_name || 'v3.4.5-webapp' }}
+          name: 'Planner WebApp v3.4.5 — Scroll Mobile Corrigido'
           prerelease: true
-          files: release-assets/Planner-v3.4.1b-webapp.apk
+          files: release-assets/Planner-v3.4.5-webapp.apk
           body: |
-            # Hortobots Planning — WebApp Android v3.2.0 (Offline-First)
+            # Hortobots Planning — WebApp Android v3.4.5
 
-            Versão atualizada do aplicativo Android (`.apk`) e WebApp PWA com todas as funcionalidades da **v3.2.0** e arquitetura **Offline-First**.
+            ### Correções v3.4.5:
+            - **SCROLL MOBILE CORRIGIDO:** A causa raiz (`.cover { overflow: hidden }`) foi sobrescrita — arrastar o dedo agora scrola normalmente em modo retrato.
+            - **Home retrato:** Cadernos em lista vertical com imagem GRANDE + título grande (2rem) + subtítulo. Scroll entre os cadernos funcional.
+            - **Botões inferiores (retrato):** Fixos na tela, não scrollam junto com os cadernos.
+            - **Botões de ação (paisagem):** Posicionados no topo DIREITO ao lado do botão de notificações, ocultos no retrato.
+            - **Sem duplicatas de botões:** Nenhum botão extra no lugar errado.
+            - **Tela inteira:** Mantido comportamento fullscreen imersivo no Android.
+            - **Backgrounds portrait:** Verde (FLL), Vermelho (OBR), Roxo/Rosa (Under), Colorido (Home).
 
-            ### Principais Recursos desta Versão:
-            - **Sincronização Automática em Wi-Fi (IndexedDB):** Sempre que há conexão, o aplicativo atualiza e salva localmente todos os registros, testes, eventos, feedbacks, documentos oficiais, atualizações e banners.
-            - **Leitura Completa Sem Internet (Incluindo PDFs):** Consulte todo o histórico e exporte relatórios em PDF mesmo sem Wi-Fi.
-            - **Portal BIOGLOW e Notícias de Biologia Offline:** O Portal BIOGLOW e as últimas buscas dos feeds de biologia permanecem acessíveis sem internet.
-            - **Download Sob Demanda de Imagens e Vídeos:** Mídias não são baixadas automaticamente; cada imagem/vídeo possui botão dedicado **Baixar** para salvar localmente quando houver internet.
-            - **Modos v3.2.0 Completos:** Missão individual, Round Teste FLL BIOGLOW (15 missões + inspeção + discos de precisão), gráficos de assertividade e Central de Documentos.
-            - **Roadmap iOS:** Estrutura Capacitor pronta para futura compilação de versão iOS.
-
-            ### Instruções de Instalação (Android):
-            1. Baixe o arquivo `Hortobots-Planning-v3.2.0-webapp.apk` abaixo no seu dispositivo Android.
-            2. Toque no arquivo baixado para instalar (caso solicitado, permita a instalação de apps de fontes confiáveis).
-            3. Abra o **Hortobots Planning** com internet na primeira vez para sincronizar os dados e depois utilize livremente mesmo sem Wi-Fi!
+            ### Instalação (Android):
+            1. Baixe `Planner-v3.4.5-webapp.apk` abaixo.
+            2. Instale no Android (permita fontes desconhecidas se pedido).
+            3. Se já tem versão anterior instalada, esta atualiza sem conflito (mesma keystore, mesmo package ID).
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

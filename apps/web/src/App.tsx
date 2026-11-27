@@ -381,7 +381,7 @@ function Home({ onLogout }: { onLogout: () => void }) {
 
   return (
     <main className="cover page-transition">
-      {/* Botão de acionamento do Menu Lateral na tela inicial */}
+      {/* ── Botão de menu: sempre visível, canto superior esquerdo ── */}
       <button
         type="button"
         className="home-menu-trigger"
@@ -392,25 +392,6 @@ function Home({ onLogout }: { onLogout: () => void }) {
         <Menu size={22} />
         <span>MENU</span>
       </button>
-
-      {/* Botões de ação no header — só visíveis em modo paisagem mobile */}
-      <div className="home-landscape-header-actions">
-        <Link className="home-landscape-action-btn" to="/calendario" aria-label="Calendário" title="Calendário Geral">
-          <CalendarDays size={19} />
-        </Link>
-        <Link className="home-landscape-action-btn" to="/documentos" aria-label="Documentos" title="Documentos de Competição">
-          <FileText size={19} />
-        </Link>
-        <Link
-          className="home-landscape-action-btn"
-          to="/login"
-          aria-label={user ? 'Sair' : 'Entrar'}
-          title={user ? 'Sair' : 'Fazer Login'}
-          onClick={() => { if (user) onLogout(); }}
-        >
-          {user ? <LogOut size={19} /> : <LogIn size={19} />}
-        </Link>
-      </div>
 
       {/* Menu Lateral Estilizado com Cores das Equipes (Drawer) */}
       <div
@@ -666,14 +647,10 @@ function Home({ onLogout }: { onLogout: () => void }) {
           </Link>
           <Link
             className="home-bottom-btn home-auth-btn"
-            to="/login"
+            to={user ? '/' : '/login'}
             aria-label={user ? 'Desconectar da conta' : 'Fazer Login'}
             title={user ? 'Desconectar da conta' : 'Fazer Login'}
-            onClick={() => {
-              if (user) {
-                onLogout();
-              }
-            }}
+            onClick={() => { if (user) onLogout(); }}
           >
             {user ? <LogOut size={22} /> : <LogIn size={22} />}
           </Link>
