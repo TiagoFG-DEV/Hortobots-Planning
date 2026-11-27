@@ -208,7 +208,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const loadAdminDocs = useCallback(async () => {
     setDocsLoading(true);
     try {
-      const res = await fetch('/api/documentos');
+      const res = await fetch(`${API}/api/documentos`);
       if (res.ok) {
         const data = await res.json();
         setAdminDocs(data);
@@ -340,7 +340,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const handleBackup = async () => {
     setBackupLoading(true);
     try {
-      const res = await fetch('/api/admin/backup', {
+      const res = await fetch(`${API}/api/admin/backup`, {
         headers: { authorization: `Bearer ${getAdminToken()}` }
       });
       if (!res.ok) throw new Error('Erro ao gerar backup.');

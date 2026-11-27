@@ -8,8 +8,54 @@
     <title>Hortobots BIOGLOW</title>
     <script type="module" crossorigin src="/bioglow/assets/index-Dhd2TH_R.js"></script>
     <link rel="stylesheet" crossorigin href="/bioglow/assets/index-CNOUva1t.css">
+    <style>
+      .bio-tabs { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+      .bio-tabs.has-archive { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; }
+      @media (max-width: 860px) {
+        .bio-tabs,
+        .bio-tabs.has-archive { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+        .bio-tabs .bio-season-project-btn { grid-column: 1 / -1; }
+      }
+      @media (max-width: 520px) {
+        .bio-tabs,
+        .bio-tabs.has-archive { grid-template-columns: 1fr !important; }
+        .bio-tabs .bio-season-project-btn { grid-column: auto; }
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      (function () {
+        function createProjectButton() {
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'bio-season-project-btn';
+          btn.setAttribute('aria-label', 'Abrir Projeto da Temporada');
+          btn.innerHTML =
+            '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/></svg>' +
+            '<span>Projeto da Temporada</span>';
+          btn.addEventListener('click', function () {
+            if (window.parent && window.parent !== window) {
+              window.parent.postMessage({ type: 'hortobots-bioglow:open-season-project' }, window.location.origin);
+            } else {
+              window.location.href = '/equipes/sesi-hortobots-fll/projeto';
+            }
+          });
+          return btn;
+        }
+
+        function ensureButton() {
+          var nav = document.querySelector('nav.bio-tabs');
+          if (!nav || nav.querySelector('.bio-season-project-btn')) return;
+          nav.appendChild(createProjectButton());
+        }
+
+        var observer = new MutationObserver(ensureButton);
+        observer.observe(document.documentElement, { childList: true, subtree: true });
+        if (document.readyState !== 'loading') ensureButton();
+        else document.addEventListener('DOMContentLoaded', ensureButton);
+      })();
+    </script>
   </body>
 </html>

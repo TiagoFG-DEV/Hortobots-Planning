@@ -52,18 +52,36 @@ jobs:
       - name: Make Gradlew Executable
         run: chmod +x apps/web/android/gradlew
 
-      - name: Build Android APK (Gradle)
+      - name: Prepare Release Keystore
+        run: |
+          if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > apps/web/android/app/hortobots-release.keystore
+            echo "HORTOBOTS_KEYSTORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
+            echo "HORTOBOTS_KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}" >> $GITHUB_ENV
+            echo "HORTOBOTS_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}" >> $GITHUB_ENV
+          else
+            keytool -genkeypair -v -keystore apps/web/android/app/hortobots-release.keystore \
+              -alias hortobots -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass hortobots2026 -keypass hortobots2026 \
+              -dname "CN=Hortobots Planning, OU=SESI 437, O=SESI Hortolandia, L=Hortolandia, ST=SP, C=BR"
+            echo "HORTOBOTS_KEYSTORE_PASSWORD=hortobots2026" >> $GITHUB_ENV
+            echo "HORTOBOTS_KEY_ALIAS=hortobots" >> $GITHUB_ENV
+            echo "HORTOBOTS_KEY_PASSWORD=hortobots2026" >> $GITHUB_ENV
+          fi
+          echo "HORTOBOTS_KEYSTORE_FILE=hortobots-release.keystore" >> $GITHUB_ENV
+
+      - name: Build Android Release APK (Gradle)
         run: |
           export JAVA_HOME="${JAVA_HOME_21_X64:-$JAVA_HOME}"
           echo "JAVA_HOME=$JAVA_HOME"
           java -version
           cd apps/web/android
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: Prepare APK Asset
         run: |
           mkdir -p release-assets
-          cp apps/web/android/app/build/outputs/apk/debug/app-debug.apk release-assets/Hortobots-Planning-v3.3.0-webapp.apk
+          cp apps/web/android/app/build/outputs/apk/release/app-release.apk release-assets/Hortobots-Planning-v3.3.0-webapp.apk
           ls -la release-assets/
 
       - name: Upload APK Artifact

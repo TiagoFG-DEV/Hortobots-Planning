@@ -1,4 +1,4 @@
-import { offlineStorage } from './offlineStorage';
+import { offlinePrefs, offlineStorage } from './offlineStorage';
 
 export const API = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? 'http://localhost:3000' : '');
 
@@ -23,9 +23,11 @@ function offlineFallbackFor(path: string): unknown | null {
 export const api = async (path: string, init: RequestInit = {}) => {
   const method = (init.method || 'GET').toUpperCase();
   const isGet = method === 'GET';
+  const isOnline = typeof navigator === 'undefined' ? true : navigator.onLine;
+  const networkAllowed = offlinePrefs.shouldAllowNetworkSync();
 
-  // 1. Se estiver explicitamente offline em requisição de leitura, serve do IndexedDB
-  if (isGet && typeof navigator !== 'undefined' && !navigator.onLine) {
+  // 1. Se estiver offline ou bloqueado por preferência "Somente Wi-Fi" em rede celular, serve do IndexedDB
+  if (isGet && (!isOnline || !networkAllowed)) {
     const cached = await offlineStorage.get(path);
     if (cached !== null) {
       return cached;
@@ -34,9 +36,12 @@ export const api = async (path: string, init: RequestInit = {}) => {
     if (fallback !== null) return fallback;
   }
 
-  // 2. Se for mutação sem internet, barra imediatamente com mensagem amigável
-  if (!isGet && typeof navigator !== 'undefined' && !navigator.onLine) {
+  // 2. Se for mutação sem internet ou bloqueada por "Somente Wi-Fi", barra com mensagem amigável
+  if (!isGet && !isOnline) {
     throw new Error('Você está no Modo Offline. Conecte-se à internet para salvar, editar ou excluir dados.');
+  }
+  if (!isGet && !networkAllowed) {
+    throw new Error('Modo Somente Wi-Fi ativo. Conecte-se ao Wi-Fi ou ative Dados Móveis para salvar alterações.');
   }
 
   try {

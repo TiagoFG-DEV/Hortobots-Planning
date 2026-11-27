@@ -1,6 +1,6 @@
 import React from 'react';
 import { CheckCircle2, Download, Loader2, WifiOff, Trash2 } from 'lucide-react';
-import { useOfflineMedia, useOnlineStatus } from './offlineStorage';
+import { offlinePrefs, useMobileDataPreference, useOfflineMedia, useOnlineStatus } from './offlineStorage';
 
 interface OfflineMediaButtonProps {
   url: string;
@@ -14,6 +14,8 @@ interface OfflineMediaButtonProps {
  */
 export function OfflineMediaButton({ url, name, compact = false }: OfflineMediaButtonProps) {
   const { isOnline } = useOnlineStatus();
+  const { mobileDataAllowed } = useMobileDataPreference();
+  const canUseNetwork = isOnline && (mobileDataAllowed || !offlinePrefs.isOnCellular());
   const { downloaded, downloading, download, remove } = useOfflineMedia(url);
 
   if (!url || url.startsWith('data:') || url.startsWith('blob:')) {
@@ -25,7 +27,7 @@ export function OfflineMediaButton({ url, name, compact = false }: OfflineMediaB
     e.preventDefault();
     if (downloaded) {
       void remove();
-    } else if (isOnline && !downloading) {
+    } else if (canUseNetwork && !downloading) {
       void download(name);
     }
   };
@@ -45,14 +47,14 @@ export function OfflineMediaButton({ url, name, compact = false }: OfflineMediaB
     );
   }
 
-  if (!isOnline) {
+  if (!canUseNetwork) {
     return (
       <span
         className={`offline-media-btn unavailable ${compact ? 'compact' : ''}`}
-        title="Conecte-se ao Wi-Fi para baixar esta mídia"
+        title={isOnline ? 'Modo Somente Wi-Fi ativo. Conecte-se ao Wi-Fi para baixar.' : 'Conecte-se ao Wi-Fi para baixar esta mídia'}
       >
         <WifiOff size={13} />
-        <span>{compact ? 'Sem Wi-Fi' : 'Não baixado'}</span>
+        <span>{compact ? (isOnline ? 'Só Wi-Fi' : 'Sem Wi-Fi') : (isOnline ? 'Somente Wi-Fi' : 'Não baixado')}</span>
       </span>
     );
   }
@@ -99,15 +101,21 @@ export function OfflineAwareMedia({
   loading = 'lazy'
 }: OfflineAwareMediaProps) {
   const { isOnline } = useOnlineStatus();
+  const { mobileDataAllowed } = useMobileDataPreference();
+  const canUseNetwork = isOnline && (mobileDataAllowed || !offlinePrefs.isOnCellular());
   const { downloaded, localUrl } = useOfflineMedia(url);
 
-  const effectiveSrc = localUrl || (isOnline ? url : '');
+  const effectiveSrc = localUrl || (canUseNetwork ? url : '');
 
   if (!effectiveSrc && !downloaded) {
     return (
       <div className="offline-media-placeholder">
         <WifiOff size={20} />
-        <span>Mídia não baixada. Conecte-se ao Wi-Fi para baixar.</span>
+        <span>
+          {isOnline
+            ? 'Mídia bloqueada no modo Somente Wi-Fi. Conecte-se ao Wi-Fi para visualizar.'
+            : 'Mídia não baixada. Conecte-se ao Wi-Fi para baixar.'}
+        </span>
       </div>
     );
   }
