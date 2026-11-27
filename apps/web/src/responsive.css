@@ -1342,8 +1342,100 @@ html, body, #root {
   width: 100%;
   max-width: 100vw;
   min-height: 100dvh;
-  overflow-x: hidden;
+  overflow-x: clip;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Home Mobile: Logo grande centralizado + 3 cadernos grandes empilhados */
+@media (max-width: 768px) {
+  .home-screen {
+    width: 100%;
+    min-height: 100dvh;
+    padding: calc(3.8rem + env(safe-area-inset-top, 0px)) 1rem calc(2rem + env(safe-area-inset-bottom, 0px));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 1rem;
+  }
+
+  .home-screen .brand {
+    width: min(84vw, 340px) !important;
+    max-width: 100% !important;
+    height: auto !important;
+    margin: 0.25rem auto 0.5rem !important;
+    display: block !important;
+    object-fit: contain;
+  }
+
+  .home-eyebrow {
+    font-size: 0.9rem !important;
+    letter-spacing: 0.14em;
+    margin: 0.25rem 0 0.5rem !important;
+    text-align: center;
+  }
+
+  .notebook-select.three-notebooks {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 1rem !important;
+    width: 100% !important;
+    max-width: 460px !important;
+    padding: 0 0.25rem !important;
+  }
+
+  .notebook-select.three-notebooks .notebook-logo {
+    width: 100% !important;
+    min-height: 126px !important;
+    padding: 1.1rem 1.25rem !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 1.15rem !important;
+    text-align: left !important;
+    border-radius: 18px !important;
+  }
+
+  .notebook-select.three-notebooks .notebook-logo img {
+    width: 82px !important;
+    height: auto !important;
+    flex-shrink: 0;
+  }
+
+  .notebook-select.three-notebooks .notebook-logo strong {
+    font-size: 1.35rem !important;
+    line-height: 1.2;
+  }
+
+  .notebook-select.three-notebooks .notebook-logo small {
+    font-size: 0.88rem !important;
+    margin-top: 0.2rem;
+  }
+}
+
+.home-drawer-mini-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: #cbd5e1;
+  cursor: pointer;
+}
+
+.home-drawer-mini-btn.active {
+  border-color: rgba(74, 222, 128, 0.45);
+  background: rgba(74, 222, 128, 0.14);
+  color: #4ade80;
 }
 
 /* Desativa animações/efeitos de hover em dispositivos touch */

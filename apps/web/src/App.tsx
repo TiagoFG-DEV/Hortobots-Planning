@@ -23,6 +23,7 @@ import {
   Plus,
   Search,
   Shield,
+  Smartphone,
   Target,
   Trash2,
   Video,
@@ -568,9 +569,6 @@ function Home({ onLogout }: { onLogout: () => void }) {
               <Leaf size={20} />
               <span>PORTAL BIOGLOW</span>
             </Link>
-
-            {/* Preferência de Dados Móveis (WebApp) */}
-            <DrawerMobileDataToggle />
 
             {/* 6. Painel Administrativo (Exclusivo Mentor) */}
             {user?.role === 'mentor' && (
@@ -2913,49 +2911,25 @@ function DrawerMobileDataToggle() {
 }
 
 function OfflineOnboardingModal() {
-  const { onboardingDone, completeOnboarding } = useMobileDataPreference();
-  if (onboardingDone) return null;
-
-  return (
-    <div className="hb-dialog-overlay" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
-      <div className="hb-dialog-card" style={{ maxWidth: '460px', textAlign: 'left' }}>
-        <div className="hb-dialog-icon" aria-hidden="true">
-          <Wifi size={28} />
-        </div>
-        <h2 id="onboarding-title" className="hb-dialog-title">Preferências do WebApp</h2>
-        <p className="hb-dialog-message" style={{ lineHeight: 1.55 }}>
-          Os registros, testes, eventos e documentos são salvos localmente para uso offline.
-          Fotos, vídeos e PDFs de competição podem ser baixados sob demanda quando desejar.
-          Como prefere carregar conteúdos pela rede?
-        </p>
-        <div className="hb-dialog-actions" style={{ flexDirection: 'column', gap: '0.6rem' }}>
-          <button
-            type="button"
-            className="hb-dialog-btn confirm"
-            style={{ width: '100%' }}
-            onClick={() => completeOnboarding(true)}
-          >
-            Usar Wi-Fi e Dados Móveis (Padrão)
-          </button>
-          <button
-            type="button"
-            className="hb-dialog-btn cancel"
-            style={{ width: '100%' }}
-            onClick={() => completeOnboarding(false)}
-          >
-            Carregar somente no Wi-Fi (Economizar dados)
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+  return null;
 }
 
 function DrawerFooterStatus({ onOpenNotifications }: { onOpenNotifications: () => void }) {
   const { isOnline } = useOnlineStatus();
+  const { mobileDataAllowed, updateMobileData } = useMobileDataPreference();
   return (
     <footer className="home-drawer-footer">
       <div className="home-drawer-footer-right">
+        <button
+          type="button"
+          className={`home-drawer-mini-btn ${mobileDataAllowed ? 'active' : ''}`}
+          onClick={() => updateMobileData(!mobileDataAllowed)}
+          aria-label={mobileDataAllowed ? 'Desativar Dados Móveis' : 'Ativar Dados Móveis'}
+          title={mobileDataAllowed ? 'Dados Móveis: Ativado' : 'Dados Móveis: Desativado'}
+        >
+          <Smartphone size={15} />
+          <span>{mobileDataAllowed ? 'Dados' : 'Só Wi-Fi'}</span>
+        </button>
         <button
           type="button"
           className="home-drawer-notif-btn"
