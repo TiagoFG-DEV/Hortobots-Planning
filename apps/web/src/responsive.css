@@ -1349,72 +1349,74 @@ html, body, #root {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Home Mobile: Logo grande centralizado + 3 cadernos grandes empilhados */
-@media (max-width: 768px) {
+/* Home Mobile (Retrato): Logo enorme centralizado + cadernos verticais gigantes (imagem, título, subtítulo) */
+@media (max-width: 900px) and (orientation: portrait) {
   .home-screen {
     width: 100%;
     min-height: 100dvh;
-    padding: calc(3.8rem + env(safe-area-inset-top, 0px)) 1rem calc(2rem + env(safe-area-inset-bottom, 0px));
+    padding: calc(3.2rem + env(safe-area-inset-top, 0px)) 1rem calc(2.5rem + env(safe-area-inset-bottom, 0px));
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    gap: 1rem;
+    gap: 1.25rem;
   }
 
   .home-screen .brand {
-    width: min(84vw, 340px) !important;
+    width: min(88vw, 380px) !important;
     max-width: 100% !important;
     height: auto !important;
-    margin: 0.25rem auto 0.5rem !important;
+    margin: 0.25rem auto 0.25rem !important;
     display: block !important;
     object-fit: contain;
   }
 
   .home-eyebrow {
-    font-size: 0.9rem !important;
+    font-size: 0.95rem !important;
     letter-spacing: 0.14em;
-    margin: 0.25rem 0 0.5rem !important;
+    margin: 0 !important;
     text-align: center;
   }
 
   .notebook-select.three-notebooks {
     display: flex !important;
     flex-direction: column !important;
-    align-items: stretch !important;
-    gap: 1rem !important;
+    align-items: center !important;
+    gap: 1.75rem !important;
     width: 100% !important;
-    max-width: 460px !important;
-    padding: 0 0.25rem !important;
+    max-width: 440px !important;
+    padding: 0 0.5rem 2rem !important;
   }
 
   .notebook-select.three-notebooks .notebook-logo {
     width: 100% !important;
-    min-height: 126px !important;
-    padding: 1.1rem 1.25rem !important;
+    padding: 1.25rem 1rem !important;
     display: flex !important;
-    flex-direction: row !important;
+    flex-direction: column !important;
     align-items: center !important;
-    justify-content: flex-start !important;
-    gap: 1.15rem !important;
-    text-align: left !important;
-    border-radius: 18px !important;
+    justify-content: center !important;
+    gap: 0.65rem !important;
+    text-align: center !important;
+    border-radius: 22px !important;
   }
 
   .notebook-select.three-notebooks .notebook-logo img {
-    width: 82px !important;
+    width: min(74vw, 300px) !important;
+    max-width: 100% !important;
     height: auto !important;
-    flex-shrink: 0;
+    margin: 0 auto !important;
+    display: block !important;
   }
 
   .notebook-select.three-notebooks .notebook-logo strong {
-    font-size: 1.35rem !important;
+    font-size: 1.5rem !important;
     line-height: 1.2;
+    margin-top: 0.25rem;
   }
 
   .notebook-select.three-notebooks .notebook-logo small {
-    font-size: 0.88rem !important;
-    margin-top: 0.2rem;
+    font-size: 0.95rem !important;
+    opacity: 0.9;
   }
 }
 
