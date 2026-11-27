@@ -60,10 +60,8 @@ jobs:
             echo "HORTOBOTS_KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}" >> $GITHUB_ENV
             echo "HORTOBOTS_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}" >> $GITHUB_ENV
           else
-            keytool -genkeypair -v -keystore apps/web/android/app/hortobots-release.keystore \
-              -alias hortobots -keyalg RSA -keysize 2048 -validity 10000 \
-              -storepass hortobots2026 -keypass hortobots2026 \
-              -dname "CN=Hortobots Planning, OU=SESI 437, O=SESI Hortolandia, L=Hortolandia, ST=SP, C=BR"
+            # Usa a keystore fixa versionada no repositório WebApp para garantir
+            # a mesma assinatura em todas as versões e evitar conflito de pacote ao atualizar.
             echo "HORTOBOTS_KEYSTORE_PASSWORD=hortobots2026" >> $GITHUB_ENV
             echo "HORTOBOTS_KEY_ALIAS=hortobots" >> $GITHUB_ENV
             echo "HORTOBOTS_KEY_PASSWORD=hortobots2026" >> $GITHUB_ENV
