@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, FlaskConical, Leaf, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Leaf, RefreshCw } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { AccountUser } from '@hortobots/shared/permissions';
 import { SESI_BIOGLOW_PORTAL } from './teamPortals';
@@ -47,6 +47,9 @@ export function TeamPortalFrame({
         window.clearTimeout(timer);
         setReady(true);
       }
+      if (event.data?.type === 'hortobots-bioglow:open-season-project') {
+        navigate(`${SESI_BIOGLOW_PORTAL.route}/projeto`);
+      }
       if (event.data?.type === 'hortobots-bioglow:navigate-planner') {
         const targetPath = event.data?.path || event.data?.url || '/';
         navigate(targetPath.startsWith('http') ? new URL(targetPath).pathname : targetPath);
@@ -66,30 +69,17 @@ export function TeamPortalFrame({
 
   return <main className="team-portal-host page-transition">
     <header className="team-portal-toolbar">
-      <Link to="/" className="team-portal-return"><ArrowLeft /> <span>Voltar ao Planner</span></Link>
+      {activeTab === 'projeto' ? (
+        <Link to={SESI_BIOGLOW_PORTAL.route} className="team-portal-return"><ArrowLeft /> <span>Voltar ao Portal BIOGLOW</span></Link>
+      ) : (
+        <Link to="/" className="team-portal-return"><ArrowLeft /> <span>Voltar ao Planner</span></Link>
+      )}
       <div className="team-portal-brand">
         <Leaf />
-        <span><strong>Hortobots BIOGLOW</strong><small>Portal e Projeto da Temporada · SESI Hortobots FLL</small></span>
-      </div>
-      <div className="team-portal-tabs" role="tablist" aria-label="Seções do Portal BIOGLOW">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === 'portal'}
-          className={activeTab === 'portal' ? 'active' : ''}
-          onClick={() => setActiveTab('portal')}
-        >
-          <Leaf size={15} /> <span>Portal BIOGLOW</span>
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === 'projeto'}
-          className={activeTab === 'projeto' ? 'active' : ''}
-          onClick={() => setActiveTab('projeto')}
-        >
-          <FlaskConical size={15} /> <span>Projeto da Temporada</span>
-        </button>
+        <span>
+          <strong>{activeTab === 'projeto' ? 'Projeto da Temporada' : 'Hortobots BIOGLOW'}</strong>
+          <small>{activeTab === 'projeto' ? 'The Beezy Box · SESI Hortobots FLL' : 'Site independente do SESI Hortobots FLL'}</small>
+        </span>
       </div>
     </header>
     {activeTab === 'portal' ? (

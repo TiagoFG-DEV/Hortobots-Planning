@@ -138,7 +138,7 @@ const DEFAULT_SEASON_PROJECT: SeasonProjectData = {
         category: 'metodologia',
         status: 'em_aberto',
         body:
-          'Para validar a eficiência do The Beezy Box em campo, os testes devem comparar o comportamento e a frequência de aparecimento das abelhas jataí com e sem o estímulo sonoro do buzzer, registrando sempre as condições ambientais de cada sessão: condição do clima, temperatura (°C), umidade relativa (%), velocidade do vento (km/h) e contagem de aparições/visitas.\n\n[Em aberto: definir duração padrão de cada coleta, distância da caixa até as flores/colmeia e protocolo de registro na planilha de aparecimento de abelhas.]',
+          'Para validar a eficiência do The Beezy Box em campo, os testes devem comparar o comportamento e a frequência de aparecimento das abelhas jataí com o buzzer ligado e desligado, registrando sempre os horários de aparição e as condições ambientais de cada sessão: condição do clima (ensolarado, nublado ou chuvoso), temperatura (°C) e umidade relativa (%).\n\n[Em aberto: definir duração padrão de cada coleta, distância da caixa até as flores/colmeia e protocolo de registro na planilha de aparecimento de abelhas.]',
         openNote: 'Protocolo exato de coleta e planilhas de campo serão anexados pela equipe na aba de Testes Científicos.',
         updatedAt: new Date().toISOString(),
         attachments: []
@@ -1075,7 +1075,7 @@ export function SeasonProjectView({ user }: { user: AccountUser | null }) {
               <div>
                 <h2>Correlação: Aparições de Abelhas Jataí × Parâmetros Climáticos</h2>
                 <p className="sp-muted">
-                  Comparativo entre quantidade de visitações registradas e variáveis de clima, temperatura, umidade e vento.
+                  Comparativo entre quantidade de visitações (Buzzer Ligado vs Desligado) e variáveis de clima, temperatura e umidade.
                 </p>
               </div>
               {canEdit && (
