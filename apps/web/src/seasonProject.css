@@ -494,11 +494,20 @@
   margin-right: 0.5rem;
 }
 
-.sp-chart-legend-item.bees i {
+.sp-chart-legend-item.bees i,
+.sp-chart-legend-item.bees-on i {
   width: 12px;
   height: 12px;
   border-radius: 3px;
   background: #173d2d;
+  display: inline-block;
+}
+
+.sp-chart-legend-item.bees-off i {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: #d97706;
   display: inline-block;
 }
 
