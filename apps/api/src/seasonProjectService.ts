@@ -29,6 +29,8 @@ export interface SeasonArticleSection {
 export interface SeasonProjectTest {
   id: string;
   date: string;
+  time?: string;
+  appearanceTimes?: string;
   title: string;
   description: string;
   weather: string;
@@ -38,6 +40,8 @@ export interface SeasonProjectTest {
   buzzerActive: boolean | null;
   frequencyHz: number | null;
   beeAppearances: number | null;
+  beeAppearancesBuzzerOn?: number | null;
+  beeAppearancesBuzzerOff?: number | null;
   notes: string;
   attachments: SeasonAttachment[];
   createdBy: string;

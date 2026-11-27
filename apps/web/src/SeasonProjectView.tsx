@@ -18,7 +18,6 @@ import {
   Trash2,
   Upload,
   Video,
-  Wind,
   X
 } from 'lucide-react';
 import { API, api } from './client';
@@ -50,6 +49,8 @@ export interface SeasonArticleSection {
 export interface SeasonProjectTest {
   id: string;
   date: string;
+  time?: string;
+  appearanceTimes?: string;
   title: string;
   description: string;
   weather: string;
@@ -59,6 +60,8 @@ export interface SeasonProjectTest {
   buzzerActive: boolean | null;
   frequencyHz: number | null;
   beeAppearances: number | null;
+  beeAppearancesBuzzerOn?: number | null;
+  beeAppearancesBuzzerOff?: number | null;
   notes: string;
   attachments: SeasonAttachment[];
   createdBy: string;
@@ -158,14 +161,20 @@ function ClimateBeeChart({ tests }: { tests: SeasonProjectTest[] }) {
   const ordered = useMemo(
     () =>
       [...tests]
-        .filter(t => t.beeAppearances !== null || t.temperatureC !== null || t.humidityPct !== null || t.windKmh !== null)
+        .filter(
+          t =>
+            t.beeAppearancesBuzzerOn !== null ||
+            t.beeAppearancesBuzzerOff !== null ||
+            t.beeAppearances !== null ||
+            t.temperatureC !== null ||
+            t.humidityPct !== null
+        )
         .sort((a, b) => String(a.date).localeCompare(String(b.date))),
     [tests]
   );
 
   const [showTemp, setShowTemp] = useState(true);
   const [showHumidity, setShowHumidity] = useState(true);
-  const [showWind, setShowWind] = useState(true);
 
   if (ordered.length === 0) {
     return (
@@ -189,10 +198,23 @@ function ClimateBeeChart({ tests }: { tests: SeasonProjectTest[] }) {
   const plotW = width - padL - padR;
   const plotH = height - padT - padB;
 
-  const maxBees = Math.max(10, ...ordered.map(t => Number(t.beeAppearances ?? 0)));
+  const getOn = (t: SeasonProjectTest): number => {
+    if (t.beeAppearancesBuzzerOn !== null && t.beeAppearancesBuzzerOn !== undefined)
+      return t.beeAppearancesBuzzerOn;
+    if (t.buzzerActive === true && t.beeAppearances !== null) return t.beeAppearances;
+    return 0;
+  };
+  const getOff = (t: SeasonProjectTest): number => {
+    if (t.beeAppearancesBuzzerOff !== null && t.beeAppearancesBuzzerOff !== undefined)
+      return t.beeAppearancesBuzzerOff;
+    if (t.buzzerActive === false && t.beeAppearances !== null) return t.beeAppearances;
+    return 0;
+  };
+
+  const maxBees = Math.max(10, ...ordered.map(t => Math.max(getOn(t), getOff(t))));
   const maxClimate = Math.max(
     100,
-    ...ordered.map(t => Math.max(Number(t.temperatureC ?? 0), Number(t.humidityPct ?? 0), Number(t.windKmh ?? 0)))
+    ...ordered.map(t => Math.max(Number(t.temperatureC ?? 0), Number(t.humidityPct ?? 0)))
   );
 
   const xAt = (i: number) => (ordered.length === 1 ? padL + plotW / 2 : padL + (i / (ordered.length - 1)) * plotW);
@@ -212,13 +234,15 @@ function ClimateBeeChart({ tests }: { tests: SeasonProjectTest[] }) {
 
   const tempPath = showTemp ? buildPath(t => t.temperatureC, yClim) : '';
   const humPath = showHumidity ? buildPath(t => t.humidityPct, yClim) : '';
-  const windPath = showWind ? buildPath(t => t.windKmh, yClim) : '';
 
   return (
     <div className="sp-chart-box">
       <div className="sp-chart-controls">
-        <span className="sp-chart-legend-item bees">
-          <i /> Aparições de Jataís (barras)
+        <span className="sp-chart-legend-item bees-on">
+          <i /> Buzzer Ligado
+        </span>
+        <span className="sp-chart-legend-item bees-off">
+          <i /> Buzzer Desligado
         </span>
         <button
           type="button"
@@ -234,16 +258,9 @@ function ClimateBeeChart({ tests }: { tests: SeasonProjectTest[] }) {
         >
           Umidade (%)
         </button>
-        <button
-          type="button"
-          className={`sp-chart-toggle ${showWind ? 'active wind' : ''}`}
-          onClick={() => setShowWind(v => !v)}
-        >
-          Vento (km/h)
-        </button>
       </div>
 
-      <svg viewBox={`0 0 ${width} ${height}`} className="sp-chart-svg" role="img" aria-label="Gráfico de aparições de abelhas e parâmetros climáticos">
+      <svg viewBox={`0 0 ${width} ${height}`} className="sp-chart-svg" role="img" aria-label="Gráfico de aparições de abelhas com buzzer ligado e desligado vs parâmetros climáticos">
         {[0, 0.25, 0.5, 0.75, 1].map((step, idx) => {
           const y = padT + plotH * (1 - step);
           return (
@@ -261,24 +278,37 @@ function ClimateBeeChart({ tests }: { tests: SeasonProjectTest[] }) {
 
         {ordered.map((t, i) => {
           const x = xAt(i);
-          const bees = Number(t.beeAppearances ?? 0);
-          const barW = Math.min(34, Math.max(14, plotW / Math.max(ordered.length * 2, 4)));
-          const barY = yBees(bees);
+          const on = getOn(t);
+          const off = getOff(t);
+          const totalW = Math.min(44, Math.max(20, plotW / Math.max(ordered.length * 2.5, 4)));
+          const half = totalW / 2;
+          const gap = 2;
+          const barOnY = yBees(on);
+          const barOffY = yBees(off);
           return (
             <g key={t.id}>
-              {t.beeAppearances !== null && (
-                <rect
-                  x={x - barW / 2}
-                  y={barY}
-                  width={barW}
-                  height={Math.max(2, padT + plotH - barY)}
-                  rx={4}
-                  fill="#173d2d"
-                  opacity={0.78}
-                >
-                  <title>{`${t.title} (${t.date}): ${bees} aparições`}</title>
-                </rect>
-              )}
+              <rect
+                x={x - half - gap / 2}
+                y={barOnY}
+                width={half}
+                height={Math.max(2, padT + plotH - barOnY)}
+                rx={3}
+                fill="#173d2d"
+                opacity={0.82}
+              >
+                <title>{`${t.title} — Buzzer Ligado: ${on} aparições`}</title>
+              </rect>
+              <rect
+                x={x + gap / 2}
+                y={barOffY}
+                width={half}
+                height={Math.max(2, padT + plotH - barOffY)}
+                rx={3}
+                fill="#d97706"
+                opacity={0.82}
+              >
+                <title>{`${t.title} — Buzzer Desligado: ${off} aparições`}</title>
+              </rect>
               <text x={x} y={height - 14} textAnchor="middle" fontSize="11" fill="#173d2d">
                 {t.date ? `${t.date.slice(8)}/${t.date.slice(5, 7)}` : `T${i + 1}`}
               </text>
@@ -288,7 +318,6 @@ function ClimateBeeChart({ tests }: { tests: SeasonProjectTest[] }) {
 
         {tempPath && <path d={tempPath} fill="none" stroke="#dc2626" strokeWidth={2.5} />}
         {humPath && <path d={humPath} fill="none" stroke="#0284c7" strokeWidth={2.5} />}
-        {windPath && <path d={windPath} fill="none" stroke="#d97706" strokeWidth={2.5} strokeDasharray="5 3" />}
 
         {ordered.map((t, i) => (
           <g key={`${t.id}-pts`}>
@@ -300,11 +329,6 @@ function ClimateBeeChart({ tests }: { tests: SeasonProjectTest[] }) {
             {showHumidity && t.humidityPct !== null && (
               <circle cx={xAt(i)} cy={yClim(t.humidityPct)} r={4} fill="#0284c7">
                 <title>{`Umidade: ${t.humidityPct}%`}</title>
-              </circle>
-            )}
-            {showWind && t.windKmh !== null && (
-              <circle cx={xAt(i)} cy={yClim(t.windKmh)} r={4} fill="#d97706">
-                <title>{`Vento: ${t.windKmh} km/h`}</title>
               </circle>
             )}
           </g>
@@ -348,15 +372,15 @@ export function SeasonProjectView({ user }: { user: AccountUser | null }) {
   const emptyTestForm = () => ({
     id: '',
     date: new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date()),
+    time: '',
+    appearanceTimes: '',
     title: '',
     description: '',
     weather: 'Ensolarado',
     temperatureC: '',
     humidityPct: '',
-    windKmh: '',
-    buzzerActive: 'sim' as 'sim' | 'nao' | 'na',
-    frequencyHz: '',
-    beeAppearances: '',
+    beeAppearancesBuzzerOn: '',
+    beeAppearancesBuzzerOff: '',
     notes: '',
     attachments: [] as SeasonAttachment[]
   });
@@ -530,19 +554,27 @@ export function SeasonProjectView({ user }: { user: AccountUser | null }) {
     if (!data || !testForm.title.trim()) return;
     const now = new Date().toISOString();
     const toNum = (v: string) => (v.trim() === '' ? null : Number(v));
+    const onCount = toNum(testForm.beeAppearancesBuzzerOn);
+    const offCount = toNum(testForm.beeAppearancesBuzzerOff);
+    const totalBees =
+      onCount === null && offCount === null ? null : (onCount ?? 0) + (offCount ?? 0);
 
     const entry: SeasonProjectTest = {
       id: testForm.id || `test-${Date.now().toString(36)}`,
       date: testForm.date,
+      time: testForm.time.trim(),
+      appearanceTimes: testForm.appearanceTimes.trim(),
       title: testForm.title.trim(),
       description: testForm.description.trim(),
-      weather: testForm.weather.trim() || 'Não informado',
+      weather: testForm.weather.trim() || 'Ensolarado',
       temperatureC: toNum(testForm.temperatureC),
       humidityPct: toNum(testForm.humidityPct),
-      windKmh: toNum(testForm.windKmh),
-      buzzerActive: testForm.buzzerActive === 'na' ? null : testForm.buzzerActive === 'sim',
-      frequencyHz: toNum(testForm.frequencyHz),
-      beeAppearances: toNum(testForm.beeAppearances),
+      windKmh: null,
+      buzzerActive: onCount !== null && onCount > 0 ? true : offCount !== null && offCount > 0 ? false : null,
+      frequencyHz: null,
+      beeAppearances: totalBees,
+      beeAppearancesBuzzerOn: onCount,
+      beeAppearancesBuzzerOff: offCount,
       notes: testForm.notes.trim(),
       attachments: testForm.attachments,
       createdBy: user?.username || 'fll',
@@ -577,13 +609,31 @@ export function SeasonProjectView({ user }: { user: AccountUser | null }) {
 
   const stats = useMemo(() => {
     const tests = data?.tests || [];
-    const beeVals = tests.map(t => t.beeAppearances).filter((v): v is number => v !== null);
+    const onVals = tests
+      .map(t =>
+        t.beeAppearancesBuzzerOn !== undefined && t.beeAppearancesBuzzerOn !== null
+          ? t.beeAppearancesBuzzerOn
+          : t.buzzerActive === true
+            ? t.beeAppearances
+            : null
+      )
+      .filter((v): v is number => v !== null);
+    const offVals = tests
+      .map(t =>
+        t.beeAppearancesBuzzerOff !== undefined && t.beeAppearancesBuzzerOff !== null
+          ? t.beeAppearancesBuzzerOff
+          : t.buzzerActive === false
+            ? t.beeAppearances
+            : null
+      )
+      .filter((v): v is number => v !== null);
     const tempVals = tests.map(t => t.temperatureC).filter((v): v is number => v !== null);
     const humVals = tests.map(t => t.humidityPct).filter((v): v is number => v !== null);
     const avg = (arr: number[]) => (arr.length ? (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(1) : '—');
     return {
       total: tests.length,
-      avgBees: avg(beeVals),
+      avgOn: avg(onVals),
+      avgOff: avg(offVals),
       avgTemp: avg(tempVals),
       avgHum: avg(humVals)
     };
@@ -991,10 +1041,17 @@ export function SeasonProjectView({ user }: { user: AccountUser | null }) {
               </div>
             </div>
             <div className="sp-kpi-card">
-              <Leaf size={20} />
+              <Leaf size={20} style={{ color: '#173d2d' }} />
               <div>
-                <small>Média Aparições (Jataís)</small>
-                <strong>{stats.avgBees}</strong>
+                <small>Buzzer Ligado (méd.)</small>
+                <strong>{stats.avgOn}</strong>
+              </div>
+            </div>
+            <div className="sp-kpi-card">
+              <Leaf size={20} style={{ color: '#d97706' }} />
+              <div>
+                <small>Buzzer Desligado (méd.)</small>
+                <strong>{stats.avgOff}</strong>
               </div>
             </div>
             <div className="sp-kpi-card">
@@ -1100,49 +1157,44 @@ export function SeasonProjectView({ user }: { user: AccountUser | null }) {
                   />
                 </label>
                 <label>
-                  <span>Vento (km/h)</span>
+                  <span>Horário do Teste</span>
                   <input
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    value={testForm.windKmh}
-                    onChange={e => setTestForm(f => ({ ...f, windKmh: e.target.value }))}
-                    placeholder="Ex.: 8.4"
+                    type="time"
+                    value={testForm.time}
+                    onChange={e => setTestForm(f => ({ ...f, time: e.target.value }))}
                   />
                 </label>
                 <label>
-                  <span>Buzzer Ligado?</span>
-                  <select
-                    value={testForm.buzzerActive}
-                    onChange={e => setTestForm(f => ({ ...f, buzzerActive: e.target.value as any }))}
-                  >
-                    <option value="sim">Sim (Buzzer ativo)</option>
-                    <option value="nao">Não (Controle sem som)</option>
-                    <option value="na">Não informado</option>
-                  </select>
-                </label>
-                <label>
-                  <span>Frequência (Hz)</span>
-                  <input
-                    type="number"
-                    step="1"
-                    value={testForm.frequencyHz}
-                    onChange={e => setTestForm(f => ({ ...f, frequencyHz: e.target.value }))}
-                    placeholder="Ex.: 240"
-                  />
-                </label>
-                <label>
-                  <span>Aparições de Jataís</span>
+                  <span>Aparições com Buzzer LIGADO</span>
                   <input
                     type="number"
                     min="0"
                     step="1"
-                    value={testForm.beeAppearances}
-                    onChange={e => setTestForm(f => ({ ...f, beeAppearances: e.target.value }))}
-                    placeholder="Quantidade observada"
+                    value={testForm.beeAppearancesBuzzerOn}
+                    onChange={e => setTestForm(f => ({ ...f, beeAppearancesBuzzerOn: e.target.value }))}
+                    placeholder="Nº de aparições com buzzer ativo"
+                  />
+                </label>
+                <label>
+                  <span>Aparições com Buzzer DESLIGADO</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={testForm.beeAppearancesBuzzerOff}
+                    onChange={e => setTestForm(f => ({ ...f, beeAppearancesBuzzerOff: e.target.value }))}
+                    placeholder="Nº de aparições sem buzzer (controle)"
                   />
                 </label>
               </div>
+              <label>
+                <span>Horários de Aparição das Abelhas</span>
+                <input
+                  value={testForm.appearanceTimes}
+                  onChange={e => setTestForm(f => ({ ...f, appearanceTimes: e.target.value }))}
+                  placeholder="Ex.: 09:14, 09:27, 09:45"
+                />
+              </label>
               <label>
                 <span>Descrição / Protocolo Aplicado</span>
                 <textarea
@@ -1238,15 +1290,21 @@ export function SeasonProjectView({ user }: { user: AccountUser | null }) {
                               setTestForm({
                                 id: t.id,
                                 date: t.date,
+                                time: t.time || '',
+                                appearanceTimes: t.appearanceTimes || '',
                                 title: t.title,
                                 description: t.description,
                                 weather: t.weather,
                                 temperatureC: t.temperatureC === null ? '' : String(t.temperatureC),
                                 humidityPct: t.humidityPct === null ? '' : String(t.humidityPct),
-                                windKmh: t.windKmh === null ? '' : String(t.windKmh),
-                                buzzerActive: t.buzzerActive === null ? 'na' : t.buzzerActive ? 'sim' : 'nao',
-                                frequencyHz: t.frequencyHz === null ? '' : String(t.frequencyHz),
-                                beeAppearances: t.beeAppearances === null ? '' : String(t.beeAppearances),
+                                beeAppearancesBuzzerOn:
+                                  t.beeAppearancesBuzzerOn === null || t.beeAppearancesBuzzerOn === undefined
+                                    ? ''
+                                    : String(t.beeAppearancesBuzzerOn),
+                                beeAppearancesBuzzerOff:
+                                  t.beeAppearancesBuzzerOff === null || t.beeAppearancesBuzzerOff === undefined
+                                    ? ''
+                                    : String(t.beeAppearancesBuzzerOff),
                                 notes: t.notes,
                                 attachments: t.attachments || []
                               });
@@ -1267,17 +1325,17 @@ export function SeasonProjectView({ user }: { user: AccountUser | null }) {
                     </header>
 
                     <div className="sp-param-badges">
+                      {t.time && <span>🕐 Horário: {t.time}</span>}
                       <span><Sun size={13} /> Clima: {t.weather}</span>
                       <span><Thermometer size={13} /> Temp: {t.temperatureC !== null ? `${t.temperatureC} °C` : '—'}</span>
                       <span><Droplets size={13} /> Umidade: {t.humidityPct !== null ? `${t.humidityPct} %` : '—'}</span>
-                      <span><Wind size={13} /> Vento: {t.windKmh !== null ? `${t.windKmh} km/h` : '—'}</span>
-                      <span>
-                        Buzzer: {t.buzzerActive === null ? '—' : t.buzzerActive ? 'Ligado' : 'Desligado'}
-                        {t.frequencyHz !== null ? ` (${t.frequencyHz} Hz)` : ''}
+                      <span className="highlight">
+                        🐝 Buzzer Ligado: {t.beeAppearancesBuzzerOn !== null && t.beeAppearancesBuzzerOn !== undefined ? t.beeAppearancesBuzzerOn : '—'} aparições
                       </span>
                       <span className="highlight">
-                        Aparições de Jataís: {t.beeAppearances !== null ? t.beeAppearances : '—'}
+                        🔇 Buzzer Desligado: {t.beeAppearancesBuzzerOff !== null && t.beeAppearancesBuzzerOff !== undefined ? t.beeAppearancesBuzzerOff : '—'} aparições
                       </span>
+                      {t.appearanceTimes && <span>⏱ Horários: {t.appearanceTimes}</span>}
                     </div>
 
                     {t.description && <p>{t.description}</p>}
