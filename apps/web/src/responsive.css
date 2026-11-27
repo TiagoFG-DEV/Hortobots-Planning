@@ -1354,15 +1354,28 @@ html, body, #root {
    Lista vertical: imagem grande → título → subtítulo → próximo
    ============================================================ */
 @media (max-width: 900px) and (orientation: portrait) {
-  /* Oculta botões inferiores circulares no retrato (sobrepõem conteúdo) */
+  /* Botões inferiores: fixos na parte inferior da tela, não scrollam */
   .home-bottom-actions {
-    display: none !important;
+    position: fixed !important;
+    bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px)) !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    display: flex !important;
+    gap: 1.25rem !important;
+    z-index: 100 !important;
+    background: rgba(10, 14, 10, 0.72) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    border-radius: 999px !important;
+    padding: 0.55rem 1.25rem !important;
+    border: 1px solid rgba(255,255,255,0.1) !important;
   }
 
+  /* Espaço extra no fundo para os botões fixos não cobrirem os cadernos */
   .home-screen {
     width: 100% !important;
     min-height: 100dvh !important;
-    padding: calc(3.5rem + env(safe-area-inset-top, 0px)) 0 calc(1.5rem + env(safe-area-inset-bottom, 0px)) !important;
+    padding: calc(3.5rem + env(safe-area-inset-top, 0px)) 0 calc(6rem + env(safe-area-inset-bottom, 0px)) !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
@@ -1389,7 +1402,7 @@ html, body, #root {
     padding: 0 1rem !important;
   }
 
-  /* Container dos cadernos: coluna, sem padding lateral */
+  /* Container dos cadernos: coluna vertical */
   .notebook-select.three-notebooks {
     display: flex !important;
     flex-direction: column !important;
@@ -1415,7 +1428,7 @@ html, body, #root {
     text-decoration: none !important;
   }
 
-  /* Imagem do caderno: grande, ocupa quase toda a largura */
+  /* Imagem do caderno: grande */
   .notebook-select.three-notebooks .notebook-logo img {
     width: min(78vw, 320px) !important;
     height: auto !important;
@@ -1425,7 +1438,7 @@ html, body, #root {
     border-radius: 10px !important;
   }
 
-  /* Título do caderno */
+  /* Título */
   .notebook-select.three-notebooks .notebook-logo strong {
     font-size: 1.65rem !important;
     line-height: 1.15 !important;
@@ -1438,29 +1451,38 @@ html, body, #root {
     display: block !important;
     opacity: 0.85 !important;
   }
-}
 
-/* ============================================================
-   HOME MOBILE — PAISAGEM
-   Botões inferiores sobem para o header (mesmo estilo do botão de notificações)
-   ============================================================ */
-@media (orientation: landscape) and (max-height: 500px) {
-  /* Oculta os botões na posição original (bottom) */
-  .home-bottom-actions {
-    display: none !important;
+  /* ── Backgrounds portrait por equipe/contexto ── */
+  /* FLL — verde */
+  #root:has(.shell[data-team='fll']) .app-backdrop,
+  #root:has(.shell[data-modality='fll']) .app-backdrop {
+    background-image: url('/fundo-fll-retrato.jpg') !important;
+    background-size: cover !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
   }
-
-  /* Exibe os botões no header fixo da home em modo paisagem */
-  .home-landscape-header-actions {
-    display: flex !important;
-    gap: 0.5rem !important;
-    align-items: center !important;
+  /* OBR — vermelho */
+  #root:has(.shell[data-team='obr']) .app-backdrop,
+  #root:has(.shell[data-modality='obr']) .app-backdrop {
+    background-image: url('/fundo-obr-retrato.jpg') !important;
+    background-size: cover !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
   }
-}
-
-@media (orientation: portrait), (min-height: 501px) and (orientation: landscape) {
-  .home-landscape-header-actions {
-    display: none !important;
+  /* Under — roxo/rosa */
+  #root:has(.shell[data-team='under']) .app-backdrop,
+  #root:has(.shell[data-modality='under']) .app-backdrop {
+    background-image: url('/fundo-under-retrato.jpg') !important;
+    background-size: cover !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+  }
+  /* Home / neutro — colorido (todos os times) */
+  #root:has(.cover) .app-backdrop {
+    background-image: url('/fundo-neutro-retrato.jpg') !important;
+    background-size: cover !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
   }
 }
 
